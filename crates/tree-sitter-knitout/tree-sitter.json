@@ -1,0 +1,42 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "knitout",
+      "camelcase": "Knitout",
+      "title": "Knitout",
+      "scope": "source.knitout",
+      "file-types": [
+        "k",
+        "knitout"
+      ],
+      "injection-regex": "^knitout$",
+      "class-name": "TreeSitterKnitout"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Knitout (.k) is a file format that can represent low-level knitting machine instructions in a machine-independent way.",
+    "authors": [
+      {
+        "name": "Nat Hurtig",
+        "email": "nhurtig@acm.org",
+        "url": "https://nathurtig.com"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/knitout-tools/knitout-tools"
+    }
+  },
+  "bindings": {
+    "c": false,
+    "go": false,
+    "java": false,
+    "node": false,
+    "python": false,
+    "rust": true,
+    "swift": false,
+    "zig": false
+  }
+}
