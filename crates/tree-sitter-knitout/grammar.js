@@ -23,9 +23,23 @@ export default grammar({
     _newline: _$ => /\r?\n/,
 
     // Knitout files begin with a magic string ;!knitout-VERSION followed by a linefeed. VERSION is an integer indicating the current version.
+    // magic: $ => seq(
+    //   ';!knitout-',
+    //   field('version', $.version)),
+
     magic: $ => seq(
-      ';!knitout-',
-      field('version', $.version)),
+      ';',
+      token.immediate('!knitout-'),
+      field('version', $.version)
+    ),
+
+    // magic: $ => seq(
+    //   alias(token(';'), $.magic_semicolon),
+    //   alias(token.immediate('!'), $.magic_bang),
+    //   alias(token.immediate('knitout'), $.magic_name),
+    //   alias(token.immediate('-'), $.magic_dash),
+    //   field('version', $.version)
+    // )
 
     version: _$ => token.immediate(/\d+/),
 
