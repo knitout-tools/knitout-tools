@@ -14,11 +14,10 @@ knit + f3 1
     name: (header_name)
     value: (header_value))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))))

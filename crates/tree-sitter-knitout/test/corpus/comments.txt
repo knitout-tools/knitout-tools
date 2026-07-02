@@ -28,14 +28,13 @@ knit + f3 1
   (line
     comment: (comment))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))))
 
 ================================================================================
 comment-with-special-characters
@@ -51,14 +50,13 @@ knit + f3 1;trailing: comment; text
     comment: (comment
       text: (comment_text)))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))
     comment: (comment
       text: (comment_text))))
 
@@ -74,36 +72,33 @@ knit + f3 1;!source:missing space
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))
     source_comment: (source_comment
       source: (comment_text)))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))
     comment: (comment
       text: (comment_text)))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))
     comment: (comment
       text: (comment_text))))
 
@@ -121,14 +116,13 @@ knit + f3 1
     comment: (comment
       text: (comment_text)))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))))
 
 ================================================================================
 comments-interspersed-with-headers-and-operations
@@ -151,26 +145,24 @@ tuck - b3 2;!source: main.js:20
     comment: (comment
       text: (comment_text)))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
     comment: (comment
       text: (comment_text)))
   (line
-    operation: (operation
-      (tuck
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))
+    operation: (tuck
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))
     source_comment: (source_comment
       source: (comment_text)))
   (header

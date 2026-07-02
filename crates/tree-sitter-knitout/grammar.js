@@ -39,13 +39,13 @@ export default grammar({
     // After the comment header, all lines in the file contain an (optional) operation followed by an (optional) comment. The operation is everything up to the first ';' character, the comment is everything after
     line: $ => choice(
       field("comment", $.comment),
-      field("operation", $.operation),
+      field("operation", $._operation),
       seq(
-        field("operation", $.operation),
+        field("operation", $._operation),
         field("source_comment", $.source_comment),
       ),
       seq(
-        field("operation", $.operation),
+        field("operation", $._operation),
         field("comment", $.comment),
       )),
 
@@ -63,7 +63,7 @@ export default grammar({
 
     comment_text: _ => /[^\n]+/,
 
-    operation: $ => choice(
+    _operation: $ => choice(
       $.in,
       $.inhook,
       $.releasehook,

@@ -117,7 +117,7 @@
           "name": "operation",
           "content": {
             "type": "SYMBOL",
-            "name": "operation"
+            "name": "_operation"
           }
         },
         {
@@ -128,7 +128,7 @@
               "name": "operation",
               "content": {
                 "type": "SYMBOL",
-                "name": "operation"
+                "name": "_operation"
               }
             },
             {
@@ -149,7 +149,7 @@
               "name": "operation",
               "content": {
                 "type": "SYMBOL",
-                "name": "operation"
+                "name": "_operation"
               }
             },
             {
@@ -229,7 +229,7 @@
       "type": "PATTERN",
       "value": "[^\\n]+"
     },
-    "operation": {
+    "_operation": {
       "type": "CHOICE",
       "members": [
         {

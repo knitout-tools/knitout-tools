@@ -12,30 +12,25 @@ outhook 5
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (in
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (in
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
-    operation: (operation
-      (inhook
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (inhook
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
-    operation: (operation
-      (releasehook
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (releasehook
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
-    operation: (operation
-      (out
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (out
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
-    operation: (operation
-      (outhook
-        carriers: (pos_carrier_set
-          (carrier))))))
+    operation: (outhook
+      carriers: (pos_carrier_set
+        (carrier)))))
 
 ================================================================================
 multiple-carriers
@@ -48,18 +43,16 @@ out 4 5
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (in
-        carriers: (pos_carrier_set
-          (carrier)
-          (carrier)
-          (carrier)))))
+    operation: (in
+      carriers: (pos_carrier_set
+        (carrier)
+        (carrier)
+        (carrier))))
   (line
-    operation: (operation
-      (out
-        carriers: (pos_carrier_set
-          (carrier)
-          (carrier))))))
+    operation: (out
+      carriers: (pos_carrier_set
+        (carrier)
+        (carrier)))))
 
 ================================================================================
 stitch-and-rack
@@ -76,32 +69,26 @@ rack 3.
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (stitch
-        loop_pull: (floating_point)
-        tail_pull: (floating_point))))
+    operation: (stitch
+      loop_pull: (floating_point)
+      tail_pull: (floating_point)))
   (line
-    operation: (operation
-      (stitch
-        loop_pull: (floating_point)
-        tail_pull: (floating_point))))
+    operation: (stitch
+      loop_pull: (floating_point)
+      tail_pull: (floating_point)))
   (line
-    operation: (operation
-      (stitch
-        loop_pull: (floating_point)
-        tail_pull: (floating_point))))
+    operation: (stitch
+      loop_pull: (floating_point)
+      tail_pull: (floating_point)))
   (line
-    operation: (operation
-      (rack
-        offset: (floating_point))))
+    operation: (rack
+      offset: (floating_point)))
   (line
-    operation: (operation
-      (rack
-        offset: (floating_point))))
+    operation: (rack
+      offset: (floating_point)))
   (line
-    operation: (operation
-      (rack
-        offset: (floating_point)))))
+    operation: (rack
+      offset: (floating_point))))
 
 ================================================================================
 knit-tuck-miss-directions-and-optional-carriers
@@ -118,57 +105,51 @@ miss - b3
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier)
-          (carrier)))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)
+        (carrier))))
   (line
-    operation: (operation
-      (tuck
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index)))))
+    operation: (tuck
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))))
   (line
-    operation: (operation
-      (tuck
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          slider: (slider)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (tuck
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        slider: (slider)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
-    operation: (operation
-      (miss
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (miss
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
-    operation: (operation
-      (miss
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))))))
+    operation: (miss
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index)))))
 
 ================================================================================
 split-operation
@@ -182,42 +163,39 @@ split + f0 b0 1 2
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (split
-        direction: (direction)
-        source: (needle
-          bed: (bed)
-          index: (needle_index))
-        destination: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier)))))
+    operation: (split
+      direction: (direction)
+      source: (needle
+        bed: (bed)
+        index: (needle_index))
+      destination: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier))))
   (line
-    operation: (operation
-      (split
-        direction: (direction)
-        source: (needle
-          bed: (bed)
-          slider: (slider)
-          index: (needle_index))
-        destination: (needle
-          bed: (bed)
-          slider: (slider)
-          index: (needle_index)))))
+    operation: (split
+      direction: (direction)
+      source: (needle
+        bed: (bed)
+        slider: (slider)
+        index: (needle_index))
+      destination: (needle
+        bed: (bed)
+        slider: (slider)
+        index: (needle_index))))
   (line
-    operation: (operation
-      (split
-        direction: (direction)
-        source: (needle
-          bed: (bed)
-          index: (needle_index))
-        destination: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier)
-          (carrier))))))
+    operation: (split
+      direction: (direction)
+      source: (needle
+        bed: (bed)
+        index: (needle_index))
+      destination: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)
+        (carrier)))))
 
 ================================================================================
 xfer-operation
@@ -230,25 +208,23 @@ xfer fs3 bs-2
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (xfer
-        source: (needle
-          bed: (bed)
-          index: (needle_index))
-        destination: (needle
-          bed: (bed)
-          index: (needle_index)))))
+    operation: (xfer
+      source: (needle
+        bed: (bed)
+        index: (needle_index))
+      destination: (needle
+        bed: (bed)
+        index: (needle_index))))
   (line
-    operation: (operation
-      (xfer
-        source: (needle
-          bed: (bed)
-          slider: (slider)
-          index: (needle_index))
-        destination: (needle
-          bed: (bed)
-          slider: (slider)
-          index: (needle_index))))))
+    operation: (xfer
+      source: (needle
+        bed: (bed)
+        slider: (slider)
+        index: (needle_index))
+      destination: (needle
+        bed: (bed)
+        slider: (slider)
+        index: (needle_index)))))
 
 ================================================================================
 drop-and-amiss
@@ -261,18 +237,16 @@ amiss bs-5
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (drop
-        needle: (needle
-          bed: (bed)
-          index: (needle_index)))))
+    operation: (drop
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))))
   (line
-    operation: (operation
-      (amiss
-        needle: (needle
-          bed: (bed)
-          slider: (slider)
-          index: (needle_index))))))
+    operation: (amiss
+      needle: (needle
+        bed: (bed)
+        slider: (slider)
+        index: (needle_index)))))
 
 ================================================================================
 pause-operation
@@ -285,11 +259,9 @@ pause
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (pause)))
+    operation: (pause))
   (line
-    operation: (operation
-      (pause))))
+    operation: (pause)))
 
 ================================================================================
 extension-operation
@@ -303,22 +275,19 @@ x-test 1 2.5 foo
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (extension
-        name: (extension_name))))
+    operation: (extension
+      name: (extension_name)))
   (line
-    operation: (operation
-      (extension
-        name: (extension_name)
-        (extension_argument)
-        (extension_argument))))
+    operation: (extension
+      name: (extension_name)
+      (extension_argument)
+      (extension_argument)))
   (line
-    operation: (operation
-      (extension
-        name: (extension_name)
-        (extension_argument)
-        (extension_argument)
-        (extension_argument)))))
+    operation: (extension
+      name: (extension_name)
+      (extension_argument)
+      (extension_argument)
+      (extension_argument))))
 
 ================================================================================
 operation-with-trailing-comment-and-source-comment
@@ -331,24 +300,22 @@ knit - b3 1;!source: file.js:10
 (source_file
   magic: (magic)
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))
     comment: (comment
       text: (comment_text)))
   (line
-    operation: (operation
-      (knit
-        direction: (direction)
-        needle: (needle
-          bed: (bed)
-          index: (needle_index))
-        carriers: (pos_carrier_set
-          (carrier))))
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))
     source_comment: (source_comment
       source: (comment_text))))

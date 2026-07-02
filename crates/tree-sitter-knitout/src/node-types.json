@@ -206,7 +206,67 @@
         "required": false,
         "types": [
           {
-            "type": "operation",
+            "type": "amiss",
+            "named": true
+          },
+          {
+            "type": "drop",
+            "named": true
+          },
+          {
+            "type": "extension",
+            "named": true
+          },
+          {
+            "type": "in",
+            "named": true
+          },
+          {
+            "type": "inhook",
+            "named": true
+          },
+          {
+            "type": "knit",
+            "named": true
+          },
+          {
+            "type": "miss",
+            "named": true
+          },
+          {
+            "type": "out",
+            "named": true
+          },
+          {
+            "type": "outhook",
+            "named": true
+          },
+          {
+            "type": "pause",
+            "named": true
+          },
+          {
+            "type": "rack",
+            "named": true
+          },
+          {
+            "type": "releasehook",
+            "named": true
+          },
+          {
+            "type": "split",
+            "named": true
+          },
+          {
+            "type": "stitch",
+            "named": true
+          },
+          {
+            "type": "tuck",
+            "named": true
+          },
+          {
+            "type": "xfer",
             "named": true
           }
         ]
@@ -293,81 +353,6 @@
           }
         ]
       }
-    }
-  },
-  {
-    "type": "operation",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "amiss",
-          "named": true
-        },
-        {
-          "type": "drop",
-          "named": true
-        },
-        {
-          "type": "extension",
-          "named": true
-        },
-        {
-          "type": "in",
-          "named": true
-        },
-        {
-          "type": "inhook",
-          "named": true
-        },
-        {
-          "type": "knit",
-          "named": true
-        },
-        {
-          "type": "miss",
-          "named": true
-        },
-        {
-          "type": "out",
-          "named": true
-        },
-        {
-          "type": "outhook",
-          "named": true
-        },
-        {
-          "type": "pause",
-          "named": true
-        },
-        {
-          "type": "rack",
-          "named": true
-        },
-        {
-          "type": "releasehook",
-          "named": true
-        },
-        {
-          "type": "split",
-          "named": true
-        },
-        {
-          "type": "stitch",
-          "named": true
-        },
-        {
-          "type": "tuck",
-          "named": true
-        },
-        {
-          "type": "xfer",
-          "named": true
-        }
-      ]
     }
   },
   {
