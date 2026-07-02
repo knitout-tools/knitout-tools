@@ -7,13 +7,13 @@ plain-comment
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  magic: (magic)
   (line
-    (comment
-      (comment_text)))
+    comment: (comment
+      text: (comment_text)))
   (line
-    (comment
-      (comment_text))))
+    comment: (comment
+      text: (comment_text))))
 
 ================================================================================
 empty-comment
@@ -24,17 +24,17 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  magic: (magic)
   (line
-    (comment))
+    comment: (comment))
   (line
-    (operation
+    operation: (operation
       (knit
-        (direction)
-        (needle
-          (bed)
-          (needle_index))
-        (pos_carrier_set
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
           (carrier))))))
 
 ================================================================================
@@ -46,21 +46,21 @@ knit + f3 1;trailing: comment; text
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  magic: (magic)
   (line
-    (comment
-      (comment_text)))
+    comment: (comment
+      text: (comment_text)))
   (line
-    (operation
+    operation: (operation
       (knit
-        (direction)
-        (needle
-          (bed)
-          (needle_index))
-        (pos_carrier_set
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
           (carrier))))
-    (comment
-      (comment_text))))
+    comment: (comment
+      text: (comment_text))))
 
 ================================================================================
 source-comment-requires-exact-prefix
@@ -72,40 +72,40 @@ knit + f3 1;!source:missing space
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  magic: (magic)
   (line
-    (operation
+    operation: (operation
       (knit
-        (direction)
-        (needle
-          (bed)
-          (needle_index))
-        (pos_carrier_set
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
           (carrier))))
-    (source_comment
-      (comment_text)))
+    source_comment: (source_comment
+      source: (comment_text)))
   (line
-    (operation
+    operation: (operation
       (knit
-        (direction)
-        (needle
-          (bed)
-          (needle_index))
-        (pos_carrier_set
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
           (carrier))))
-    (comment
-      (comment_text)))
+    comment: (comment
+      text: (comment_text)))
   (line
-    (operation
+    operation: (operation
       (knit
-        (direction)
-        (needle
-          (bed)
-          (needle_index))
-        (pos_carrier_set
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
           (carrier))))
-    (comment
-      (comment_text))))
+    comment: (comment
+      text: (comment_text))))
 
 ================================================================================
 standalone-source-comment-like-line-without-operation
@@ -116,18 +116,18 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  magic: (magic)
   (line
-    (comment
-      (comment_text)))
+    comment: (comment
+      text: (comment_text)))
   (line
-    (operation
+    operation: (operation
       (knit
-        (direction)
-        (needle
-          (bed)
-          (needle_index))
-        (pos_carrier_set
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
           (carrier))))))
 
 ================================================================================
@@ -143,36 +143,36 @@ tuck - b3 2;!source: main.js:20
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  magic: (magic)
   (header
-    (header_name)
-    (header_value))
+    name: (header_name)
+    value: (header_value))
   (line
-    (comment
-      (comment_text)))
+    comment: (comment
+      text: (comment_text)))
   (line
-    (operation
+    operation: (operation
       (knit
-        (direction)
-        (needle
-          (bed)
-          (needle_index))
-        (pos_carrier_set
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
           (carrier)))))
   (line
-    (comment
-      (comment_text)))
+    comment: (comment
+      text: (comment_text)))
   (line
-    (operation
+    operation: (operation
       (tuck
-        (direction)
-        (needle
-          (bed)
-          (needle_index))
-        (pos_carrier_set
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
           (carrier))))
-    (source_comment
-      (comment_text)))
+    source_comment: (source_comment
+      source: (comment_text)))
   (header
-    (header_name)
-    (header_value)))
+    name: (header_name)
+    value: (header_value)))
