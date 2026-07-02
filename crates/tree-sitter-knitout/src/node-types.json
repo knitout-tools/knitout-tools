@@ -1,0 +1,742 @@
+[
+  {
+    "type": "amiss",
+    "named": true,
+    "fields": {
+      "needle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "bed",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "comment",
+    "named": true,
+    "fields": {
+      "text": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "comment_text",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "comment_text",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "direction",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "drop",
+    "named": true,
+    "fields": {
+      "needle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "extension",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "extension_name",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "extension_argument",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "header",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "header_name",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "header_value",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "header_value",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "in",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "inhook",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "knit",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      },
+      "direction": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "direction",
+            "named": true
+          }
+        ]
+      },
+      "needle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "line",
+    "named": true,
+    "fields": {
+      "comment": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "comment",
+            "named": true
+          }
+        ]
+      },
+      "operation": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "amiss",
+            "named": true
+          },
+          {
+            "type": "drop",
+            "named": true
+          },
+          {
+            "type": "extension",
+            "named": true
+          },
+          {
+            "type": "in",
+            "named": true
+          },
+          {
+            "type": "inhook",
+            "named": true
+          },
+          {
+            "type": "knit",
+            "named": true
+          },
+          {
+            "type": "miss",
+            "named": true
+          },
+          {
+            "type": "out",
+            "named": true
+          },
+          {
+            "type": "outhook",
+            "named": true
+          },
+          {
+            "type": "pause",
+            "named": true
+          },
+          {
+            "type": "rack",
+            "named": true
+          },
+          {
+            "type": "releasehook",
+            "named": true
+          },
+          {
+            "type": "split",
+            "named": true
+          },
+          {
+            "type": "stitch",
+            "named": true
+          },
+          {
+            "type": "tuck",
+            "named": true
+          },
+          {
+            "type": "xfer",
+            "named": true
+          }
+        ]
+      },
+      "source_comment": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "source_comment",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "miss",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      },
+      "direction": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "direction",
+            "named": true
+          }
+        ]
+      },
+      "needle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "needle",
+    "named": true,
+    "fields": {
+      "bed": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bed",
+            "named": true
+          }
+        ]
+      },
+      "index": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle_index",
+            "named": true
+          }
+        ]
+      },
+      "slider": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "slider",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "out",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "outhook",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "pos_carrier_set",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "carrier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "rack",
+    "named": true,
+    "fields": {
+      "offset": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "floating_point",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "releasehook",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "source_comment",
+    "named": true,
+    "fields": {
+      "source": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "comment_text",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "source_file",
+    "named": true,
+    "root": true,
+    "fields": {
+      "magic": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "magic",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "header",
+          "named": true
+        },
+        {
+          "type": "line",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "split",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      },
+      "destination": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      },
+      "direction": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "direction",
+            "named": true
+          }
+        ]
+      },
+      "source": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "stitch",
+    "named": true,
+    "fields": {
+      "loop_pull": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "floating_point",
+            "named": true
+          }
+        ]
+      },
+      "tail_pull": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "floating_point",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "tuck",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      },
+      "direction": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "direction",
+            "named": true
+          }
+        ]
+      },
+      "needle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "xfer",
+    "named": true,
+    "fields": {
+      "destination": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      },
+      "source": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "!source: ",
+    "named": false
+  },
+  {
+    "type": "+",
+    "named": false
+  },
+  {
+    "type": "-",
+    "named": false
+  },
+  {
+    "type": ": ",
+    "named": false
+  },
+  {
+    "type": ";",
+    "named": false
+  },
+  {
+    "type": ";;",
+    "named": false
+  },
+  {
+    "type": "amiss",
+    "named": false
+  },
+  {
+    "type": "b",
+    "named": false
+  },
+  {
+    "type": "carrier",
+    "named": true
+  },
+  {
+    "type": "drop",
+    "named": false
+  },
+  {
+    "type": "extension_argument",
+    "named": true
+  },
+  {
+    "type": "extension_name",
+    "named": true
+  },
+  {
+    "type": "f",
+    "named": false
+  },
+  {
+    "type": "floating_point",
+    "named": true
+  },
+  {
+    "type": "header_name",
+    "named": true
+  },
+  {
+    "type": "in",
+    "named": false
+  },
+  {
+    "type": "inhook",
+    "named": false
+  },
+  {
+    "type": "knit",
+    "named": false
+  },
+  {
+    "type": "magic",
+    "named": true
+  },
+  {
+    "type": "miss",
+    "named": false
+  },
+  {
+    "type": "needle_index",
+    "named": true
+  },
+  {
+    "type": "out",
+    "named": false
+  },
+  {
+    "type": "outhook",
+    "named": false
+  },
+  {
+    "type": "pause",
+    "named": true
+  },
+  {
+    "type": "rack",
+    "named": false
+  },
+  {
+    "type": "releasehook",
+    "named": false
+  },
+  {
+    "type": "slider",
+    "named": true
+  },
+  {
+    "type": "split",
+    "named": false
+  },
+  {
+    "type": "stitch",
+    "named": false
+  },
+  {
+    "type": "tuck",
+    "named": false
+  },
+  {
+    "type": "xfer",
+    "named": false
+  }
+]

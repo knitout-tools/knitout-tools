@@ -1,0 +1,23 @@
+================================================================================
+basic
+================================================================================
+
+;!knitout-2
+;;Carriers: 1
+knit + f3 1
+
+--------------------------------------------------------------------------------
+
+(source_file
+  magic: (magic)
+  (header
+    name: (header_name)
+    value: (header_value))
+  (line
+    operation: (knit
+      direction: (direction)
+      needle: (needle
+        bed: (bed)
+        index: (needle_index))
+      carriers: (pos_carrier_set
+        (carrier)))))

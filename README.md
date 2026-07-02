@@ -24,3 +24,14 @@ Binaries:
 All of the above are currently planned to live in the same repo, but have separate crates (hence separate versioning).
 
 After all that: possibly an algebra-based compiler that does advanced rewrites.
+
+# Building
+Make sure to run `tree-sitter generate` from `crates/tree-sitter-knitout` to regenerate the C code for the parser before running; otherwise changes to `grammar.js` won't be reflected.
+
+# Versioning
+- Last digit for patches (bug fixes, no API change)
+- Second-to-last digit for minor releases (new features, no breaking API changes)
+- Third-to-last digit for major releases (breaking API changes)
+
+There's two things to update when releasing a new version in `tree-sitter-knitout`: the `Cargo.toml` and `tree-sitter.json`.
+
