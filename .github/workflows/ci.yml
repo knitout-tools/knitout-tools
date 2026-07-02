@@ -182,4 +182,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: bash scripts/check-tree-sitter-examples.sh         fi
+      - run: bash scripts/check-tree-sitter-examples.sh
