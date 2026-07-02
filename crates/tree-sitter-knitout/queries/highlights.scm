@@ -57,11 +57,55 @@
 ; ---------------------------------------------------------------------------
 ; Header lines: ;;Name: value
 ; ---------------------------------------------------------------------------
+
 ";;" @comment
-(header
-  name: (header_name) @property
+(extension_header
+  name: (extension_header_name) @property
   ": " @punctuation.delimiter
+  value: (header_value) @string)
+
+; ---------------------------------------------------------------------------
+; Specific headers
+; ---------------------------------------------------------------------------
+(yarn_header
+  "Yarn-" @property
+  carrier: (carrier)
+  ":" @punctuation.delimiter
   value: (header_value) @constant)
+
+(machine_header
+  "Machine" @property
+  ":" @punctuation.delimiter
+  value: (header_value) @constant)
+
+(gauge_header
+  "Gauge" @property
+  ":" @punctuation.delimiter
+  value: (nonneg_integer) @number)
+
+(width_header
+  "Width" @property
+  ":" @punctuation.delimiter
+  value: (nonneg_integer) @number)
+
+(position_header
+  "Position" @property
+  ":" @punctuation.delimiter
+  value: (position_value) @constant.builtin)
+
+(carriers_header
+  "Carriers" @property
+  ":" @punctuation.delimiter)
+
+(rail_definition
+  left: (rail_side)
+  ";" @punctuation.delimiter
+  right: (rail_side))
+
+(rail_side
+  "," @punctuation.delimiter)
+
+(carrier) @variable
 
 ; ---------------------------------------------------------------------------
 ; Comments
