@@ -175,8 +175,16 @@
           "type": "FIELD",
           "name": "text",
           "content": {
-            "type": "SYMBOL",
-            "name": "comment_text"
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "comment_text"
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
           }
         }
       ]
@@ -203,15 +211,23 @@
           "type": "FIELD",
           "name": "source",
           "content": {
-            "type": "SYMBOL",
-            "name": "comment_text"
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "comment_text"
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
           }
         }
       ]
     },
     "comment_text": {
       "type": "PATTERN",
-      "value": "[^\\n]*"
+      "value": "[^\\n]+"
     },
     "operation": {
       "type": "CHOICE",
