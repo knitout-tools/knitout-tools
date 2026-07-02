@@ -19575,7 +19575,8 @@ rack 0
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  (magic
+    (version))
   (header
     (header_name)
     (header_value))

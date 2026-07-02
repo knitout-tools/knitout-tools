@@ -233,7 +233,8 @@ outhook 1
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  (magic
+    (version))
   (header
     (header_name)
     (header_value))
