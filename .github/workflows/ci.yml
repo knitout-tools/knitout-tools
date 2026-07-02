@@ -177,7 +177,7 @@ jobs:
             exit 1
           fi
 
- tree-sitter-examples-tests-check:
+  tree-sitter-examples-tests-check:
     name: tree-sitter examples in sync
     runs-on: ubuntu-latest
     steps:
