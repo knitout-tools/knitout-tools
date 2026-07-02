@@ -1,0 +1,115 @@
+name: CI
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          components: rustfmt
+
+      - run: cargo fmt -- --check
+
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo check (deny warnings)
+        run: cargo check --locked --all-targets
+        env:
+          RUSTFLAGS: -D warnings
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          components: clippy
+      - run: cargo clippy --locked --all-targets -- -D warnings
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo test (deny warnings)
+        run: cargo test --locked --all-targets
+        env:
+          RUSTFLAGS: -D warnings
+
+  test:
+    name: doctest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo test docs (deny warnings)
+        run: cargo test --locked --doc
+        env:
+          RUSTFLAGS: -D warnings
+
+  mutants-diff:
+      name: mutants (diff)
+      runs-on: ubuntu-latest
+
+      if: github.event_name == 'pull_request'
+
+      steps:
+        - uses: actions/checkout@v7
+          with:
+            fetch-depth: 0  # required to diff against base branch
+
+        - uses: dtolnay/rust-toolchain@stable
+        - uses: Swatinem/rust-cache@v2
+        - uses: taiki-e/install-action@cargo-mutants
+
+        - name: compute diff
+          run: |
+            git fetch origin main
+            git diff origin/main...HEAD > diff.patch
+
+        - name: run cargo mutants (diff only)
+          run: |
+            cargo mutants \
+              -j2 \
+              --in-diff diff.patch \
+              --cargo-arg=--locked
+          env:
+            RUSTFLAGS: -D warnings
+
+        - uses: actions/upload-artifact@v7
+          if: always()
+          with:
+            name: mutants-out
+            path: mutants.out/
