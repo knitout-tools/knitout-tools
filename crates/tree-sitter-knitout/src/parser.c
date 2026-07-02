@@ -1044,10 +1044,22 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       END_STATE();
     case 83:
       if (eof) ADVANCE(89);
+      if (lookahead == '\n') ADVANCE(90);
+      if (lookahead == '\r') ADVANCE(2);
+      if (lookahead == '-') ADVANCE(77);
+      if (lookahead == ';') ADVANCE(109);
+      if (lookahead == 'b') ADVANCE(116);
+      if (lookahead == 'f') ADVANCE(115);
+      if (lookahead == 's') ADVANCE(117);
+      if (lookahead == '\t' ||
+          lookahead == ' ') SKIP(85);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(119);
+      END_STATE();
+    case 84:
+      if (eof) ADVANCE(89);
       ADVANCE_MAP(
         '\n', 90,
         '\r', 2,
-        '-', 9,
         '.', 79,
         ';', 110,
         'a', 39,
@@ -1063,21 +1075,10 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
         'x', 7,
       );
       if (lookahead == '\t' ||
-          lookahead == ' ') SKIP(83);
+          lookahead == ' ') SKIP(84);
+      if (lookahead == '+' ||
+          lookahead == '-') ADVANCE(9);
       if (('0' <= lookahead && lookahead <= '9')) ADVANCE(124);
-      END_STATE();
-    case 84:
-      if (eof) ADVANCE(89);
-      if (lookahead == '\n') ADVANCE(90);
-      if (lookahead == '\r') ADVANCE(2);
-      if (lookahead == '-') ADVANCE(77);
-      if (lookahead == ';') ADVANCE(109);
-      if (lookahead == 'b') ADVANCE(116);
-      if (lookahead == 'f') ADVANCE(115);
-      if (lookahead == 's') ADVANCE(117);
-      if (lookahead == '\t' ||
-          lookahead == ' ') SKIP(85);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(119);
       END_STATE();
     case 85:
       if (eof) ADVANCE(89);
@@ -1385,7 +1386,7 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
 static const TSLexerMode ts_lex_modes[STATE_COUNT] = {
   [0] = {.lex_state = 0},
   [1] = {.lex_state = 3},
-  [2] = {.lex_state = 83},
+  [2] = {.lex_state = 84},
   [3] = {.lex_state = 81},
   [4] = {.lex_state = 81},
   [5] = {.lex_state = 81},
@@ -1393,12 +1394,12 @@ static const TSLexerMode ts_lex_modes[STATE_COUNT] = {
   [7] = {.lex_state = 86},
   [8] = {.lex_state = 86},
   [9] = {.lex_state = 81},
-  [10] = {.lex_state = 84},
+  [10] = {.lex_state = 83},
   [11] = {.lex_state = 87},
   [12] = {.lex_state = 86},
   [13] = {.lex_state = 86},
   [14] = {.lex_state = 81},
-  [15] = {.lex_state = 84},
+  [15] = {.lex_state = 83},
   [16] = {.lex_state = 0},
   [17] = {.lex_state = 0},
   [18] = {.lex_state = 0},
@@ -1453,17 +1454,17 @@ static const TSLexerMode ts_lex_modes[STATE_COUNT] = {
   [67] = {.lex_state = 0},
   [68] = {.lex_state = 0},
   [69] = {.lex_state = 0},
-  [70] = {.lex_state = 84},
-  [71] = {.lex_state = 84},
-  [72] = {.lex_state = 84},
+  [70] = {.lex_state = 83},
+  [71] = {.lex_state = 83},
+  [72] = {.lex_state = 83},
   [73] = {.lex_state = 0},
-  [74] = {.lex_state = 83},
-  [75] = {.lex_state = 83},
-  [76] = {.lex_state = 83},
+  [74] = {.lex_state = 84},
+  [75] = {.lex_state = 84},
+  [76] = {.lex_state = 84},
   [77] = {.lex_state = 0},
-  [78] = {.lex_state = 84},
+  [78] = {.lex_state = 83},
   [79] = {.lex_state = 76},
-  [80] = {.lex_state = 84},
+  [80] = {.lex_state = 83},
 };
 
 static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {

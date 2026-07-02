@@ -388,7 +388,7 @@
     },
     "floating_point": {
       "type": "PATTERN",
-      "value": "-?(\\d+(\\.\\d*)?|\\.\\d+)"
+      "value": "[+-]?(\\d+(\\.\\d*)?|\\.\\d+)"
     },
     "in": {
       "type": "SEQ",
