@@ -124,10 +124,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: crates/tree-sitter-knitout/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npx tree-sitter test
 
   tree-sitter-generate-check:
@@ -140,10 +140,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: crates/tree-sitter-knitout/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npx tree-sitter generate
       - name: fail if generate produced changes
         run: |
