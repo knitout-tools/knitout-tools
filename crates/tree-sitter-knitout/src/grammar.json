@@ -61,8 +61,28 @@
       "value": "\\r?\\n"
     },
     "magic": {
-      "type": "PATTERN",
-      "value": ";!knitout-\\d+"
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": ";!knitout-"
+        },
+        {
+          "type": "FIELD",
+          "name": "version",
+          "content": {
+            "type": "SYMBOL",
+            "name": "version"
+          }
+        }
+      ]
+    },
+    "version": {
+      "type": "IMMEDIATE_TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "\\d+"
+      }
     },
     "header": {
       "type": "SEQ",
@@ -332,11 +352,28 @@
       }
     },
     "needle_index": {
-      "type": "IMMEDIATE_TOKEN",
-      "content": {
-        "type": "PATTERN",
-        "value": "-?\\d+"
-      }
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "-"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "IMMEDIATE_TOKEN",
+          "content": {
+            "type": "PATTERN",
+            "value": "\\d+"
+          }
+        }
+      ]
     },
     "needle": {
       "type": "SEQ",

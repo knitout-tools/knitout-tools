@@ -10,7 +10,8 @@ outhook 5
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (in
       carriers: (pos_carrier_set
@@ -41,7 +42,8 @@ out 4 5
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (in
       carriers: (pos_carrier_set
@@ -67,7 +69,8 @@ rack 3.
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (stitch
       loop_pull: (floating_point)
@@ -103,7 +106,8 @@ miss - b3
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (knit
       direction: (direction)
@@ -161,7 +165,8 @@ split + f0 b0 1 2
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (split
       direction: (direction)
@@ -206,7 +211,8 @@ xfer fs3 bs-2
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (xfer
       source: (needle
@@ -235,7 +241,8 @@ amiss bs-5
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (drop
       needle: (needle
@@ -257,7 +264,8 @@ pause
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (pause))
   (line
@@ -273,7 +281,8 @@ x-test 1 2.5 foo
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (extension
       name: (extension_name)))
@@ -298,7 +307,8 @@ knit - b3 1;!source: file.js:10
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (knit
       direction: (direction)
