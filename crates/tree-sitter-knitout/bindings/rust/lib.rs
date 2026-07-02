@@ -5,6 +5,7 @@
 //!
 //! ```
 //! let code = r#"
+//! ;!knitout-2
 //! "#;
 //! let mut parser = tree_sitter::Parser::new();
 //! let language = tree_sitter_knitout::LANGUAGE;
