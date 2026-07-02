@@ -165,3 +165,30 @@ knit + f3 1
     (carriers_header
       value: (carriers_value
         (carrier)))))
+
+================================================================================
+extension-header
+================================================================================
+
+;!knitout-2
+;;X-Carriers: 1
+;;X-Yarn-5 : 1 f32
+;;X-My-Extension: 1 3 3
+
+--------------------------------------------------------------------------------
+
+(source_file
+  magic: (magic
+    version: (version))
+  (header
+    (extension_header
+      name: (extension_header_name)
+      value: (header_value)))
+  (header
+    (extension_header
+      name: (extension_header_name)
+      value: (header_value)))
+  (header
+    (extension_header
+      name: (extension_header_name)
+      value: (header_value))))
