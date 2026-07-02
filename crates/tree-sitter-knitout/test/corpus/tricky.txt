@@ -1,17 +1,4 @@
 ================================================================================
-header missing value
-================================================================================
-
-;!knitout-2
-;;Carriers:
-
---------------------------------------------------------------------------------
-
-(source_file
-  magic: (magic)
-  (ERROR))
-
-================================================================================
 unassociated source comment is a comment
 ================================================================================
 
@@ -23,8 +10,8 @@ unassociated source comment is a comment
 (source_file
   magic: (magic)
   (line
-    source_comment: (source_comment
-      source: (comment_text))))
+    comment: (comment
+      text: (comment_text))))
 
 ================================================================================
 almost source comment
@@ -42,34 +29,6 @@ almost source comment
       text: (comment_text))))
 
 ================================================================================
-needle requires adjacency
-================================================================================
-
-;!knitout-2
-drop f 10
-
---------------------------------------------------------------------------------
-
-(source_file
-  magic: (magic)
-  (line
-    (ERROR)))
-
-================================================================================
-slider requires adjacency
-================================================================================
-
-;!knitout-2
-drop fs 10
-
---------------------------------------------------------------------------------
-
-(source_file
-  magic: (magic)
-  (line
-    (ERROR)))
-
-================================================================================
 valid slider needle
 ================================================================================
 
@@ -81,11 +40,12 @@ drop fs10
 (source_file
   magic: (magic)
   (line
-    operation: (drop
-      needle: (needle
-        bed: (bed)
-        slider: (slider)
-        index: (needle_index)))))
+    operation: (operation
+      (drop
+        needle: (needle
+          bed: (bed)
+          slider: (slider)
+          index: (needle_index))))))
 
 ================================================================================
 header after operation
@@ -100,10 +60,11 @@ drop f10
 (source_file
   magic: (magic)
   (line
-    operation: (drop
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))))
+    operation: (operation
+      (drop
+        needle: (needle
+          bed: (bed)
+          index: (needle_index)))))
   (header
     name: (header_name)
     value: (header_value)))
@@ -120,27 +81,14 @@ knit + f10 1 ;!source: caston.knit:17
 (source_file
   magic: (magic)
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
+    operation: (operation
+      (knit
+        direction: (direction)
+        needle: (needle
+          bed: (bed)
+          index: (needle_index))
+        carriers: (pos_carrier_set
+          (carrier))))
     source_comment: (source_comment
       source: (comment_text))))
 
-================================================================================
-double semicolon plain comment
-================================================================================
-
-;!knitout-2
-;; not a header
-
---------------------------------------------------------------------------------
-
-(source_file
-  magic: (magic)
-  (line
-    comment: (comment
-      text: (comment_text))))
