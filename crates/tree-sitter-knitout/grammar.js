@@ -99,8 +99,8 @@ export default grammar({
     // Carrier names are strings that do not contain the ' '(space), ','(comma), or ';'(semicolon) character
     carrier: _ => /[^ ,;\n]+/,
     pos_carrier_set: $ => repeat1($.carrier),
-    // possibly negative. Either positive digits followed by possibly . with digits, or just a dot followed by positive digits
-    floating_point: _ => /-?(\d+(\.\d*)?|\.\d+)/,
+    // possibly negative or for some reason marked positive. Either positive digits followed by possibly . with digits, or just a dot followed by positive digits
+    floating_point: _ => /[+-]?(\d+(\.\d*)?|\.\d+)/,
 
     in: $ => seq(
       "in",
