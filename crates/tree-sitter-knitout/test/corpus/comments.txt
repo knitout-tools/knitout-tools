@@ -1,0 +1,173 @@
+================================================================================
+plain-comment
+================================================================================
+;!knitout-2
+;this is a comment
+;another comment
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (comment
+      (comment_text)))
+  (line
+    (comment
+      (comment_text))))
+
+================================================================================
+empty-comment
+================================================================================
+;!knitout-2
+;
+knit + f3 1
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (comment
+      (comment_text)))
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))))
+
+================================================================================
+comment-with-special-characters
+================================================================================
+;!knitout-2
+;comment; with; semicolons: and colons
+knit + f3 1;trailing: comment; text
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (comment
+      (comment_text)))
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))
+    (comment
+      (comment_text))))
+
+================================================================================
+source-comment-requires-exact-prefix
+================================================================================
+;!knitout-2
+knit + f3 1;!source: test.js:1
+knit + f3 1;!sourceXYZ not a source comment
+knit + f3 1;!source:missing space
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))
+    (source_comment
+      (comment_text)))
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))
+    (comment
+      (comment_text)))
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))
+    (comment
+      (comment_text))))
+
+================================================================================
+standalone-source-comment-like-line-without-operation
+================================================================================
+;!knitout-2
+;!source: file.js:5
+knit + f3 1
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (comment
+      (comment_text)))
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))))
+
+================================================================================
+comments-interspersed-with-headers-and-operations
+================================================================================
+;!knitout-2
+;;Carriers: 1 2 3
+;a plain comment before any operation
+knit + f3 1
+;a plain comment between operations
+tuck - b3 2;!source: main.js:20
+;;Machine: swgn2
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (header
+    (header_name)
+    (header_value))
+  (line
+    (comment
+      (comment_text)))
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (comment
+      (comment_text)))
+  (line
+    (operation
+      (tuck
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))
+    (source_comment
+      (comment_text)))
+  (header
+    (header_name)
+    (header_value)))
