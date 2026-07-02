@@ -175,4 +175,10 @@ jobs:
           if [ "$CARGO_VERSION" != "$PKG_VERSION" ]; then
             echo "::error::Version mismatch: Cargo.toml=$CARGO_VERSION package.json=$PKG_VERSION"
             exit 1
-          fi
+
+ tree-sitter-examples-tests-check:
+    name: tree-sitter examples in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash scripts/check-tree-sitter-examples.sh         fi
