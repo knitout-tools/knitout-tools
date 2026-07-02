@@ -113,3 +113,66 @@ jobs:
           with:
             name: mutants-out
             path: mutants.out/
+
+  tree-sitter-test:
+    name: tree-sitter test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/tree-sitter-knitout
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: crates/tree-sitter-knitout/package-lock.json
+      - run: npm ci
+      - run: npx tree-sitter test
+
+  tree-sitter-generate-check:
+    name: tree-sitter generate (expect no diff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/tree-sitter-knitout
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: crates/tree-sitter-knitout/package-lock.json
+      - run: npm ci
+      - run: npx tree-sitter generate
+      - name: fail if generate produced changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::'tree-sitter generate' produced changes. Run it locally and commit the result."
+            git status --porcelain
+            git diff
+            exit 1
+          fi
+
+  tree-sitter-version-consistency:
+    name: knitout-tree-sitter Cargo.toml / package.json version match
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/tree-sitter-knitout
+    steps:
+      - uses: actions/checkout@v7
+      - name: compare versions
+        run: |
+          CARGO_VERSION=$(awk -F'"' '/^\[package\]/{f=1} f && /^version *=/{print $2; exit}' Cargo.toml)
+          PKG_VERSION=$(jq -r .version package.json)
+          echo "Cargo.toml:   $CARGO_VERSION"
+          echo "package.json: $PKG_VERSION"
+          if [ -z "$CARGO_VERSION" ] || [ -z "$PKG_VERSION" ]; then
+            echo "::error::Could not read one or both versions"
+            exit 1
+          fi
+          if [ "$CARGO_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Version mismatch: Cargo.toml=$CARGO_VERSION package.json=$PKG_VERSION"
+            exit 1
+          fi
