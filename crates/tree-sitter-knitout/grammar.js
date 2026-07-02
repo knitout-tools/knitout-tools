@@ -161,7 +161,7 @@ export default grammar({
 
       $.pause,
 
-      $.extension
+      $.unknown_extension
     ),
 
     // Parameters
@@ -263,7 +263,7 @@ export default grammar({
 
     pause: _ => "pause",
 
-    extension: $ => seq(
+    unknown_extension: $ => seq(
       field("name", $.extension_name),
       repeat($.extension_argument)
     ),
