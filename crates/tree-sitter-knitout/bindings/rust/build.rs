@@ -1,3 +1,4 @@
+#![allow(clippy::const_is_empty)]
 fn main() {
     let src_dir = std::path::Path::new("src");
 
