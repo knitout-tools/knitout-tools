@@ -43,16 +43,16 @@ drop fs 10
 --------------------------------------------------------------------------------
 
 (source_file
-      magic: (magic)
-      (line
-        operation: (operation
-          (drop
-            needle: (needle
-              bed: (bed)
-              slider: (slider)
-              (ERROR
-                (UNEXPECTED '1'))
-              index: (needle_index))))))
+  magic: (magic)
+  (line
+    operation: (operation
+      (drop
+        needle: (needle
+          bed: (bed)
+          slider: (slider)
+          (ERROR
+            (UNEXPECTED '1'))
+          index: (needle_index))))))
 
 ================================================================================
 double semicolon plain comment
