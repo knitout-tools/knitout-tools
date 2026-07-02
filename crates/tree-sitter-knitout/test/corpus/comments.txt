@@ -7,7 +7,8 @@ plain-comment
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     comment: (comment
       text: (comment_text)))
@@ -24,7 +25,8 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     comment: (comment))
   (line
@@ -45,7 +47,8 @@ knit + f3 1;trailing: comment; text
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     comment: (comment
       text: (comment_text)))
@@ -70,7 +73,8 @@ knit + f3 1;!source:missing space
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (knit
       direction: (direction)
@@ -111,7 +115,8 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     comment: (comment
       text: (comment_text)))
@@ -137,7 +142,8 @@ tuck - b3 2;!source: main.js:20
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (header
     name: (header_name)
     value: (header_value))

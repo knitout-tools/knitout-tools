@@ -284,6 +284,22 @@
     }
   },
   {
+    "type": "magic",
+    "named": true,
+    "fields": {
+      "version": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "version",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "miss",
     "named": true,
     "fields": {
@@ -354,6 +370,11 @@
         ]
       }
     }
+  },
+  {
+    "type": "needle_index",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "out",
@@ -590,6 +611,11 @@
     }
   },
   {
+    "type": "version",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "xfer",
     "named": true,
     "fields": {
@@ -633,6 +659,10 @@
   },
   {
     "type": ";",
+    "named": false
+  },
+  {
+    "type": ";!knitout-",
     "named": false
   },
   {
@@ -688,16 +718,8 @@
     "named": false
   },
   {
-    "type": "magic",
-    "named": true
-  },
-  {
     "type": "miss",
     "named": false
-  },
-  {
-    "type": "needle_index",
-    "named": true
   },
   {
     "type": "out",

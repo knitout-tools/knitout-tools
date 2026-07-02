@@ -9,7 +9,8 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (knit
       direction: (direction)
@@ -51,7 +52,8 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (header
     name: (header_name)
     value: (header_value))
@@ -128,7 +130,8 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic)
+  magic: (magic
+    version: (version))
   (line
     operation: (knit
       direction: (direction)

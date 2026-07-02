@@ -23,8 +23,11 @@ export default grammar({
     _newline: _$ => /\r?\n/,
 
     // Knitout files begin with a magic string ;!knitout-VERSION followed by a linefeed. VERSION is an integer indicating the current version.
-    magic: _$ => /;!knitout-\d+/,
+    magic: $ => seq(
+      ';!knitout-',
+      field('version', $.version)),
 
+    version: _$ => token.immediate(/\d+/),
 
     // Each line in the comment header begins with the string ";;", followed by the header name, followed by the string ": ", followed by the header value.
     header: $ => seq(
@@ -90,7 +93,10 @@ export default grammar({
     direction: _ => choice("+", "-"),
     bed: _ => choice("f", "b"),
     slider: _ => token.immediate("s"), // token.immediate disallows preceding whitespace
-    needle_index: _ => token.immediate(/-?\d+/),
+    needle_index: _$ => seq(
+      optional('-'),
+      token.immediate(/\d+/),
+    ),
     needle: $ => seq(
       field("bed", $.bed),
       field("slider", optional($.slider)),
