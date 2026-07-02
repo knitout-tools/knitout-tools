@@ -473,7 +473,7 @@
     },
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "header",
@@ -481,10 +481,6 @@
         },
         {
           "type": "line",
-          "named": true
-        },
-        {
-          "type": "newline",
           "named": true
         }
       ]
@@ -714,10 +710,6 @@
   },
   {
     "type": "needle_index",
-    "named": true
-  },
-  {
-    "type": "newline",
     "named": true
   },
   {

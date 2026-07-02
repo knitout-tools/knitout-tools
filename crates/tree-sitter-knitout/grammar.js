@@ -14,16 +14,13 @@ export default grammar({
 
   rules: {
     source_file: $ => seq(
-      repeat($.newline), // Allow arbitrary newlines at the start
-      field("magic", $.magic), // Knitout files begin with a magic string...
-      $.newline, // followed by a linefeed.
-      repeat(choice(seq($.header, $.newline), $.newline)), // headers, optionally with empty lines in between
-      repeat(seq($.line, $.newline)), // lines of the main program, optionally with empty lines
-      optional($.line) // not required to end with newline
+      repeat($._newline), // Allow arbitrary _newlines at the start
+      field("magic", $.magic), // Knitout files begin with a magic string followed by a linefeed (executive decision: allow the _newline to be optional).
+      repeat(choice(seq($._newline, choice($.header, $.line)), $._newline)),
     ),
 
     // knitout files use the LF character to terminate lines
-    newline: _$ => /\r?\n/,
+    _newline: _$ => /\r?\n/,
 
     // Knitout files begin with a magic string ;!knitout-VERSION followed by a linefeed. VERSION is an integer indicating the current version.
     magic: _$ => /;!knitout-\d+/,
