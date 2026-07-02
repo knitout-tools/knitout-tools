@@ -31183,7 +31183,8 @@ drop b12
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic)
+  (magic
+    (version))
   (header
     (header_name)
     (header_value))
