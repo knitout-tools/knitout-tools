@@ -127,11 +127,11 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: crates/tree-sitter-knitout/package-lock.json
-      - run: npm ci --ignore-scripts
+      - run: npm ci
       - run: npx tree-sitter test
 
   tree-sitter-generate-check:
-    name: tree-sitter generate (expect no diff)
+    name: tree-sitter generate
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -143,7 +143,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: crates/tree-sitter-knitout/package-lock.json
-      - run: npm ci --ignore-scripts
+      - run: npm ci
       - run: npx tree-sitter generate
       - name: fail if generate produced changes
         run: |
@@ -155,7 +155,7 @@ jobs:
           fi
 
   tree-sitter-version-consistency:
-    name: knitout-tree-sitter Cargo.toml / package.json version match
+    name: knitout-tree-sitter version
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -178,7 +178,7 @@ jobs:
           fi
 
   tree-sitter-examples-tests-check:
-    name: tree-sitter examples in sync
+    name: tree-sitter examples sync
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
