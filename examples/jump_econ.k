@@ -1,0 +1,672 @@
+;!knitout-2
+;;Carriers: 1 2 3 4 5 6 7 8 9 10
+;;Machine: SWG061N2
+rack 0
+inhook 3
+;single bed cast-on
+
+knit - f14 3
+knit - f12 3
+knit - f10 3
+knit + f11 3
+knit + f13 3
+miss + f14 3
+;begin main piece
+;begin jersey
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+;end jersey
+releasehook 3
+x-stitch-number 86
+x-sub-roller-number 2
+;closed tube cast-on
+
+rack 0.25
+knit + f0 3
+knit + b0 3
+knit + f1 3
+knit + b1 3
+knit + f2 3
+knit + b2 3
+knit + f3 3
+knit + b3 3
+knit + f4 3
+knit + b4 3
+knit + f5 3
+knit + b5 3
+knit + f6 3
+knit + b6 3
+knit + f7 3
+knit + b7 3
+knit + f8 3
+knit + b8 3
+knit + f9 3
+knit + b9 3
+knit + f10 3
+knit + b10 3
+knit + f11 3
+knit + b11 3
+knit + f12 3
+knit + b12 3
+knit + f13 3
+knit + b13 3
+knit + f14 3
+knit + b14 3
+rack 0
+;begin main piece
+rack -0.75
+knit - f14 3
+knit - b14 3
+knit - f13 3
+knit - b13 3
+knit - f12 3
+knit - b12 3
+knit - f11 3
+knit - b11 3
+knit - f10 3
+knit - b10 3
+knit - f9 3
+knit - b9 3
+knit - f8 3
+knit - b8 3
+knit - f7 3
+knit - b7 3
+knit - f6 3
+knit - b6 3
+knit - f5 3
+knit - b5 3
+knit - f4 3
+knit - b4 3
+knit - f3 3
+knit - b3 3
+knit - f2 3
+knit - b2 3
+knit - f1 3
+knit - b1 3
+knit - f0 3
+knit - b0 3
+rack 0
+x-loop-start 21
+x-loop-start 11
+x-stitch-number 87
+;begin rib (ffbb)
+
+x-stitch-number 2
+
+xfer b0 f0
+xfer b1 f1
+xfer f2 b2
+xfer f3 b3
+xfer b4 f4
+xfer b5 f5
+xfer f6 b6
+xfer f7 b7
+xfer b8 f8
+xfer b9 f9
+xfer f10 b10
+xfer f11 b11
+xfer b12 f12
+xfer b13 f13
+xfer f14 b14
+
+x-stitch-number 63
+
+knit + f0 3
+knit + f1 3
+knit + b2 3
+knit + b3 3
+knit + f4 3
+knit + f5 3
+knit + b6 3
+knit + b7 3
+knit + f8 3
+knit + f9 3
+knit + b10 3
+knit + b11 3
+knit + f12 3
+knit + f13 3
+knit + b14 3
+knit - b14 3
+knit - f13 3
+knit - f12 3
+knit - b11 3
+knit - b10 3
+knit - f9 3
+knit - f8 3
+knit - b7 3
+knit - b6 3
+knit - f5 3
+knit - f4 3
+knit - b3 3
+knit - b2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + b2 3
+knit + b3 3
+knit + f4 3
+knit + f5 3
+knit + b6 3
+knit + b7 3
+knit + f8 3
+knit + f9 3
+knit + b10 3
+knit + b11 3
+knit + f12 3
+knit + f13 3
+knit + b14 3
+knit - b14 3
+knit - f13 3
+knit - f12 3
+knit - b11 3
+knit - b10 3
+knit - f9 3
+knit - f8 3
+knit - b7 3
+knit - b6 3
+knit - f5 3
+knit - f4 3
+knit - b3 3
+knit - b2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + b2 3
+knit + b3 3
+knit + f4 3
+knit + f5 3
+knit + b6 3
+knit + b7 3
+knit + f8 3
+knit + f9 3
+knit + b10 3
+knit + b11 3
+knit + f12 3
+knit + f13 3
+knit + b14 3
+knit - b14 3
+knit - f13 3
+knit - f12 3
+knit - b11 3
+knit - b10 3
+knit - f9 3
+knit - f8 3
+knit - b7 3
+knit - b6 3
+knit - f5 3
+knit - f4 3
+knit - b3 3
+knit - b2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + b2 3
+knit + b3 3
+knit + f4 3
+knit + f5 3
+knit + b6 3
+knit + b7 3
+knit + f8 3
+knit + f9 3
+knit + b10 3
+knit + b11 3
+knit + f12 3
+knit + f13 3
+knit + b14 3
+knit - b14 3
+knit - f13 3
+knit - f12 3
+knit - b11 3
+knit - b10 3
+knit - f9 3
+knit - f8 3
+knit - b7 3
+knit - b6 3
+knit - f5 3
+knit - f4 3
+knit - b3 3
+knit - b2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + b2 3
+knit + b3 3
+knit + f4 3
+knit + f5 3
+knit + b6 3
+knit + b7 3
+knit + f8 3
+knit + f9 3
+knit + b10 3
+knit + b11 3
+knit + f12 3
+knit + f13 3
+knit + b14 3
+knit - b14 3
+knit - f13 3
+knit - f12 3
+knit - b11 3
+knit - b10 3
+knit - f9 3
+knit - f8 3
+knit - b7 3
+knit - b6 3
+knit - f5 3
+knit - f4 3
+knit - b3 3
+knit - b2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + b2 3
+knit + b3 3
+knit + f4 3
+knit + f5 3
+knit + b6 3
+knit + b7 3
+knit + f8 3
+knit + f9 3
+knit + b10 3
+knit + b11 3
+knit + f12 3
+knit + f13 3
+knit + b14 3
+;end rib
+rack -0.75
+knit - f14 3
+knit - b14 3
+knit - f13 3
+knit - b13 3
+knit - f12 3
+knit - b12 3
+knit - f11 3
+knit - b11 3
+knit - f10 3
+knit - b10 3
+knit - f9 3
+knit - b9 3
+knit - f8 3
+knit - b8 3
+knit - f7 3
+knit - b7 3
+knit - f6 3
+knit - b6 3
+knit - f5 3
+knit - b5 3
+knit - f4 3
+knit - b4 3
+knit - f3 3
+knit - b3 3
+knit - f2 3
+knit - b2 3
+knit - f1 3
+knit - b1 3
+knit - f0 3
+knit - b0 3
+rack 0
+rack 0
+x-loop-end 11
+x-loop-start 12
+
+x-stitch-number 2
+
+xfer b0 f0
+xfer b1 f1
+xfer b2 f2
+xfer b3 f3
+xfer b4 f4
+xfer b5 f5
+xfer b6 f6
+xfer b7 f7
+xfer b8 f8
+xfer b9 f9
+xfer b10 f10
+xfer b11 f11
+xfer b12 f12
+xfer b13 f13
+xfer b14 f14
+
+x-stitch-number 63
+
+;begin jersey
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+;end jersey
+x-loop-end 12
+x-loop-end 21
+;begin jersey
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+knit + f0 3
+knit + f1 3
+knit + f2 3
+knit + f3 3
+knit + f4 3
+knit + f5 3
+knit + f6 3
+knit + f7 3
+knit + f8 3
+knit + f9 3
+knit + f10 3
+knit + f11 3
+knit + f12 3
+knit + f13 3
+knit + f14 3
+knit - f14 3
+knit - f13 3
+knit - f12 3
+knit - f11 3
+knit - f10 3
+knit - f9 3
+knit - f8 3
+knit - f7 3
+knit - f6 3
+knit - f5 3
+knit - f4 3
+knit - f3 3
+knit - f2 3
+knit - f1 3
+knit - f0 3
+;end jersey
+;drop finish
+out 3
+
+drop f0
+drop f1
+drop f2
+drop f3
+drop f4
+drop f5
+drop f6
+drop f7
+drop f8
+drop f9
+drop f10
+drop f11
+drop f12
+drop f13
+drop f14

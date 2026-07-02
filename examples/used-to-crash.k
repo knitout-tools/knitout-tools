@@ -1,0 +1,120 @@
+;!knitout-2
+;;Carriers: 1 2 3 4 5 6 7 8 9 10
+;;Machine: SWGXYZ
+;;Gauge: 15
+;;Width: 271
+;;Position: Keep
+x-presser-mode auto
+inhook 5
+x-stitch-number 7
+knit - f42 5
+knit - f40 5
+knit + f39 5
+knit + f41 5
+knit + f43 5
+tuck + f44 5
+tuck + f45 5
+tuck + f46 5
+drop f46
+drop f45
+drop f44
+knit - f43 5
+knit - f42 5
+knit - f41 5
+knit - f40 5
+knit - f39 5
+knit + f39 5
+knit + f40 5
+knit + f41 5
+knit + f42 5
+knit + f43 5
+tuck + f44 5
+tuck + f45 5
+tuck + f46 5
+drop f46
+drop f45
+drop f44
+knit - f43 5
+knit - f42 5
+knit - f41 5
+knit - f40 5
+knit - f39 5
+knit + f39 5
+knit + f40 5
+knit + f41 5
+knit + f42 5
+knit + f43 5
+tuck + f44 5
+tuck + f45 5
+tuck + f46 5
+drop f46
+drop f45
+drop f44
+knit - f43 5
+knit - f42 5
+knit - f41 5
+knit - f40 5
+knit - f39 5
+knit + f39 5
+knit + f40 5
+knit + f41 5
+knit + f42 5
+knit + f43 5
+tuck + f44 5
+tuck + f45 5
+tuck + f46 5
+drop f46
+drop f45
+drop f44
+releasehook 5
+knit - f43 5
+knit - f42 5
+knit - f41 5
+knit - f40 5
+knit - f39 5
+knit + f39 5
+knit + f40 5
+knit + f41 5
+knit + f42 5
+knit + f43 5
+tuck + f44 5
+tuck + f45 5
+tuck + f46 5
+drop f46
+drop f45
+drop f44
+xfer f42 b42
+xfer f40 b40
+knit - f43 5
+knit - b42 5
+knit - f41 5
+knit - b40 5
+knit - f39 5
+knit + f39 5
+knit + b40 5
+knit + f41 5
+knit + b42 5
+knit + f43 5
+tuck + f44 5
+tuck + f45 5
+tuck + f46 5
+drop f46
+drop f45
+drop f44
+knit - f43 5
+knit - b42 5
+knit - f41 5
+knit - b40 5
+knit - f39 5
+knit + f39 5
+knit + b40 5
+knit + f41 5
+knit + b42 5
+knit + f43 5
+tuck + f44 5
+tuck + f45 5
+tuck + f46 5
+drop f46
+drop f45
+drop f44
+outhook 5

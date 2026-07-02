@@ -1,0 +1,273 @@
+;!knitout-2
+;;Carriers: 1 2 3 4 5 6 7 8 9 10
+;;Machine: SWGXYZ
+;;Gauge: 15
+;;Width: 271
+inhook 1
+tuck - f10 1
+miss - f9 1
+tuck - f8 1
+miss - f7 1
+tuck - f6 1
+miss - f5 1
+tuck - f4 1
+miss - f3 1
+tuck - f2 1
+miss - f1 1
+tuck + f1 1
+miss + f2 1
+tuck + f3 1
+miss + f4 1
+tuck + f5 1
+miss + f6 1
+tuck + f7 1
+miss + f8 1
+tuck + f9 1
+miss + f10 1
+releasehook 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+knit - f10 1
+knit - f9 1
+knit - f8 1
+knit - f7 1
+knit - f6 1
+knit - f5 1
+knit - f4 1
+knit - f3 1
+knit - f2 1
+knit - f1 1
+knit + f1 1
+knit + f2 1
+knit + f3 1
+knit + f4 1
+knit + f5 1
+knit + f6 1
+knit + f7 1
+knit + f8 1
+knit + f9 1
+knit + f10 1
+xfer f10 b10
+rack -1
+xfer b10 f9
+knit - f9 1
+rack 0
+xfer f9 b9
+rack -1
+xfer b9 f8
+knit - f8 1
+rack 0
+xfer f8 b8
+rack -1
+xfer b8 f7
+knit - f7 1
+rack 0
+xfer f7 b7
+rack -1
+xfer b7 f6
+knit - f6 1
+rack 0
+xfer f6 b6
+rack -1
+xfer b6 f5
+knit - f5 1
+rack 0
+xfer f5 b5
+rack -1
+xfer b5 f4
+knit - f4 1
+rack 0
+xfer f4 b4
+rack -1
+xfer b4 f3
+knit - f3 1
+rack 0
+xfer f3 b3
+rack -1
+xfer b3 f2
+knit - f2 1
+rack 0
+xfer f2 b2
+rack -1
+xfer b2 f1
+knit - f1 1
+rack 0
+outhook 1
