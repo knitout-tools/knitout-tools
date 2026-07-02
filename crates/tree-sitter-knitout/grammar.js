@@ -57,7 +57,7 @@ export default grammar({
     // To aid in debugging, a special type of comment is provided that identifies the source code location corresponding to the current line in the knitout file. These "source comments" always begin with the string "!source: ". Anything after this is considered the source location. 
     source_comment: $ => seq(
       ";",
-      "!source: ",
+      token(prec(1, "!source: ")), // token precedence gobbles this up before comments
       field("source", $.comment_text)
     ),
 

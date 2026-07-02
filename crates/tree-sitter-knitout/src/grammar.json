@@ -189,8 +189,15 @@
           "value": ";"
         },
         {
-          "type": "STRING",
-          "value": "!source: "
+          "type": "TOKEN",
+          "content": {
+            "type": "PREC",
+            "value": 1,
+            "content": {
+              "type": "STRING",
+              "value": "!source: "
+            }
+          }
         },
         {
           "type": "FIELD",

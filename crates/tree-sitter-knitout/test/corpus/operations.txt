@@ -1,0 +1,344 @@
+================================================================================
+in-inhook-releasehook-out-outhook
+================================================================================
+;!knitout-2
+in 1
+inhook 2
+releasehook 3
+out 4
+outhook 5
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (in
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (operation
+      (inhook
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (operation
+      (releasehook
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (operation
+      (out
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (operation
+      (outhook
+        (pos_carrier_set
+          (carrier))))))
+
+================================================================================
+multiple-carriers
+================================================================================
+;!knitout-2
+in 1 2 3
+out 4 5
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (in
+        (pos_carrier_set
+          (carrier)
+          (carrier)
+          (carrier)))))
+  (line
+    (operation
+      (out
+        (pos_carrier_set
+          (carrier)
+          (carrier))))))
+
+================================================================================
+stitch-and-rack
+================================================================================
+;!knitout-2
+stitch 1.5 2.5
+stitch -1 -2.5
+stitch .5 3.
+rack -1
+rack .5
+rack 3.
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (stitch
+        (floating_point)
+        (floating_point))))
+  (line
+    (operation
+      (stitch
+        (floating_point)
+        (floating_point))))
+  (line
+    (operation
+      (stitch
+        (floating_point)
+        (floating_point))))
+  (line
+    (operation
+      (rack
+        (floating_point))))
+  (line
+    (operation
+      (rack
+        (floating_point))))
+  (line
+    (operation
+      (rack
+        (floating_point)))))
+
+================================================================================
+knit-tuck-miss-directions-and-optional-carriers
+================================================================================
+;!knitout-2
+knit + f3 1
+knit - b-2 1 2
+tuck + f0
+tuck - bs5 3
+miss + f3 1
+miss - b3
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)
+          (carrier)))))
+  (line
+    (operation
+      (tuck
+        (direction)
+        (needle
+          (bed)
+          (needle_index)))))
+  (line
+    (operation
+      (tuck
+        (direction)
+        (needle
+          (bed)
+          (slider)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (operation
+      (miss
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (operation
+      (miss
+        (direction)
+        (needle
+          (bed)
+          (needle_index))))))
+
+================================================================================
+split-operation
+================================================================================
+;!knitout-2
+split + f3 b3 1
+split - bs3 fs-2
+split + f0 b0 1 2
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (split
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)))))
+  (line
+    (operation
+      (split
+        (direction)
+        (needle
+          (bed)
+          (slider)
+          (needle_index))
+        (needle
+          (bed)
+          (slider)
+          (needle_index)))))
+  (line
+    (operation
+      (split
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)
+          (carrier))))))
+
+================================================================================
+xfer-operation
+================================================================================
+;!knitout-2
+xfer f3 b3
+xfer fs3 bs-2
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (xfer
+        (needle
+          (bed)
+          (needle_index))
+        (needle
+          (bed)
+          (needle_index)))))
+  (line
+    (operation
+      (xfer
+        (needle
+          (bed)
+          (slider)
+          (needle_index))
+        (needle
+          (bed)
+          (slider)
+          (needle_index))))))
+
+================================================================================
+drop-and-amiss
+================================================================================
+;!knitout-2
+drop f3
+amiss bs-5
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (drop
+        (needle
+          (bed)
+          (needle_index)))))
+  (line
+    (operation
+      (amiss
+        (needle
+          (bed)
+          (slider)
+          (needle_index))))))
+
+================================================================================
+pause-operation
+================================================================================
+;!knitout-2
+pause
+pause
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (pause)))
+  (line
+    (operation
+      (pause))))
+
+================================================================================
+extension-operation
+================================================================================
+;!knitout-2
+x-foo
+x-bar arg1 arg2
+x-test 1 2.5 foo
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (extension
+        (extension_name))))
+  (line
+    (operation
+      (extension
+        (extension_name)
+        (extension_argument)
+        (extension_argument))))
+  (line
+    (operation
+      (extension
+        (extension_name)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)))))
+
+================================================================================
+operation-with-trailing-comment-and-source-comment
+================================================================================
+;!knitout-2
+knit + f3 1;comment here
+knit - b3 1;!source: file.js:10
+--------------------------------------------------------------------------------
+(source_file
+  (magic)
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))
+    (comment
+      (comment_text)))
+  (line
+    (operation
+      (knit
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier))))
+    (source_comment
+      (comment_text))))
