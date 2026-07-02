@@ -65,7 +65,14 @@
       "members": [
         {
           "type": "STRING",
-          "value": ";!knitout-"
+          "value": ";"
+        },
+        {
+          "type": "IMMEDIATE_TOKEN",
+          "content": {
+            "type": "STRING",
+            "value": "!knitout-"
+          }
         },
         {
           "type": "FIELD",

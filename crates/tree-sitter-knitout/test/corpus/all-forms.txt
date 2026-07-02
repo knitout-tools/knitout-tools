@@ -1,0 +1,174 @@
+================================================================================
+all knitout forms
+================================================================================
+
+;!knitout-2
+
+;;Machine: SWG091N2
+;;Gauge: 15
+;;Yarn-5: 50-50 Rust
+;;Carriers: 1 2 3 4 5 6 7 8 9 10
+;;Position: Right
+
+in 1 2
+inhook myCarrier
+releasehook 3
+out 4 9 1 ; comment on operation
+outhook 1
+
+; comment without operation
+
+stitch 1.3 -.5;comment without space
+rack +0.75 ;comment with one space
+
+knit + fs-53 3 4; comment with one space
+tuck - bs0 1 myCarrier
+split - f0 f100 3 4 9 ;!source: this is source comment
+
+;;Header-In-The-Middle: value
+
+drop f100
+amiss b-30
+xfer f-53 b-30
+miss + f9 1 2 3
+pause
+x-my-extension 1 - f0 f-43 +0.75 myCarrier
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (magic
+    (version))
+  (header
+    (header_name)
+    (header_value))
+  (header
+    (header_name)
+    (header_value))
+  (header
+    (header_name)
+    (header_value))
+  (header
+    (header_name)
+    (header_value))
+  (header
+    (header_name)
+    (header_value))
+  (line
+    (in
+      (pos_carrier_set
+        (carrier)
+        (carrier))))
+  (line
+    (inhook
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (releasehook
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (out
+      (pos_carrier_set
+        (carrier)
+        (carrier)
+        (carrier)))
+    (comment
+      (comment_text)))
+  (line
+    (outhook
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (comment
+      (comment_text)))
+  (line
+    (stitch
+      (floating_point)
+      (floating_point))
+    (comment
+      (comment_text)))
+  (line
+    (rack
+      (floating_point))
+    (comment
+      (comment_text)))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (slider)
+        (needle_index))
+      (pos_carrier_set
+        (carrier)
+        (carrier)))
+    (comment
+      (comment_text)))
+  (line
+    (tuck
+      (direction)
+      (needle
+        (bed)
+        (slider)
+        (needle_index))
+      (pos_carrier_set
+        (carrier)
+        (carrier))))
+  (line
+    (split
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier)
+        (carrier)
+        (carrier)))
+    (source_comment
+      (comment_text)))
+  (header
+    (header_name)
+    (header_value))
+  (line
+    (drop
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (amiss
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (miss
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier)
+        (carrier)
+        (carrier))))
+  (line
+    (pause))
+  (line
+    (extension
+      (extension_name)
+      (extension_argument)
+      (extension_argument)
+      (extension_argument)
+      (extension_argument)
+      (extension_argument)
+      (extension_argument))))

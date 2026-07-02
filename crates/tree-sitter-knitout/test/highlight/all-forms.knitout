@@ -1,0 +1,145 @@
+ ;!knitout-2
+;^ comment
+; ^ keyword
+;  ^ keyword
+;        ^ keyword
+;         ^ keyword
+;          ^ number
+
+ ;;Machine: SWG091N2
+;^^ comment
+;  ^^^^^^^ property
+;         ^ punctuation.delimiter
+;           ^ constant
+;;Gauge: 15
+;;Yarn-5: 50-50 Rust
+ ;;Carriers: 1 2 3 4 5 6 7 8 9 10
+;^^ comment
+;  ^^^^^^^^ property
+;          ^ punctuation.delimiter
+;            ^^^^^^^^^^^^^^^^^^^^ constant
+;;Position: Right
+
+ in 1 2
+;^^ function.builtin
+;   ^ variable
+;     ^ variable
+ inhook myCarrier
+;^^^^^^ function.builtin
+;       ^^^^^^^^^ variable
+ releasehook 3
+;^ function.builtin
+;            ^ variable
+out 4 9 1 ; comment on operation
+;^ function.builtin
+;   ^ variable
+;     ^ variable
+;       ^ variable
+;         ^ comment
+;            ^ comment
+;                   ^ comment
+;                        ^ comment
+outhook 1
+;^ function.builtin
+;       ^ variable
+
+ ; comment without operation
+;^comment
+;   ^comment
+;            ^comment
+;                   ^comment
+
+stitch 1.3 -.5;comment without space
+;^ function.builtin
+;      ^ number
+;       ^ number
+;        ^ number
+;          ^number
+;           ^ number
+;            ^ number
+;             ^ comment
+;              ^ comment
+rack +0.75 ;comment with one space
+;^ function.builtin
+;    ^ number
+;     ^ number
+;      ^ number
+;       ^ number
+;        ^ number
+;          ^ comment
+;           ^ comment
+
+knit + f-53 3 4; comment with one space
+;^ function.builtin
+;    ^ operator
+;      ^ type
+;       ^ number
+;        ^ number
+;         ^ number
+;           ^ variable
+;             ^ variable
+tuck - bs0 1 myCarrier
+;^ function.builtin
+;    ^ operator
+;      ^ type
+;       ^ type
+;        ^ number
+;          ^ variable
+;             ^ variable
+
+split - f0 f100 3 4 9 ;!source: this is source comment
+;^ function.builtin
+;     ^ operator
+;       ^ type
+;        ^ number
+;          ^ type
+;           ^ number
+;            ^ number
+;             ^ number
+;               ^ variable
+;                 ^ variable
+;                   ^ variable
+;                     ^ comment
+;                      ^ keyword
+;                       ^ keyword
+;                            ^ keyword
+;                             ^ keyword
+;                               ^ comment
+;                                        ^ comment
+
+ ;;Header-In-The-Middle: value
+;^ comment
+; ^ comment
+;  ^ property
+;                     ^ property
+;                      ^ punctuation.delimiter
+;                        ^ constant
+
+drop f100
+;^ function.builtin
+;    ^ type
+;     ^ number
+;      ^ number
+;       ^ number
+amiss b-30
+;^ function.builtin
+;     ^ type
+;      ^ number
+;       ^ number
+;        ^ number
+xfer f-53 b-30
+;^ function.builtin
+miss + f9 1 2 3
+;^ function.builtin
+pause
+;^ function.builtin
+x-my-extension 1 - f0 f-43 +0.75 myCarrier
+;^ function.macro
+;            ^ function.macro
+;              ^ string
+;                ^ string
+;                  ^ string
+;                      ^ string
+;                                 ^ string
+;                           ^ string
+

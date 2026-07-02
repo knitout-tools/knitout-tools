@@ -11,7 +11,8 @@
         "knitout"
       ],
       "injection-regex": "^knitout$",
-      "class-name": "TreeSitterKnitout"
+      "class-name": "TreeSitterKnitout",
+      "highlights": "queries/highlights.scm"
     }
   ],
   "metadata": {
