@@ -21,8 +21,8 @@ outhook 1
 stitch 1.3 -.5;comment without space
 rack +0.75 ;comment with one space
 
-knit + f-53 3 4; comment with one space
-tuck - b0 1 myCarrier
+knit + fs-53 3 4; comment with one space
+tuck - bs0 1 myCarrier
 split - f0 f100 3 4 9 ;!source: this is source comment
 
 ;;Header-In-The-Middle: value
@@ -98,6 +98,7 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
       (direction)
       (needle
         (bed)
+        (slider)
         (needle_index))
       (pos_carrier_set
         (carrier)
@@ -109,6 +110,7 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
       (direction)
       (needle
         (bed)
+        (slider)
         (needle_index))
       (pos_carrier_set
         (carrier)
