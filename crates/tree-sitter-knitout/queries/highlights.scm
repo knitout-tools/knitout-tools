@@ -111,9 +111,11 @@
 (extension_name) @function.macro
 (extension_argument) @string
 
-; ---------------------------------------------------------------------------
-; Field-level fallbacks (helps themes that key off field names too)
-; ---------------------------------------------------------------------------
-(needle bed: (bed) @type)
-(needle slider: (slider) @type)
-(needle index: (needle_index) @number)
+(extension
+  name: (extension_name) @function
+  .
+  (extension_argument) @number
+  .
+  (#eq? @function "x-speed-number")
+  (#match? @number "^[+-]?\\d+$"))
+

@@ -145,8 +145,11 @@ tuck - b3 2;!source: main.js:20
   magic: (magic
     version: (version))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier)
+        (carrier)
+        (carrier))))
   (line
     comment: (comment
       text: (comment_text)))
@@ -172,5 +175,5 @@ tuck - b3 2;!source: main.js:20
     source_comment: (source_comment
       source: (comment_text)))
   (header
-    name: (header_name)
-    value: (header_value)))
+    (machine_header
+      value: (header_value))))

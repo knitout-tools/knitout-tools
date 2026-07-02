@@ -25498,8 +25498,18 @@ drop b12
   (magic
     (version))
   (header
-    (header_name)
-    (header_value))
+    (carriers_header
+      (carriers_value
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier))))
   (line
     (extension
       (extension_name)

@@ -12,8 +12,9 @@ knit + f3 1
   magic: (magic
     version: (version))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (line
     operation: (knit
       direction: (direction)

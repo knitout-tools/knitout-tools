@@ -20,8 +20,9 @@ knit + f3 1
       carriers: (pos_carrier_set
         (carrier))))
   (header
-    name: (header_name)
-    value: (header_value)))
+    (carriers_header
+      value: (carriers_value
+        (carrier)))))
 
 ================================================================================
 headers-interspersed-newlines
@@ -55,17 +56,21 @@ knit + f3 1
   magic: (magic
     version: (version))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (line
     operation: (knit
       direction: (direction)
@@ -141,17 +146,22 @@ knit + f3 1
       carriers: (pos_carrier_set
         (carrier))))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (header
-    name: (header_name)
-    value: (header_value))
+    (carriers_header
+      value: (carriers_value
+        (carrier))))
   (header
-    name: (header_name)
-    value: (header_value)))
+    (carriers_header
+      value: (carriers_value
+        (carrier)))))

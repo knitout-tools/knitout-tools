@@ -142,4 +142,13 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
 ;                      ^ string
 ;                                 ^ string
 ;                           ^ string
-
+x-speed-number -89
+;^ function
+;               ^ number
+x-speed-number foo
+;^ function.macro
+;               ^ string
+x-speed-number -89 7
+;^ function
+;               ^ number
+;                  ^ string

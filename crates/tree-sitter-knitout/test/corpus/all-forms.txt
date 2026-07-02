@@ -25,7 +25,7 @@ knit + fs-53 3 4; comment with one space
 tuck - bs0 1 myCarrier
 split - f0 f100 3 4 9 ;!source: this is source comment
 
-;;Header-In-The-Middle: value
+;;X-Header-In-The-Middle: value
 
 drop f100
 amiss b-30
@@ -40,20 +40,31 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
   (magic
     (version))
   (header
-    (header_name)
-    (header_value))
+    (machine_header
+      (header_value)))
   (header
-    (header_name)
-    (header_value))
+    (gauge_header
+      (nonneg_integer)))
   (header
-    (header_name)
-    (header_value))
+    (yarn_header
+      (carrier)
+      (header_value)))
   (header
-    (header_name)
-    (header_value))
+    (carriers_header
+      (carriers_value
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier))))
   (header
-    (header_name)
-    (header_value))
+    (position_header
+      (position_value)))
   (line
     (in
       (pos_carrier_set
@@ -131,8 +142,9 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
     (source_comment
       (comment_text)))
   (header
-    (header_name)
-    (header_value))
+    (extension_header
+      (extension_header_name)
+      (header_value)))
   (line
     (drop
       (needle

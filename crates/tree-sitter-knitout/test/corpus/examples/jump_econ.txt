@@ -680,11 +680,21 @@ drop f14
   (magic
     (version))
   (header
-    (header_name)
-    (header_value))
+    (carriers_header
+      (carriers_value
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier))))
   (header
-    (header_name)
-    (header_value))
+    (machine_header
+      (header_value)))
   (line
     (rack
       (floating_point)))

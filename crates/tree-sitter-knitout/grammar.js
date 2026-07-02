@@ -23,34 +23,95 @@ export default grammar({
     _newline: _$ => /\r?\n/,
 
     // Knitout files begin with a magic string ;!knitout-VERSION followed by a linefeed. VERSION is an integer indicating the current version.
-    // magic: $ => seq(
-    //   ';!knitout-',
-    //   field('version', $.version)),
-
     magic: $ => seq(
       ';',
       token.immediate('!knitout-'),
       field('version', $.version)
     ),
 
-    // magic: $ => seq(
-    //   alias(token(';'), $.magic_semicolon),
-    //   alias(token.immediate('!'), $.magic_bang),
-    //   alias(token.immediate('knitout'), $.magic_name),
-    //   alias(token.immediate('-'), $.magic_dash),
-    //   field('version', $.version)
-    // )
-
     version: _$ => token.immediate(/\d+/),
 
     // Each line in the comment header begins with the string ";;", followed by the header name, followed by the string ": ", followed by the header value.
-    header: $ => seq(
-      ";;",
-      field("name", $.header_name),
+    header: $ => seq(";;", choice(
+      $.yarn_header,
+      $.machine_header,
+      $.gauge_header,
+      $.width_header,
+      $.position_header,
+      $.carriers_header,
+      $.extension_header
+    )),
+
+    yarn_header: $ => seq(
+      "Yarn-",
+      field("carrier", $.carrier),
+      ":",
+      field("value", $.header_value)
+    ),
+
+    machine_header: $ => seq(
+      "Machine",
+      ":",
+      field("value", $.header_value)
+    ),
+
+    gauge_header: $ => seq(
+      "Gauge",
+      ":",
+      field("value", $.nonneg_integer)
+    ),
+
+    width_header: $ => seq(
+      "Width",
+      ":",
+      field("value", $.nonneg_integer)
+    ),
+
+    position_header: $ => seq(
+      "Position",
+      ":",
+      field("value", $.position_value)
+    ),
+
+    position_value: _$ => choice(
+      "Left",
+      "Center",
+      "Right",
+      "Keep"
+    ),
+
+    nonneg_integer: _$ => /[+]?\d+/,
+
+    carriers_header: $ => seq(
+      "Carriers",
+      ":",
+      field("value", optional($.carriers_value))
+    ),
+
+    carriers_value: $ => repeat1(
+      choice(
+        $.rail_definition,
+        $.carrier
+      )
+    ),
+
+    rail_definition: $ => seq(
+      field("left", $.rail_side),
+      token.immediate(";"),
+      field("right", $.rail_side)
+    ),
+
+    rail_side: $ => seq(
+      $.carrier,
+      repeat(seq(token.immediate(","), $.carrier))
+    ),
+
+    extension_header: $ => seq(
+      field("name", $.extension_header_name),
       ": ",
       field("value", $.header_value)
     ),
-    header_name: _ => /[^:\n]+/,
+    extension_header_name: _ => /X-[^:\n]+/,
     header_value: _ => /[^\n]+/,
 
     // After the comment header, all lines in the file contain an (optional) operation followed by an (optional) comment. The operation is everything up to the first ';' character, the comment is everything after
@@ -107,17 +168,14 @@ export default grammar({
     direction: _ => choice("+", "-"),
     bed: _ => choice("f", "b"),
     slider: _ => token.immediate("s"), // token.immediate disallows preceding whitespace
-    needle_index: _$ => seq(
-      optional('-'),
-      token.immediate(/\d+/),
-    ),
+    needle_index: _$ => token.immediate(/[+-]?\d+/),
     needle: $ => seq(
       field("bed", $.bed),
       field("slider", optional($.slider)),
       field("index", $.needle_index)
     ),
     // Carrier names are strings that do not contain the ' '(space), ','(comma), or ';'(semicolon) character
-    carrier: _ => /[^ ,;\n]+/,
+    carrier: _ => /[^ ,;:\n]+/,
     pos_carrier_set: $ => repeat1($.carrier),
     // possibly negative or for some reason marked positive. Either positive digits followed by possibly . with digits, or just a dot followed by positive digits
     floating_point: _ => /[+-]?(\d+(\.\d*)?|\.\d+)/,
