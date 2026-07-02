@@ -45,7 +45,7 @@ export default grammar({
       field("operation", $.operation),
       seq(
         field("operation", $.operation),
-        field("source-comment", $.source_comment),
+        field("source_comment", $.source_comment),
       ),
       seq(
         field("operation", $.operation),

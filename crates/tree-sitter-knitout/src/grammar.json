@@ -156,7 +156,7 @@
             },
             {
               "type": "FIELD",
-              "name": "source-comment",
+              "name": "source_comment",
               "content": {
                 "type": "SYMBOL",
                 "name": "source_comment"

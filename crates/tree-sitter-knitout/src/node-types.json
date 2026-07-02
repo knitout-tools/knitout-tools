@@ -201,7 +201,7 @@
           }
         ]
       },
-      "source-comment": {
+      "source_comment": {
         "multiple": false,
         "required": false,
         "types": [

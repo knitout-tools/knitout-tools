@@ -500,7 +500,7 @@ enum ts_field_identifiers {
   field_operation = 12,
   field_slider = 13,
   field_source = 14,
-  field_source-comment = 15,
+  field_source_comment = 15,
   field_tail_pull = 16,
   field_text = 17,
   field_value = 18,
@@ -522,7 +522,7 @@ static const char * const ts_field_names[] = {
   [field_operation] = "operation",
   [field_slider] = "slider",
   [field_source] = "source",
-  [field_source-comment] = "source-comment",
+  [field_source_comment] = "source_comment",
   [field_tail_pull] = "tail_pull",
   [field_text] = "text",
   [field_value] = "value",
@@ -576,7 +576,7 @@ static const TSFieldMapEntry ts_field_map_entries[] = {
     {field_operation, 0},
   [11] =
     {field_operation, 0},
-    {field_source-comment, 1},
+    {field_source_comment, 1},
   [13] =
     {field_loop_pull, 1},
     {field_tail_pull, 2},
