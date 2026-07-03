@@ -571,10 +571,9 @@ impl<'s> LowerCtx<'s> {
     }
 
     fn lower_yarn_header(&mut self, node: Node) -> WeakYarnHeader {
-        let carrier = match self.required_field(node, "carrier") {
-            Some(n) => Some(self.lower_carrier_name(n)),
-            None => None,
-        };
+        let carrier = self
+            .required_field(node, "carrier")
+            .map(|n| self.lower_carrier_name(n));
         let value = self
             .required_field(node, "value")
             .map(|n| self.text_of(n).trim().to_owned());
@@ -612,10 +611,9 @@ impl<'s> LowerCtx<'s> {
             Some(n) => Some(self.lower_operation(n)),
         };
 
-        let comment = match node.child_by_field_name("comment") {
-            None => None,
-            Some(n) => Some(self.lower_comment(n)),
-        };
+        let comment = node
+            .child_by_field_name("comment")
+            .map(|n| self.lower_comment(n));
 
         let source = match node.child_by_field_name("source_comment") {
             None => None,
