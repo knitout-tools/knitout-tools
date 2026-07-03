@@ -1,0 +1,7 @@
+[package]
+name = "knitout-semantics"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
