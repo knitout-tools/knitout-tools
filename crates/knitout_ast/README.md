@@ -27,3 +27,9 @@ a "front end" by other knitout projects).
 
 There is support for displaying a knitout AST as a canonical string.
 
+No semantic validation (e.g., needles are aligned during `split`) is provided by
+this crate. Syntactic validation is also not provided outside of the rigid
+program structure; this means, for example, that an `in` operation might be
+constructed with no carriers. However, most syntactic woes are bypassed by the
+use of this crate.
+

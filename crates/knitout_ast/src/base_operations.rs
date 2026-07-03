@@ -1,5 +1,11 @@
-use crate::knitting_types::{Carrier, Direction, Needle};
-use num_rational::Ratio;
+use std::fmt::{Formatter, Result};
+
+use bigdecimal::BigDecimal;
+
+use crate::{
+    knitting_types::{Carrier, Direction, Needle},
+    program::{CarrierTable, DisplayCarrierTable},
+};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BaseOperation {
@@ -19,11 +25,11 @@ pub enum BaseOperation {
         carriers: Vec<Carrier>,
     },
     Stitch {
-        before_pull: Ratio<i32>,
-        after_pull: Ratio<i32>,
+        before_pull: BigDecimal,
+        after_pull: BigDecimal,
     },
     Rack {
-        offset: Ratio<i32>,
+        offset: BigDecimal,
     },
     Knit {
         direction: Direction,
@@ -42,10 +48,91 @@ pub enum BaseOperation {
     },
     Split {
         direction: Direction,
-        soruce: Needle,
+        source: Needle,
         destination: Needle,
         carriers: Vec<Carrier>,
     },
     Pause,
 }
 
+pub fn fmt_carriers(f: &mut Formatter<'_>, carriers: &[Carrier], table: &CarrierTable) -> Result {
+    for (i, carrier) in carriers.iter().enumerate() {
+        if i > 0 {
+            write!(f, " ")?;
+        }
+        carrier.fmt_table(f, table)?;
+    }
+    Ok(())
+}
+
+impl DisplayCarrierTable for BaseOperation {
+    fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
+        match self {
+            BaseOperation::In { carriers } => {
+                write!(f, "in ")?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Inhook { carriers } => {
+                write!(f, "inhook ")?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Releasehook { carriers } => {
+                write!(f, "releasehook ")?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Out { carriers } => {
+                write!(f, "out ")?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Outhook { carriers } => {
+                write!(f, "outhook ")?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Stitch {
+                before_pull,
+                after_pull,
+            } => {
+                write!(f, "stitch {} {}", before_pull, after_pull)
+            }
+            BaseOperation::Rack { offset } => {
+                write!(f, "rack {}", offset)
+            }
+            BaseOperation::Knit {
+                direction,
+                needle,
+                carriers,
+            } => {
+                write!(f, "knit {} {}", direction, needle)?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Tuck {
+                direction,
+                needle,
+                carriers,
+            } => {
+                write!(f, "tuck {} {}", direction, needle)?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Miss {
+                direction,
+                needle,
+                carriers,
+            } => {
+                write!(f, "miss {} {}", direction, needle)?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Split {
+                direction,
+                source: soruce,
+                destination,
+                carriers,
+            } => {
+                write!(f, "split {} {} {} ", direction, soruce, destination)?;
+                fmt_carriers(f, carriers, table)
+            }
+            BaseOperation::Pause => {
+                write!(f, "pause")
+            }
+        }
+    }
+}

@@ -1,6 +1,11 @@
-use crate::knitting_types::{Carrier, Direction, Needle};
+use std::fmt::{Display, Formatter, Result};
 
-use num_rational::Ratio;
+use bigdecimal::BigDecimal;
+
+use crate::{
+    knitting_types::{Carrier, Direction, Needle},
+    program::DisplayCarrierTable,
+};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ExtensionOperation {
@@ -41,10 +46,10 @@ pub enum ExtensionOperation {
     },
     XEnd,
     XRollerAdvance {
-        value: Ratio<i32>,
+        value: BigDecimal,
     },
     XAddRollerAdvance {
-        value: Ratio<i32>,
+        value: BigDecimal,
     },
     XCarrierSpacing {
         value: u32,
@@ -71,8 +76,91 @@ pub enum PresserMode {
     On,
 }
 
+impl Display for PresserMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            PresserMode::Off => write!(f, "Off"),
+            PresserMode::Auto => write!(f, "Auto"),
+            PresserMode::On => write!(f, "On"),
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum XferStyle {
     FourPass,
     TwoPass,
+}
+
+impl Display for XferStyle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            XferStyle::FourPass => write!(f, "FourPass"),
+            XferStyle::TwoPass => write!(f, "TwoPass"),
+        }
+    }
+}
+
+impl DisplayCarrierTable for ExtensionOperation {
+    fn fmt_table(&self, f: &mut Formatter<'_>, table: &crate::program::CarrierTable) -> Result {
+        match self {
+            ExtensionOperation::XStitchNumber { value } => write!(f, "x-stitch-number {}", value),
+            ExtensionOperation::XSpeedNumber { value } => write!(f, "x-speed-number {}", value),
+            ExtensionOperation::XSubRollerNumber { value } => {
+                write!(f, "x-sub-roller-number {}", value)
+            }
+            ExtensionOperation::XPresserMode { mode } => write!(f, "x-presser-mode {}", mode),
+            ExtensionOperation::XXferStitchNumber { value } => {
+                write!(f, "x-xfer-stitch-number {}", value)
+            }
+            ExtensionOperation::XEndPass => write!(f, "x-end-pass"),
+            ExtensionOperation::XVisColor { color, carriers } => {
+                write!(f, "x-vis-color {} ", color)?;
+                crate::base_operations::fmt_carriers(f, carriers, table)
+            }
+            ExtensionOperation::XLoopIn {
+                direction,
+                needle,
+                carriers,
+            } => {
+                write!(f, "x-loop-in {} {} ", direction, needle)?;
+                crate::base_operations::fmt_carriers(f, carriers, table)
+            }
+            ExtensionOperation::XYarnIn {
+                direction,
+                needle,
+                carriers,
+            } => {
+                write!(f, "x-yarn-in {} {} ", direction, needle)?;
+                crate::base_operations::fmt_carriers(f, carriers, table)
+            }
+            ExtensionOperation::XYarnOut {
+                direction,
+                needle,
+                carriers,
+            } => {
+                write!(f, "x-yarn-out {} {} ", direction, needle)?;
+                crate::base_operations::fmt_carriers(f, carriers, table)
+            }
+            ExtensionOperation::XEnd => write!(f, "x-end"),
+            ExtensionOperation::XRollerAdvance { value } => write!(f, "x-roller-advance {}", value),
+            ExtensionOperation::XAddRollerAdvance { value } => {
+                write!(f, "x-add-roller-advance {}", value)
+            }
+            ExtensionOperation::XCarrierSpacing { value } => {
+                write!(f, "x-carrier-spacing {}", value)
+            }
+            ExtensionOperation::XCarrierStoppingDistance { value } => {
+                write!(f, "x-carrier-stopping-distance {}", value)
+            }
+            ExtensionOperation::XXferStyle { style } => write!(f, "x-xfer-style {}", style),
+            ExtensionOperation::UnknownExtension { name, arguments } => {
+                write!(f, "{}", name)?;
+                for arg in arguments {
+                    write!(f, " {}", arg)?;
+                }
+                Ok(())
+            }
+        }
+    }
 }
