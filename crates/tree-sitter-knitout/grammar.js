@@ -161,7 +161,7 @@ export default grammar({
 
       $.pause,
 
-      $.unknown_extension
+      $.extension,
     ),
 
     // Parameters
@@ -263,9 +263,26 @@ export default grammar({
 
     pause: _ => "pause",
 
+
+    extension: $ => choice(
+      $.x_stitch_number,
+      $.x_speed_number,
+      $.unknown_extension,
+    ),
+
     unknown_extension: $ => seq(
       field("name", $.extension_name),
       repeat($.extension_argument)
+    ),
+
+    x_stitch_number: $ => seq(
+      "x-stitch-number",
+      field("number", $.nonneg_integer)
+    ),
+
+    x_speed_number: $ => seq(
+      "x-speed-number",
+      field("number", $.nonneg_integer)
     ),
 
     // no whitespace or comments

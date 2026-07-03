@@ -2714,9 +2714,8 @@ drop f47
         (carrier)
         (carrier))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (inhook
       (pos_carrier_set

@@ -98,6 +98,29 @@
     }
   },
   {
+    "type": "extension",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "unknown_extension",
+          "named": true
+        },
+        {
+          "type": "x_speed_number",
+          "named": true
+        },
+        {
+          "type": "x_stitch_number",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "extension_header",
     "named": true,
     "fields": {
@@ -278,6 +301,10 @@
             "named": true
           },
           {
+            "type": "extension",
+            "named": true
+          },
+          {
             "type": "in",
             "named": true
           },
@@ -323,10 +350,6 @@
           },
           {
             "type": "tuck",
-            "named": true
-          },
-          {
-            "type": "unknown_extension",
             "named": true
           },
           {
@@ -790,6 +813,38 @@
     }
   },
   {
+    "type": "x_speed_number",
+    "named": true,
+    "fields": {
+      "number": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "nonneg_integer",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_stitch_number",
+    "named": true,
+    "fields": {
+      "number": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "nonneg_integer",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "xfer",
     "named": true,
     "fields": {
@@ -1016,6 +1071,14 @@
   {
     "type": "version",
     "named": true
+  },
+  {
+    "type": "x-speed-number",
+    "named": false
+  },
+  {
+    "type": "x-stitch-number",
+    "named": false
   },
   {
     "type": "xfer",

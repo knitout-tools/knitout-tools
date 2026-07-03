@@ -15061,9 +15061,8 @@ rack 0
         (carrier)
         (carrier))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (inhook
       (pos_carrier_set
@@ -15789,9 +15788,8 @@ rack 0
       (pos_carrier_set
         (carrier))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (knit
       (direction)

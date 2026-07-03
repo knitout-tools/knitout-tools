@@ -1250,9 +1250,8 @@ drop f1
       (pos_carrier_set
         (carrier))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (rack
       (floating_point)))
@@ -1340,9 +1339,8 @@ drop f1
     (rack
       (floating_point)))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (knit
       (direction)
@@ -7546,9 +7544,8 @@ drop f1
       (pos_carrier_set
         (carrier))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (knit
       (direction)

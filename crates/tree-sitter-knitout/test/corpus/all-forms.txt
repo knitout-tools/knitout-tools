@@ -32,6 +32,8 @@ amiss b-30
 xfer f-53 b-30
 miss + f9 1 2 3
 pause
+
+x-stitch-number +03
 x-my-extension 1 - f0 f-43 +0.75 myCarrier
 
 --------------------------------------------------------------------------------
@@ -177,10 +179,15 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
     (pause))
   (line
     (extension
-      (extension_name)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument))))
+      (x_stitch_number
+        (nonneg_integer))))
+  (line
+    (extension
+      (unknown_extension
+        (extension_name)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)))))

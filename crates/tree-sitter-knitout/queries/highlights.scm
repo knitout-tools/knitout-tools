@@ -69,7 +69,6 @@
 ; ---------------------------------------------------------------------------
 (yarn_header
   "Yarn-" @property
-  carrier: (carrier)
   ":" @punctuation.delimiter
   value: (header_value) @constant)
 
@@ -80,18 +79,16 @@
 
 (gauge_header
   "Gauge" @property
-  ":" @punctuation.delimiter
-  value: (nonneg_integer) @number)
+  ":" @punctuation.delimiter)
 
 (width_header
   "Width" @property
-  ":" @punctuation.delimiter
-  value: (nonneg_integer) @number)
+  ":" @punctuation.delimiter)
 
 (position_header
   "Position" @property
-  ":" @punctuation.delimiter
-  value: (position_value) @constant.builtin)
+  ":" @punctuation.delimiter)
+(position_value) @constant.builtin
 
 (carriers_header
   "Carriers" @property
@@ -152,14 +149,20 @@
 ; ---------------------------------------------------------------------------
 ; Extensions (x-whatever ...)
 ; ---------------------------------------------------------------------------
+[
+ "x-stitch-number"
+ "x-speed-number"
+] @function.macro
+(nonneg_integer) @number
+
 (extension_name) @function.macro
 (extension_argument) @string
 
-(extension
-  name: (extension_name) @function
-  .
-  (extension_argument) @number
-  .
-  (#eq? @function "x-speed-number")
-  (#match? @number "^[+-]?\\d+$"))
+; (unknown_extension
+;   name: (extension_name) @function
+;   .
+;   (extension_argument) @number
+;   .
+;   (#eq? @function "x-speed-number")
+;   (#match? @number "^[+-]?\\d+$"))
 

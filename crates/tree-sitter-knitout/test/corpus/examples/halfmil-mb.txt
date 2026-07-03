@@ -14908,9 +14908,8 @@ drop f80
         (carrier)
         (carrier))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (inhook
       (pos_carrier_set
@@ -15556,9 +15555,8 @@ drop f80
       (pos_carrier_set
         (carrier))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (knit
       (direction)

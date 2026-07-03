@@ -153,7 +153,7 @@ outhook 5
     (position_header
       (position_value)))
   (line
-    (extension
+    (unknown_extension
       (extension_name)
       (extension_argument)))
   (line
@@ -161,9 +161,8 @@ outhook 5
       (pos_carrier_set
         (carrier))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (knit
       (direction)

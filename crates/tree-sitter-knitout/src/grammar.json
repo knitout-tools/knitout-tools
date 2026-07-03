@@ -598,7 +598,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "unknown_extension"
+          "name": "extension"
         }
       ]
     },
@@ -1056,6 +1056,23 @@
       "type": "STRING",
       "value": "pause"
     },
+    "extension": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "x_stitch_number"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "x_speed_number"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "unknown_extension"
+        }
+      ]
+    },
     "unknown_extension": {
       "type": "SEQ",
       "members": [
@@ -1072,6 +1089,40 @@
           "content": {
             "type": "SYMBOL",
             "name": "extension_argument"
+          }
+        }
+      ]
+    },
+    "x_stitch_number": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "x-stitch-number"
+        },
+        {
+          "type": "FIELD",
+          "name": "number",
+          "content": {
+            "type": "SYMBOL",
+            "name": "nonneg_integer"
+          }
+        }
+      ]
+    },
+    "x_speed_number": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "x-speed-number"
+        },
+        {
+          "type": "FIELD",
+          "name": "number",
+          "content": {
+            "type": "SYMBOL",
+            "name": "nonneg_integer"
           }
         }
       ]

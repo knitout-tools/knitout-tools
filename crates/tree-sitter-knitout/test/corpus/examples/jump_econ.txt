@@ -887,13 +887,261 @@ drop f14
       (pos_carrier_set
         (carrier))))
   (line
-    (extension
+    (x_stitch_number
+      (nonneg_integer)))
+  (line
+    (unknown_extension
       (extension_name)
       (extension_argument)))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (comment
+      (comment_text)))
+  (line
+    (rack
+      (floating_point)))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (rack
+      (floating_point)))
   (line
     (comment
       (comment_text)))
@@ -1144,273 +1392,22 @@ drop f14
     (rack
       (floating_point)))
   (line
-    (comment
-      (comment_text)))
-  (line
-    (rack
-      (floating_point)))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (rack
-      (floating_point)))
-  (line
-    (extension
+    (unknown_extension
       (extension_name)
       (extension_argument)))
   (line
-    (extension
+    (unknown_extension
       (extension_name)
       (extension_argument)))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (comment
       (comment_text)))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (xfer
       (needle
@@ -1532,9 +1529,8 @@ drop f14
         (bed)
         (needle_index))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (knit
       (direction)
@@ -3108,17 +3104,16 @@ drop f14
     (rack
       (floating_point)))
   (line
-    (extension
+    (unknown_extension
       (extension_name)
       (extension_argument)))
   (line
-    (extension
+    (unknown_extension
       (extension_name)
       (extension_argument)))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (xfer
       (needle
@@ -3240,9 +3235,8 @@ drop f14
         (bed)
         (needle_index))))
   (line
-    (extension
-      (extension_name)
-      (extension_argument)))
+    (x_stitch_number
+      (nonneg_integer)))
   (line
     (comment
       (comment_text)))
@@ -4450,11 +4444,11 @@ drop f14
     (comment
       (comment_text)))
   (line
-    (extension
+    (unknown_extension
       (extension_name)
       (extension_argument)))
   (line
-    (extension
+    (unknown_extension
       (extension_name)
       (extension_argument)))
   (line
