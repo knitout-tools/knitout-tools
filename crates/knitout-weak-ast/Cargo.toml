@@ -1,0 +1,11 @@
+[package]
+name = "knitout-weak-ast"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+knitout-ast = { path = "../knitout-ast" }
+tree-sitter = "0.26.10"
+tree-sitter-knitout = { path = "../tree-sitter-knitout" }
+bigdecimal = "0.4.10"
+indexmap = "2.14.0"
