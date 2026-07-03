@@ -2,19 +2,26 @@ use std::fmt::{Display, Error, Formatter, Result};
 
 use crate::program::{CarrierTable, DisplayCarrierTable};
 
-/// A carrier, which is essentially a variable in knitout. Use `CarrierTable` to construct carriers.
+/// A carrier, which is essentially a variable in knitout. Use a `CarrierTable` to construct
+/// carriers. Don't mix carriers from different tables; you will get undefined behavior or panic! if
+/// so. One table, one program, many carriers.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Carrier {
     id: u32,
+    table_id: u32,
 }
 
 impl Carrier {
-    pub(crate) fn new(id: u32) -> Self {
-        Self { id }
+    pub(crate) fn new(id: u32, table_id: u32) -> Self {
+        Self { id, table_id }
     }
 
     pub(crate) fn id(&self) -> u32 {
         self.id
+    }
+
+    pub(crate) fn table_id(&self) -> u32 {
+        self.table_id
     }
 }
 
