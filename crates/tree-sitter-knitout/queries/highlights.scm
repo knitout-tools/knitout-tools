@@ -143,7 +143,7 @@
 ; Needles, indices, carriers, numbers
 ; ---------------------------------------------------------------------------
 (needle_index) @number
-(floating_point) @number
+(rational) @number
 (carrier) @variable
 
 ; ---------------------------------------------------------------------------
