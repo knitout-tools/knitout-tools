@@ -171,7 +171,7 @@
 (x_end_pass) @function.macro
 (x_end) @function.macro
 
-(color) @string
+(color) @constant
 (presser_mode) @constant.builtin
 (xfer_style) @constant.builtin
 

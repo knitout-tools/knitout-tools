@@ -193,16 +193,16 @@ x-end-pass
 
 x-vis-color #ff0000 myCarrier 4 2
 ;^ function.macro
-;           ^ string
+;           ^ constant
                     ; ^       ^ ^ variable
 
 x-vis-color cyan myCarrier 4 2
 ;^ function.macro
-          ;  ^ string
+          ;  ^ constant
 
 x-vis-color (1,2,3) myCarrier 4 2
 ;^ function.macro
-          ; ^ string
+          ; ^ constant
 
 x-loop-in + f-20 myCarrier 3 1
 ; ^ function.macro
