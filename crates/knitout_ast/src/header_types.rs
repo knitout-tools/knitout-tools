@@ -171,7 +171,7 @@ impl Header {
 
 impl DisplayCarrierTable for Header {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
-        write!(f, ";;Carriers: ")?;
+        write!(f, ";;Carriers:")?;
         self.carriers.fmt_table(f, table)?;
         writeln!(f)?;
         for (carrier, color) in &self.yarn {
@@ -198,12 +198,11 @@ impl DisplayCarrierTable for Header {
     }
 }
 
+/// Writes a leading space for all carriers and rails, including the first one!
 impl DisplayCarrierTable for CarriersHeaderValue {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
-        for (i, carrier_or_rail) in self.carriers_and_rails.iter().enumerate() {
-            if i > 0 {
-                write!(f, " ")?;
-            }
+        for carrier_or_rail in self.carriers_and_rails.iter() {
+            write!(f, " ")?;
             carrier_or_rail.fmt_table(f, table)?;
         }
         Ok(())
@@ -375,7 +374,7 @@ mod tests {
         };
         assert_eq!(
             render_carriers_header_value(carriers_header_value, &table),
-            "A A;B B"
+            " A A;B B"
         );
     }
 }

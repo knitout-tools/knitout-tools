@@ -118,7 +118,7 @@ impl Display for Program {
             writeln!(f)?;
             op.fmt_table(f, &self.carrier_table)?;
             if let Some(source) = provenance.source() {
-                writeln!(f, " ;!source: {}", source)?;
+                write!(f, " ;!source: {}", source)?;
             }
         }
         // no newline at end of program
@@ -143,7 +143,8 @@ impl DisplayCarrierTable for Operation {
 #[cfg(test)]
 mod tests {
     use crate::{
-        Bed, CarrierOrRail, Direction, IsSlider, Needle, header_types::CarriersHeaderValue,
+        Bed, CarrierOrRail, Direction, IsSlider, Needle, PositionHeaderValue, Span,
+        header_types::CarriersHeaderValue,
     };
 
     use super::*;
@@ -178,4 +179,47 @@ mod tests {
 
         assert_eq!(program.operations().len(), 1);
     }
+
+    #[test]
+    fn test_program_display() {
+        let mut carrier_table = CarrierTable::new();
+        let carrier_a = carrier_table.make_carrier("A");
+        let carrier_b = carrier_table.make_carrier("B");
+
+        let headers = Header::new(CarriersHeaderValue::new(vec![
+            CarrierOrRail::Carrier(carrier_a),
+            CarrierOrRail::Carrier(carrier_b),
+        ]));
+        let mut program = Program::new(18, headers, carrier_table);
+        program
+            .headers_mut()
+            .set_position(PositionHeaderValue::Left);
+        program.headers_mut().set_gauge(1500);
+
+        program.push_operation(
+            Operation::BaseOperation(BaseOperation::Tuck {
+                direction: Direction::Right,
+                needle: Needle::new(Bed::Front, IsSlider::NotSlider, 5),
+                carriers: vec![carrier_a],
+            }),
+            Provenance::new(Some(Span::new(1, 1)), None),
+        );
+        program.push_operation(
+            Operation::ExtensionOperation(ExtensionOperation::UnknownExtension {
+                name: "x-custom".to_string(),
+                arguments: vec!["arg1".to_string(), "arg2".to_string()],
+            }),
+            Provenance::new(None, Some("test_source".to_string())),
+        );
+
+        let expected_output = ";!knitout-18
+;;Carriers: A B
+;;Gauge: 1500
+;;Position: Left
+
+tuck + f5 A
+x-custom arg1 arg2 ;!source: test_source";
+        assert_eq!(program.to_string(), expected_output);
+    }
 }
+

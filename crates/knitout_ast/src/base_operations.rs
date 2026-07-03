@@ -67,15 +67,14 @@ pub enum BaseOperation {
     },
 }
 
+/// Writes a leading space in front of every carrier, including the first one
 pub(crate) fn fmt_carriers(
     f: &mut Formatter<'_>,
     carriers: &[Carrier],
     table: &CarrierTable,
 ) -> Result {
-    for (i, carrier) in carriers.iter().enumerate() {
-        if i > 0 {
-            write!(f, " ")?;
-        }
+    for carrier in carriers.iter() {
+        write!(f, " ")?;
         carrier.fmt_table(f, table)?;
     }
     Ok(())
@@ -85,23 +84,23 @@ impl DisplayCarrierTable for BaseOperation {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
         match self {
             BaseOperation::In { carriers } => {
-                write!(f, "in ")?;
+                write!(f, "in")?;
                 fmt_carriers(f, carriers, table)
             }
             BaseOperation::Inhook { carriers } => {
-                write!(f, "inhook ")?;
+                write!(f, "inhook")?;
                 fmt_carriers(f, carriers, table)
             }
             BaseOperation::Releasehook { carriers } => {
-                write!(f, "releasehook ")?;
+                write!(f, "releasehook")?;
                 fmt_carriers(f, carriers, table)
             }
             BaseOperation::Out { carriers } => {
-                write!(f, "out ")?;
+                write!(f, "out")?;
                 fmt_carriers(f, carriers, table)
             }
             BaseOperation::Outhook { carriers } => {
-                write!(f, "outhook ")?;
+                write!(f, "outhook")?;
                 fmt_carriers(f, carriers, table)
             }
             BaseOperation::Stitch {
@@ -143,7 +142,7 @@ impl DisplayCarrierTable for BaseOperation {
                 destination,
                 carriers,
             } => {
-                write!(f, "split {} {} {} ", direction, soruce, destination)?;
+                write!(f, "split {} {} {}", direction, soruce, destination)?;
                 fmt_carriers(f, carriers, table)
             }
             BaseOperation::Pause => {
@@ -193,10 +192,10 @@ mod tests {
     }
 
     #[test]
-    fn single_carrier_has_no_leading_space() {
+    fn single_carrier_has_leading_space() {
         let mut table = CarrierTable::new();
         let c = table.make_carrier("1");
-        assert_eq!(render(&[c], &table), "1");
+        assert_eq!(render(&[c], &table), " 1");
     }
 
     #[test]
@@ -205,6 +204,6 @@ mod tests {
         let c1 = table.make_carrier("1");
         let c2 = table.make_carrier("2");
         let c3 = table.make_carrier("3");
-        assert_eq!(render(&[c1, c2, c3], &table), "1 2 3");
+        assert_eq!(render(&[c1, c2, c3], &table), " 1 2 3");
     }
 }

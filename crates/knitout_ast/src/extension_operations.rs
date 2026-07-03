@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter, Result};
 use bigdecimal::BigDecimal;
 
 use crate::{
+    base_operations::fmt_carriers,
     knitting_types::{Carrier, Direction, Needle},
     program::DisplayCarrierTable,
 };
@@ -119,32 +120,32 @@ impl DisplayCarrierTable for ExtensionOperation {
             }
             ExtensionOperation::XEndPass => write!(f, "x-end-pass"),
             ExtensionOperation::XVisColor { color, carriers } => {
-                write!(f, "x-vis-color {} ", color)?;
-                crate::base_operations::fmt_carriers(f, carriers, table)
+                write!(f, "x-vis-color {}", color)?;
+                fmt_carriers(f, carriers, table)
             }
             ExtensionOperation::XLoopIn {
                 direction,
                 needle,
                 carriers,
             } => {
-                write!(f, "x-loop-in {} {} ", direction, needle)?;
-                crate::base_operations::fmt_carriers(f, carriers, table)
+                write!(f, "x-loop-in {} {}", direction, needle)?;
+                fmt_carriers(f, carriers, table)
             }
             ExtensionOperation::XYarnIn {
                 direction,
                 needle,
                 carriers,
             } => {
-                write!(f, "x-yarn-in {} {} ", direction, needle)?;
-                crate::base_operations::fmt_carriers(f, carriers, table)
+                write!(f, "x-yarn-in {} {}", direction, needle)?;
+                fmt_carriers(f, carriers, table)
             }
             ExtensionOperation::XYarnOut {
                 direction,
                 needle,
                 carriers,
             } => {
-                write!(f, "x-yarn-out {} {} ", direction, needle)?;
-                crate::base_operations::fmt_carriers(f, carriers, table)
+                write!(f, "x-yarn-out {} {}", direction, needle)?;
+                fmt_carriers(f, carriers, table)
             }
             ExtensionOperation::XEnd => write!(f, "x-end"),
             ExtensionOperation::XRollerAdvance { value } => write!(f, "x-roller-advance {}", value),
