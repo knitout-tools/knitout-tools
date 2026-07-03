@@ -179,6 +179,26 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_carrier_table_eq() {
+        let mut table1 = CarrierTable::new();
+        let mut table2 = CarrierTable::new();
+
+        table1.make_carrier("A");
+        table1.make_carrier("B");
+
+        table2.make_carrier("A");
+        table2.make_carrier("B");
+
+        assert_eq!(table1, table2);
+
+        // Add a new carrier to table1
+        table1.make_carrier("C");
+
+        // Now the tables should not be equal
+        assert_ne!(table1, table2);
+    }
+
+    #[test]
     fn test_program_getters() {
         let mut carrier_table = CarrierTable::new();
         let carrier_a = carrier_table.make_carrier("A");
