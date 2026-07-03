@@ -110,11 +110,67 @@
           "named": true
         },
         {
+          "type": "x_add_roller_advance",
+          "named": true
+        },
+        {
+          "type": "x_carrier_spacing",
+          "named": true
+        },
+        {
+          "type": "x_carrier_stopping_distance",
+          "named": true
+        },
+        {
+          "type": "x_end",
+          "named": true
+        },
+        {
+          "type": "x_end_pass",
+          "named": true
+        },
+        {
+          "type": "x_loop_in",
+          "named": true
+        },
+        {
+          "type": "x_presser_mode",
+          "named": true
+        },
+        {
+          "type": "x_roller_advance",
+          "named": true
+        },
+        {
           "type": "x_speed_number",
           "named": true
         },
         {
           "type": "x_stitch_number",
+          "named": true
+        },
+        {
+          "type": "x_sub_roller_number",
+          "named": true
+        },
+        {
+          "type": "x_vis_color",
+          "named": true
+        },
+        {
+          "type": "x_xfer_stitch_number",
+          "named": true
+        },
+        {
+          "type": "x_xfer_style",
+          "named": true
+        },
+        {
+          "type": "x_yarn_in",
+          "named": true
+        },
+        {
+          "type": "x_yarn_out",
           "named": true
         }
       ]
@@ -543,6 +599,11 @@
     "fields": {}
   },
   {
+    "type": "presser_mode",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "rack",
     "named": true,
     "fields": {
@@ -813,6 +874,122 @@
     }
   },
   {
+    "type": "x_add_roller_advance",
+    "named": true,
+    "fields": {
+      "amount": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "floating_point",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_carrier_spacing",
+    "named": true,
+    "fields": {
+      "amount": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "nonneg_integer",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_carrier_stopping_distance",
+    "named": true,
+    "fields": {
+      "amount": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "floating_point",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_loop_in",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      },
+      "direction": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "direction",
+            "named": true
+          }
+        ]
+      },
+      "needle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_presser_mode",
+    "named": true,
+    "fields": {
+      "mode": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "presser_mode",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_roller_advance",
+    "named": true,
+    "fields": {
+      "amount": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "floating_point",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "x_speed_number",
     "named": true,
     "fields": {
@@ -845,6 +1022,152 @@
     }
   },
   {
+    "type": "x_sub_roller_number",
+    "named": true,
+    "fields": {
+      "number": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "nonneg_integer",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_vis_color",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      },
+      "color": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "color",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_xfer_stitch_number",
+    "named": true,
+    "fields": {
+      "number": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "nonneg_integer",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_xfer_style",
+    "named": true,
+    "fields": {
+      "style": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "xfer_style",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_yarn_in",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      },
+      "direction": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "direction",
+            "named": true
+          }
+        ]
+      },
+      "needle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "x_yarn_out",
+    "named": true,
+    "fields": {
+      "carriers": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pos_carrier_set",
+            "named": true
+          }
+        ]
+      },
+      "direction": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "direction",
+            "named": true
+          }
+        ]
+      },
+      "needle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "needle",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "xfer",
     "named": true,
     "fields": {
@@ -869,6 +1192,11 @@
         ]
       }
     }
+  },
+  {
+    "type": "xfer_style",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "yarn_header",
@@ -977,11 +1305,19 @@
     "named": false
   },
   {
+    "type": "auto",
+    "named": false
+  },
+  {
     "type": "b",
     "named": false
   },
   {
     "type": "carrier",
+    "named": true
+  },
+  {
+    "type": "color",
     "named": true
   },
   {
@@ -1009,6 +1345,10 @@
     "named": true
   },
   {
+    "type": "four-pass",
+    "named": false
+  },
+  {
     "type": "in",
     "named": false
   },
@@ -1031,6 +1371,14 @@
   {
     "type": "nonneg_integer",
     "named": true
+  },
+  {
+    "type": "off",
+    "named": false
+  },
+  {
+    "type": "on",
+    "named": false
   },
   {
     "type": "out",
@@ -1069,8 +1417,36 @@
     "named": false
   },
   {
+    "type": "two-pass",
+    "named": false
+  },
+  {
     "type": "version",
     "named": true
+  },
+  {
+    "type": "x-add-roller-advance",
+    "named": false
+  },
+  {
+    "type": "x-carrier-spacing",
+    "named": false
+  },
+  {
+    "type": "x-carrier-stopping-distance",
+    "named": false
+  },
+  {
+    "type": "x-loop-in",
+    "named": false
+  },
+  {
+    "type": "x-presser-mode",
+    "named": false
+  },
+  {
+    "type": "x-roller-advance",
+    "named": false
   },
   {
     "type": "x-speed-number",
@@ -1079,6 +1455,38 @@
   {
     "type": "x-stitch-number",
     "named": false
+  },
+  {
+    "type": "x-sub-roller-number",
+    "named": false
+  },
+  {
+    "type": "x-vis-color",
+    "named": false
+  },
+  {
+    "type": "x-xfer-stitch-number",
+    "named": false
+  },
+  {
+    "type": "x-xfer-style",
+    "named": false
+  },
+  {
+    "type": "x-yarn-in",
+    "named": false
+  },
+  {
+    "type": "x-yarn-out",
+    "named": false
+  },
+  {
+    "type": "x_end",
+    "named": true
+  },
+  {
+    "type": "x_end_pass",
+    "named": true
   },
   {
     "type": "xfer",

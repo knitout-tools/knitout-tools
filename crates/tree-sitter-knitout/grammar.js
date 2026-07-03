@@ -267,6 +267,20 @@ export default grammar({
     extension: $ => choice(
       $.x_stitch_number,
       $.x_speed_number,
+      $.x_sub_roller_number,
+      $.x_presser_mode,
+      $.x_xfer_stitch_number,
+      $.x_end_pass,
+      $.x_vis_color,
+      $.x_loop_in,
+      $.x_yarn_in,
+      $.x_yarn_out,
+      $.x_end,
+      $.x_roller_advance,
+      $.x_add_roller_advance,
+      $.x_carrier_spacing,
+      $.x_carrier_stopping_distance,
+      $.x_xfer_style,
       $.unknown_extension,
     ),
 
@@ -283,6 +297,87 @@ export default grammar({
     x_speed_number: $ => seq(
       "x-speed-number",
       field("number", $.nonneg_integer)
+    ),
+
+    x_sub_roller_number: $ => seq(
+      "x-sub-roller-number",
+      field("number", $.nonneg_integer)
+    ),
+
+    x_presser_mode: $ => seq(
+      "x-presser-mode",
+      field("mode", $.presser_mode)
+    ),
+    presser_mode: _$ => choice(
+      "off",
+      "auto",
+      "on"
+    ),
+
+    x_xfer_stitch_number: $ => seq(
+      "x-xfer-stitch-number",
+      field("number", $.nonneg_integer)
+    ),
+
+    x_end_pass: _$ => "x-end-pass",
+
+    x_vis_color: $ => seq(
+      "x-vis-color",
+      field("color", $.color),
+      field("carriers", optional($.pos_carrier_set))
+    ),
+    color: _$ => /[^\s]+/,
+
+    x_loop_in: $ => seq(
+      "x-loop-in",
+      field("direction", $.direction),
+      field("needle", $.needle),
+      field("carriers", $.pos_carrier_set)
+    ),
+
+    x_yarn_in: $ => seq(
+      "x-yarn-in",
+      field("direction", $.direction),
+      field("needle", $.needle),
+      field("carriers", $.pos_carrier_set)
+    ),
+
+    x_yarn_out: $ => seq(
+      "x-yarn-out",
+      field("direction", $.direction),
+      field("needle", $.needle),
+      field("carriers", $.pos_carrier_set)
+    ),
+
+    x_end: _$ => "x-end",
+
+    x_roller_advance: $ => seq(
+      "x-roller-advance",
+      field("amount", $.floating_point)
+    ),
+
+    x_add_roller_advance: $ => seq(
+      "x-add-roller-advance",
+      field("amount", $.floating_point)
+    ),
+
+    x_carrier_spacing: $ => seq(
+      "x-carrier-spacing",
+      field("amount", $.nonneg_integer)
+    ),
+
+    x_carrier_stopping_distance: $ => seq(
+      "x-carrier-stopping-distance",
+      field("amount", $.floating_point)
+    ),
+
+    x_xfer_style: $ => seq(
+      "x-xfer-style",
+      field("style", $.xfer_style)
+    ),
+    xfer_style: _$ => choice(
+      "four-pass",
+      "two-pass"
     ),
 
     // no whitespace or comments
