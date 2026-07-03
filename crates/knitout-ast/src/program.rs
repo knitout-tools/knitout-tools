@@ -79,7 +79,7 @@ impl CarrierTable {
     /// impossible, as as all carriers in a program must be created through the carrier table.
     pub fn carrier_name(&self, carrier: Carrier) -> &str {
         self.carrier_name_option(carrier)
-            .expect("Invalid carrier ID: no name found in carrier table. This is a bug in the knitout_ast crate.")
+            .expect("Invalid carrier ID: no name found in carrier table. Did you use multiple carrier tables when you should have used one?.")
     }
 
     pub(crate) fn carrier_name_option(&self, carrier: Carrier) -> Option<&str> {

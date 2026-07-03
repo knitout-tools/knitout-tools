@@ -1,4 +1,4 @@
-# knitout_ast
+# knitout-ast
 
 A crate that specifies the abstract syntax tree (AST) for the
 [knitout](https://textiles-lab.github.io/knitout/knitout.html) machine
