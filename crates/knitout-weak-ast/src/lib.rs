@@ -6,13 +6,12 @@ mod types;
 pub use diagnostics::ParseDiagnostic;
 pub use lower::lower_cst;
 pub use types::{
-    WeakBaseOperation, WeakBaseOperationKind, WeakBed, WeakCarrierOrRail,
-    WeakCarriersHeader, WeakCarriersValue, WeakComment, WeakDirection,
-    WeakExtensionHeader, WeakExtensionOperation, WeakExtensionOperationKind,
-    WeakGaugeHeader, WeakHeader, WeakHeaderKind, WeakLine, WeakMachineHeader,
-    WeakMagic, WeakNeedle, WeakOperation, WeakPositionHeader, WeakPositionValue,
-    WeakPresserMode, WeakProgram, WeakRail, WeakRailSide, WeakWidthHeader,
-    WeakXferStyle, WeakYarnHeader,
+    WeakBaseOperation, WeakBaseOperationKind, WeakBed, WeakCarrierOrRail, WeakCarriersHeader,
+    WeakCarriersValue, WeakComment, WeakDirection, WeakExtensionHeader, WeakExtensionOperation,
+    WeakExtensionOperationKind, WeakGaugeHeader, WeakHeader, WeakHeaderKind, WeakLine,
+    WeakMachineHeader, WeakMagic, WeakNeedle, WeakOperation, WeakPositionHeader, WeakPositionValue,
+    WeakPresserMode, WeakProgram, WeakRail, WeakRailSide, WeakWidthHeader, WeakXferStyle,
+    WeakYarnHeader,
 };
 
 // Re-export knitout_ast types used in the public surface
@@ -65,7 +64,11 @@ mod tests {
         let line = &prog.lines[0];
         match line.operation.as_ref().unwrap() {
             WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Knit { direction, needle, carriers } => {
+                WeakBaseOperationKind::Knit {
+                    direction,
+                    needle,
+                    carriers,
+                } => {
                     assert_eq!(*direction, WeakDirection::Right);
                     let n = needle.as_ref().unwrap();
                     assert_eq!(n.bed, WeakBed::Front);
@@ -165,7 +168,10 @@ mod tests {
         assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
         match prog.lines[0].operation.as_ref().unwrap() {
             WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Xfer { source, destination } => {
+                WeakBaseOperationKind::Xfer {
+                    source,
+                    destination,
+                } => {
                     assert!(source.is_some());
                     assert!(destination.is_some());
                 }

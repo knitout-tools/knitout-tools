@@ -36,10 +36,7 @@ struct LowerCtx<'s> {
 
 impl<'s> LowerCtx<'s> {
     fn span_of(&self, node: Node) -> Span {
-        Span::new(
-            node.start_byte() as u32,
-            node.end_byte() as u32,
-        )
+        Span::new(node.start_byte() as u32, node.end_byte() as u32)
     }
 
     fn text_of(&self, node: Node) -> &str {
@@ -52,21 +49,17 @@ impl<'s> LowerCtx<'s> {
 
     /// Get a required named field. Emits a diagnostic and returns None if the
     /// field is absent, MISSING, or an ERROR node.
-    fn required_field<'t>(
-        &mut self,
-        parent: Node<'t>,
-        field: &str,
-    ) -> Option<Node<'t>> {
+    fn required_field<'t>(&mut self, parent: Node<'t>, field: &str) -> Option<Node<'t>> {
         match parent.child_by_field_name(field) {
             None => {
-                self.error(self.span_of(parent), format!("missing required field `{field}`"));
+                self.error(
+                    self.span_of(parent),
+                    format!("missing required field `{field}`"),
+                );
                 None
             }
             Some(n) if n.is_missing() => {
-                self.error(
-                    self.span_of(n),
-                    format!("missing `{field}`"),
-                );
+                self.error(self.span_of(n), format!("missing `{field}`"));
                 None
             }
             Some(n) if n.is_error() => {
@@ -79,11 +72,7 @@ impl<'s> LowerCtx<'s> {
 
     /// Get an optional named field. Returns None silently when absent (that
     /// is valid). Emits a diagnostic for MISSING or ERROR nodes.
-    fn optional_field<'t>(
-        &mut self,
-        parent: Node<'t>,
-        field: &str,
-    ) -> Option<Node<'t>> {
+    fn optional_field<'t>(&mut self, parent: Node<'t>, field: &str) -> Option<Node<'t>> {
         match parent.child_by_field_name(field) {
             None => None,
             Some(n) if n.is_missing() => {
@@ -120,7 +109,10 @@ impl<'s> LowerCtx<'s> {
             "-" => WeakDirection::Left,
             _ => {
                 let span = self.span_of(node);
-                self.error(span, format!("unrecognized direction `{}`", self.text_of(node)));
+                self.error(
+                    span,
+                    format!("unrecognized direction `{}`", self.text_of(node)),
+                );
                 WeakDirection::Unknown(span)
             }
         }
@@ -133,7 +125,10 @@ impl<'s> LowerCtx<'s> {
             "on" => WeakPresserMode::On,
             _ => {
                 let span = self.span_of(node);
-                self.error(span, format!("unrecognized presser mode `{}`", self.text_of(node)));
+                self.error(
+                    span,
+                    format!("unrecognized presser mode `{}`", self.text_of(node)),
+                );
                 WeakPresserMode::Unknown(span)
             }
         }
@@ -145,7 +140,10 @@ impl<'s> LowerCtx<'s> {
             "two-pass" => WeakXferStyle::TwoPass,
             _ => {
                 let span = self.span_of(node);
-                self.error(span, format!("unrecognized xfer style `{}`", self.text_of(node)));
+                self.error(
+                    span,
+                    format!("unrecognized xfer style `{}`", self.text_of(node)),
+                );
                 WeakXferStyle::Unknown(span)
             }
         }
@@ -159,7 +157,10 @@ impl<'s> LowerCtx<'s> {
             "Keep" => WeakPositionValue::Keep,
             _ => {
                 let span = self.span_of(node);
-                self.error(span, format!("unrecognized position value `{}`", self.text_of(node)));
+                self.error(
+                    span,
+                    format!("unrecognized position value `{}`", self.text_of(node)),
+                );
                 WeakPositionValue::Unknown(span)
             }
         }
@@ -170,7 +171,10 @@ impl<'s> LowerCtx<'s> {
         match BigDecimal::from_str(text) {
             Ok(v) => Some(v),
             Err(_) => {
-                self.error(self.span_of(node), format!("invalid rational number `{text}`"));
+                self.error(
+                    self.span_of(node),
+                    format!("invalid rational number `{text}`"),
+                );
                 None
             }
         }
@@ -181,7 +185,10 @@ impl<'s> LowerCtx<'s> {
         match text.parse::<u32>() {
             Ok(v) => Some(v),
             Err(_) => {
-                self.error(self.span_of(node), format!("invalid non-negative integer `{text}`"));
+                self.error(
+                    self.span_of(node),
+                    format!("invalid non-negative integer `{text}`"),
+                );
                 None
             }
         }
@@ -202,7 +209,10 @@ impl<'s> LowerCtx<'s> {
             match integer_part.parse() {
                 Ok(v) => v,
                 Err(_) => {
-                    self.error(self.span_of(node), format!("invalid half-integer `{}`", self.text_of(node)));
+                    self.error(
+                        self.span_of(node),
+                        format!("invalid half-integer `{}`", self.text_of(node)),
+                    );
                     return None;
                 }
             }
@@ -248,11 +258,17 @@ impl<'s> LowerCtx<'s> {
             None => None,
         };
 
-        WeakNeedle { span, bed, is_slider, index }
+        WeakNeedle {
+            span,
+            bed,
+            is_slider,
+            index,
+        }
     }
 
     fn lower_required_needle(&mut self, parent: Node, field: &str) -> Option<WeakNeedle> {
-        self.required_field(parent, field).map(|n| self.lower_needle(n))
+        self.required_field(parent, field)
+            .map(|n| self.lower_needle(n))
     }
 
     // -----------------------------------------------------------------------
@@ -298,7 +314,10 @@ impl<'s> LowerCtx<'s> {
             self.error(span, "file could not be parsed");
             return WeakProgram {
                 span,
-                magic: WeakMagic { span, version: None },
+                magic: WeakMagic {
+                    span,
+                    version: None,
+                },
                 headers: Vec::new(),
                 lines: Vec::new(),
                 carrier_table: CarrierTable::new(),
@@ -309,16 +328,25 @@ impl<'s> LowerCtx<'s> {
         let magic = match root.child_by_field_name("magic") {
             Some(n) if n.is_missing() => {
                 self.error(span, "missing magic string `;!knitout-VERSION`");
-                WeakMagic { span, version: None }
+                WeakMagic {
+                    span,
+                    version: None,
+                }
             }
             Some(n) if n.is_error() => {
                 self.error(self.span_of(n), "invalid magic string");
-                WeakMagic { span: self.span_of(n), version: None }
+                WeakMagic {
+                    span: self.span_of(n),
+                    version: None,
+                }
             }
             Some(n) => self.lower_magic(n),
             None => {
                 self.error(span, "missing magic string `;!knitout-VERSION`");
-                WeakMagic { span, version: None }
+                WeakMagic {
+                    span,
+                    version: None,
+                }
             }
         };
 
@@ -339,7 +367,13 @@ impl<'s> LowerCtx<'s> {
         }
 
         let carrier_table = std::mem::replace(&mut self.carrier_table, CarrierTable::new());
-        WeakProgram { span, magic, headers, lines, carrier_table }
+        WeakProgram {
+            span,
+            magic,
+            headers,
+            lines,
+            carrier_table,
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -384,7 +418,10 @@ impl<'s> LowerCtx<'s> {
 
         if node.is_error() {
             self.error(span, "invalid header");
-            return WeakHeader { span, kind: WeakHeaderKind::Unknown };
+            return WeakHeader {
+                span,
+                kind: WeakHeaderKind::Unknown,
+            };
         }
 
         // The `header` node has exactly one named child: the specific header type
@@ -394,11 +431,17 @@ impl<'s> LowerCtx<'s> {
         match child {
             None => {
                 self.error(span, "empty header");
-                WeakHeader { span, kind: WeakHeaderKind::Unknown }
+                WeakHeader {
+                    span,
+                    kind: WeakHeaderKind::Unknown,
+                }
             }
             Some(c) if c.is_error() => {
                 self.error(self.span_of(c), "unrecognized header");
-                WeakHeader { span, kind: WeakHeaderKind::Unknown }
+                WeakHeader {
+                    span,
+                    kind: WeakHeaderKind::Unknown,
+                }
             }
             Some(c) => {
                 let kind = match c.kind() {
@@ -410,7 +453,10 @@ impl<'s> LowerCtx<'s> {
                     "yarn_header" => WeakHeaderKind::Yarn(self.lower_yarn_header(c)),
                     "extension_header" => WeakHeaderKind::Extension(self.lower_extension_header(c)),
                     _ => {
-                        self.error(self.span_of(c), format!("unknown header type `{}`", c.kind()));
+                        self.error(
+                            self.span_of(c),
+                            format!("unknown header type `{}`", c.kind()),
+                        );
                         WeakHeaderKind::Unknown
                     }
                 };
@@ -450,7 +496,10 @@ impl<'s> LowerCtx<'s> {
                         items.push(WeakCarrierOrRail::Rail(self.lower_rail_definition(child)));
                     }
                     _ => {
-                        self.error(self.span_of(child), format!("unexpected node `{}`", child.kind()));
+                        self.error(
+                            self.span_of(child),
+                            format!("unexpected node `{}`", child.kind()),
+                        );
                         items.push(WeakCarrierOrRail::Unknown(self.span_of(child)));
                     }
                 }
@@ -463,11 +512,17 @@ impl<'s> LowerCtx<'s> {
         let span = self.span_of(node);
         let left = match self.required_field(node, "left") {
             Some(n) => self.lower_rail_side(n),
-            None => WeakRailSide { span, carriers: Vec::new() },
+            None => WeakRailSide {
+                span,
+                carriers: Vec::new(),
+            },
         };
         let right = match self.required_field(node, "right") {
             Some(n) => self.lower_rail_side(n),
-            None => WeakRailSide { span, carriers: Vec::new() },
+            None => WeakRailSide {
+                span,
+                carriers: Vec::new(),
+            },
         };
         WeakRail { span, left, right }
     }
@@ -487,13 +542,15 @@ impl<'s> LowerCtx<'s> {
     }
 
     fn lower_gauge_header(&mut self, node: Node) -> WeakGaugeHeader {
-        let value = self.required_field(node, "value")
+        let value = self
+            .required_field(node, "value")
             .and_then(|n| self.lower_nonneg_integer(n));
         WeakGaugeHeader { value }
     }
 
     fn lower_width_header(&mut self, node: Node) -> WeakWidthHeader {
-        let value = self.required_field(node, "value")
+        let value = self
+            .required_field(node, "value")
             .and_then(|n| self.lower_nonneg_integer(n));
         WeakWidthHeader { value }
     }
@@ -507,7 +564,8 @@ impl<'s> LowerCtx<'s> {
     }
 
     fn lower_machine_header(&mut self, node: Node) -> WeakMachineHeader {
-        let value = self.required_field(node, "value")
+        let value = self
+            .required_field(node, "value")
             .map(|n| self.text_of(n).to_owned());
         WeakMachineHeader { value }
     }
@@ -517,15 +575,18 @@ impl<'s> LowerCtx<'s> {
             Some(n) => Some(self.lower_carrier_name(n)),
             None => None,
         };
-        let value = self.required_field(node, "value")
+        let value = self
+            .required_field(node, "value")
             .map(|n| self.text_of(n).trim().to_owned());
         WeakYarnHeader { carrier, value }
     }
 
     fn lower_extension_header(&mut self, node: Node) -> WeakExtensionHeader {
-        let name = self.required_field(node, "name")
+        let name = self
+            .required_field(node, "name")
             .map(|n| self.text_of(n).to_owned());
-        let value = self.required_field(node, "value")
+        let value = self
+            .required_field(node, "value")
             .map(|n| self.text_of(n).trim().to_owned());
         WeakExtensionHeader { name, value }
     }
@@ -561,12 +622,18 @@ impl<'s> LowerCtx<'s> {
             Some(n) => self.lower_source_comment(n),
         };
 
-        WeakLine { span, operation, comment, source }
+        WeakLine {
+            span,
+            operation,
+            comment,
+            source,
+        }
     }
 
     fn lower_comment(&mut self, node: Node) -> WeakComment {
         let span = self.span_of(node);
-        let text = node.child_by_field_name("text")
+        let text = node
+            .child_by_field_name("text")
             .filter(|n| !n.is_missing() && !n.is_error())
             .map(|n| self.text_of(n).to_owned());
         WeakComment { span, text }
@@ -591,9 +658,8 @@ impl<'s> LowerCtx<'s> {
         }
 
         match node.kind() {
-            "in" | "inhook" | "releasehook" | "out" | "outhook"
-            | "stitch" | "rack" | "knit" | "tuck" | "miss" | "split"
-            | "pause" | "drop" | "amiss" | "xfer" => {
+            "in" | "inhook" | "releasehook" | "out" | "outhook" | "stitch" | "rack" | "knit"
+            | "tuck" | "miss" | "split" | "pause" | "drop" | "amiss" | "xfer" => {
                 WeakOperation::Base(self.lower_base_operation(node))
             }
             "extension" => {
@@ -644,14 +710,20 @@ impl<'s> LowerCtx<'s> {
                 carriers: self.lower_required_carrier_set(node, "carriers"),
             },
             "stitch" => {
-                let before_pull = self.required_field(node, "before_pull")
+                let before_pull = self
+                    .required_field(node, "before_pull")
                     .and_then(|n| self.lower_rational(n));
-                let after_pull = self.required_field(node, "after_pull")
+                let after_pull = self
+                    .required_field(node, "after_pull")
                     .and_then(|n| self.lower_rational(n));
-                WeakBaseOperationKind::Stitch { before_pull, after_pull }
+                WeakBaseOperationKind::Stitch {
+                    before_pull,
+                    after_pull,
+                }
             }
             "rack" => {
-                let offset = self.required_field(node, "offset")
+                let offset = self
+                    .required_field(node, "offset")
                     .and_then(|n| self.lower_rational(n));
                 WeakBaseOperationKind::Rack { offset }
             }
@@ -659,26 +731,43 @@ impl<'s> LowerCtx<'s> {
                 let direction = self.lower_direction_field(node);
                 let needle = self.lower_required_needle(node, "needle");
                 let carriers = self.lower_optional_carrier_set(node, "carriers");
-                WeakBaseOperationKind::Knit { direction, needle, carriers }
+                WeakBaseOperationKind::Knit {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "tuck" => {
                 let direction = self.lower_direction_field(node);
                 let needle = self.lower_required_needle(node, "needle");
                 let carriers = self.lower_optional_carrier_set(node, "carriers");
-                WeakBaseOperationKind::Tuck { direction, needle, carriers }
+                WeakBaseOperationKind::Tuck {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "miss" => {
                 let direction = self.lower_direction_field(node);
                 let needle = self.lower_required_needle(node, "needle");
                 let carriers = self.lower_optional_carrier_set(node, "carriers");
-                WeakBaseOperationKind::Miss { direction, needle, carriers }
+                WeakBaseOperationKind::Miss {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "split" => {
                 let direction = self.lower_direction_field(node);
                 let source = self.lower_required_needle(node, "source");
                 let destination = self.lower_required_needle(node, "destination");
                 let carriers = self.lower_optional_carrier_set(node, "carriers");
-                WeakBaseOperationKind::Split { direction, source, destination, carriers }
+                WeakBaseOperationKind::Split {
+                    direction,
+                    source,
+                    destination,
+                    carriers,
+                }
             }
             "pause" => WeakBaseOperationKind::Pause,
             "drop" => WeakBaseOperationKind::Drop {
@@ -711,15 +800,18 @@ impl<'s> LowerCtx<'s> {
         let span = self.span_of(node);
         let kind = match node.kind() {
             "x_stitch_number" => WeakExtensionOperationKind::XStitchNumber {
-                value: self.required_field(node, "number")
+                value: self
+                    .required_field(node, "number")
                     .and_then(|n| self.lower_nonneg_integer(n)),
             },
             "x_speed_number" => WeakExtensionOperationKind::XSpeedNumber {
-                value: self.required_field(node, "number")
+                value: self
+                    .required_field(node, "number")
                     .and_then(|n| self.lower_nonneg_integer(n)),
             },
             "x_sub_roller_number" => WeakExtensionOperationKind::XSubRollerNumber {
-                value: self.required_field(node, "number")
+                value: self
+                    .required_field(node, "number")
                     .and_then(|n| self.lower_nonneg_integer(n)),
             },
             "x_presser_mode" => {
@@ -730,12 +822,14 @@ impl<'s> LowerCtx<'s> {
                 WeakExtensionOperationKind::XPresserMode { mode }
             }
             "x_xfer_stitch_number" => WeakExtensionOperationKind::XXferStitchNumber {
-                value: self.required_field(node, "number")
+                value: self
+                    .required_field(node, "number")
                     .and_then(|n| self.lower_nonneg_integer(n)),
             },
             "x_end_pass" => WeakExtensionOperationKind::XEndPass,
             "x_vis_color" => {
-                let color = self.required_field(node, "color")
+                let color = self
+                    .required_field(node, "color")
                     .map(|n| self.text_of(n).to_owned());
                 let carriers = self.lower_required_carrier_set(node, "carriers");
                 WeakExtensionOperationKind::XVisColor { color, carriers }
@@ -744,35 +838,51 @@ impl<'s> LowerCtx<'s> {
                 let direction = self.lower_direction_field(node);
                 let needle = self.lower_required_needle(node, "needle");
                 let carriers = self.lower_required_carrier_set(node, "carriers");
-                WeakExtensionOperationKind::XLoopIn { direction, needle, carriers }
+                WeakExtensionOperationKind::XLoopIn {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "x_yarn_in" => {
                 let direction = self.lower_direction_field(node);
                 let needle = self.lower_required_needle(node, "needle");
                 let carriers = self.lower_required_carrier_set(node, "carriers");
-                WeakExtensionOperationKind::XYarnIn { direction, needle, carriers }
+                WeakExtensionOperationKind::XYarnIn {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "x_yarn_out" => {
                 let direction = self.lower_direction_field(node);
                 let needle = self.lower_required_needle(node, "needle");
                 let carriers = self.lower_required_carrier_set(node, "carriers");
-                WeakExtensionOperationKind::XYarnOut { direction, needle, carriers }
+                WeakExtensionOperationKind::XYarnOut {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "x_end" => WeakExtensionOperationKind::XEnd,
             "x_roller_advance" => WeakExtensionOperationKind::XRollerAdvance {
-                value: self.required_field(node, "amount")
+                value: self
+                    .required_field(node, "amount")
                     .and_then(|n| self.lower_rational(n)),
             },
             "x_add_roller_advance" => WeakExtensionOperationKind::XAddRollerAdvance {
-                value: self.required_field(node, "amount")
+                value: self
+                    .required_field(node, "amount")
                     .and_then(|n| self.lower_rational(n)),
             },
             "x_carrier_spacing" => WeakExtensionOperationKind::XCarrierSpacing {
-                value: self.required_field(node, "amount")
+                value: self
+                    .required_field(node, "amount")
                     .and_then(|n| self.lower_nonneg_integer(n)),
             },
             "x_carrier_stopping_distance" => WeakExtensionOperationKind::XCarrierStoppingDistance {
-                value: self.required_field(node, "amount")
+                value: self
+                    .required_field(node, "amount")
                     .and_then(|n| self.lower_nonneg_half_integer(n)),
             },
             "x_xfer_style" => {
@@ -783,7 +893,8 @@ impl<'s> LowerCtx<'s> {
                 WeakExtensionOperationKind::XXferStyle { style }
             }
             "unknown_extension" => {
-                let name = self.required_field(node, "name")
+                let name = self
+                    .required_field(node, "name")
                     .map(|n| self.text_of(n).to_owned());
                 let mut arguments = Vec::new();
                 let mut cursor = node.walk();
