@@ -10036,8 +10036,9 @@ drop f80
     (position_header
       (position_value)))
   (line
-    (x_stitch_number
-      (nonneg_integer)))
+    (extension
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (inhook
       (pos_carrier_set
@@ -10683,8 +10684,9 @@ drop f80
       (pos_carrier_set
         (carrier))))
   (line
-    (x_stitch_number
-      (nonneg_integer)))
+    (extension
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)

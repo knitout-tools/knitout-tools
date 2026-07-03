@@ -22007,8 +22007,9 @@ drop b12
         (carrier)
         (carrier))))
   (line
-    (x_stitch_number
-      (nonneg_integer)))
+    (extension
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (inhook
       (pos_carrier_set
@@ -22690,8 +22691,9 @@ drop b12
       (pos_carrier_set
         (carrier))))
   (line
-    (x_stitch_number
-      (nonneg_integer)))
+    (extension
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)
@@ -46087,9 +46089,9 @@ drop b12
     (rack
       (floating_point)))
   (line
-    (unknown_extension
-      (extension_name)
-      (extension_argument)))
+    (extension
+      (x_presser_mode
+        (presser_mode))))
   (line
     (rack
       (floating_point)))

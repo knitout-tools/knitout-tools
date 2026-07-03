@@ -153,16 +153,17 @@ outhook 5
     (position_header
       (position_value)))
   (line
-    (unknown_extension
-      (extension_name)
-      (extension_argument)))
+    (extension
+      (x_presser_mode
+        (presser_mode))))
   (line
     (inhook
       (pos_carrier_set
         (carrier))))
   (line
-    (x_stitch_number
-      (nonneg_integer)))
+    (extension
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)

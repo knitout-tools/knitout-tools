@@ -1263,8 +1263,9 @@ outhook 3
       (pos_carrier_set
         (carrier))))
   (line
-    (x_stitch_number
-      (nonneg_integer)))
+    (extension
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (tuck
       (direction)
@@ -1518,8 +1519,9 @@ outhook 3
       (pos_carrier_set
         (carrier))))
   (line
-    (x_stitch_number
-      (nonneg_integer)))
+    (extension
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)
