@@ -16,7 +16,7 @@ pub struct Program {
     /// The operations, with attached provenance
     operations: Vec<Operation>,
 
-    /// The carrier table
+    /// The carrier naming table
     carrier_table: CarrierTable,
 }
 
@@ -44,14 +44,14 @@ pub enum Operation {
 impl Display for Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         writeln!(f, ";!knitout-{}", self.version)?;
+        // writes a newline at the end of headers:
         self.headers.fmt_table(f, &self.carrier_table)?;
-        if !self.operations.is_empty() {
-            writeln!(f)?; // newline separating headers and body
-        }
         for op in &self.operations {
-            op.fmt_table(f, &self.carrier_table)?;
+            // makes an empty line between operations and headers
             writeln!(f)?;
+            op.fmt_table(f, &self.carrier_table)?;
         }
+        // no newline at end of program
         Ok(())
     }
 }
@@ -69,4 +69,3 @@ impl DisplayCarrierTable for Operation {
         }
     }
 }
-
