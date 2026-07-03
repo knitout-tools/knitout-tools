@@ -160,3 +160,86 @@ x-speed-number -89 7
 ;^ function.macro
 ;               ^ number
 ;
+
+
+x-stitch-number +03
+;^ function.macro
+;               ^ number
+
+x-speed-number 3
+; ^ function.macro
+;              ^ number
+
+x-sub-roller-number 49
+; ^ function.macro
+;                   ^ number
+
+x-presser-mode off
+; ^ function.macro
+;              ^ constant.builtin
+x-presser-mode on
+; ^ function.macro
+;              ^ constant.builtin
+x-presser-mode auto
+; ^ function.macro
+;              ^ constant.builtin
+
+x-xfer-stitch-number 4
+;^ function.macro
+;                    ^ number
+
+x-end-pass
+; ^ function.macro
+
+x-vis-color #ff0000 myCarrier 4 2
+;^ function.macro
+;           ^ string
+                    ; ^       ^ ^ variable
+
+x-vis-color cyan myCarrier 4 2
+;^ function.macro
+          ;  ^ string
+
+x-vis-color (1,2,3) myCarrier 4 2
+;^ function.macro
+          ; ^ string
+
+x-loop-in + f-20 myCarrier 3 1
+; ^ function.macro
+        ; ^ operator
+         ;  ^ type
+           ; ^ number
+                 ; ^ variable
+                         ; ^ variable
+
+x-yarn-in + f-20 myCarrier 3 1
+; ^ function.macro
+
+x-yarn-out + f-20 myCarrier 3 1
+; ^ function.macro
+
+x-end
+; ^ function.macro
+
+x-roller-advance 0.102
+; ^ function.macro ^ number
+
+x-roller-advance 3
+; ^ function.macro
+;                ^ number
+
+x-add-roller-advance 31.2
+; ^ function.macro   ^ number
+
+x-carrier-spacing 9
+; ^ function.macro
+;                 ^ number
+
+x-carrier-stopping-distance 9.5
+; ^ function.macro          ^ number
+
+x-xfer-style four-pass
+;^ function.macro  ^ constant.builtin
+
+x-xfer-style two-pass
+;^ function.macro  ^ constant.builtin

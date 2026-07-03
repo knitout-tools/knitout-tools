@@ -171,18 +171,10 @@
 (x_end_pass) @function.macro
 (x_end) @function.macro
 
-(color) @string.special
+(color) @string
 (presser_mode) @constant.builtin
 (xfer_style) @constant.builtin
 
 (extension_name) @function.macro
 (extension_argument) @string
-
-; (unknown_extension
-;   name: (extension_name) @function
-;   .
-;   (extension_argument) @number
-;   .
-;   (#eq? @function "x-speed-number")
-;   (#match? @number "^[+-]?\\d+$"))
 
