@@ -140,3 +140,42 @@ impl DisplayCarrierTable for Operation {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::{
+        Bed, CarrierOrRail, Direction, IsSlider, Needle, header_types::CarriersHeaderValue,
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_program_getters() {
+        let mut carrier_table = CarrierTable::new();
+        let carrier_a = carrier_table.make_carrier("A");
+        let carrier_b = carrier_table.make_carrier("B");
+
+        let headers = Header::new(CarriersHeaderValue::new(vec![
+            CarrierOrRail::Carrier(carrier_a),
+            CarrierOrRail::Carrier(carrier_b),
+        ]));
+        let mut program = Program::new(18, headers, carrier_table);
+
+        let carrier_c = program.carrier_table_mut().make_carrier("C");
+        assert_eq!(program.carrier_table().carrier_name(carrier_c), "C");
+
+        assert_eq!(program.version(), 18);
+        assert_eq!(program.headers().carriers().carriers_and_rails().len(), 2);
+        assert_eq!(program.operations().len(), 0);
+
+        program.push_operation(
+            Operation::BaseOperation(BaseOperation::Tuck {
+                direction: Direction::Right,
+                needle: Needle::new(Bed::Front, IsSlider::NotSlider, 5),
+                carriers: vec![carrier_a],
+            }),
+            Provenance::default(),
+        );
+
+        assert_eq!(program.operations().len(), 1);
+    }
+}

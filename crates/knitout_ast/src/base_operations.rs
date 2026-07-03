@@ -164,3 +164,47 @@ impl DisplayCarrierTable for BaseOperation {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fmt;
+
+    // A throwaway wrapper so we can drive a real Formatter through the standard machinery.
+    struct FmtCarriersHarness<'a> {
+        carriers: &'a [Carrier],
+        table: &'a CarrierTable,
+    }
+
+    impl<'a> fmt::Display for FmtCarriersHarness<'a> {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+            fmt_carriers(f, self.carriers, self.table)
+        }
+    }
+
+    fn render(carriers: &[Carrier], table: &CarrierTable) -> String {
+        FmtCarriersHarness { carriers, table }.to_string()
+    }
+
+    #[test]
+    fn empty_carriers_produces_empty_string() {
+        let table = CarrierTable::new();
+        assert_eq!(render(&[], &table), "");
+    }
+
+    #[test]
+    fn single_carrier_has_no_leading_space() {
+        let mut table = CarrierTable::new();
+        let c = table.make_carrier("1");
+        assert_eq!(render(&[c], &table), "1");
+    }
+
+    #[test]
+    fn multiple_carriers_are_space_separated() {
+        let mut table = CarrierTable::new();
+        let c1 = table.make_carrier("1");
+        let c2 = table.make_carrier("2");
+        let c3 = table.make_carrier("3");
+        assert_eq!(render(&[c1, c2, c3], &table), "1 2 3");
+    }
+}

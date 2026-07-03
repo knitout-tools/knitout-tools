@@ -107,3 +107,16 @@ impl Display for Needle {
         write!(f, "{}{}{}", self.bed, self.is_slider, self.index)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_needele_getters() {
+        let needle = Needle::new(Bed::Front, IsSlider::Slider, 5);
+        assert_eq!(needle.bed(), Bed::Front);
+        assert_eq!(needle.is_slider(), IsSlider::Slider);
+        assert_eq!(needle.index(), 5);
+    }
+}

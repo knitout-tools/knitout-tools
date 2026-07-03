@@ -168,3 +168,21 @@ impl DisplayCarrierTable for ExtensionOperation {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_presser_mode_display() {
+        assert_eq!(PresserMode::Off.to_string(), "Off");
+        assert_eq!(PresserMode::Auto.to_string(), "Auto");
+        assert_eq!(PresserMode::On.to_string(), "On");
+    }
+
+    #[test]
+    fn test_xfer_style_display() {
+        assert_eq!(XferStyle::FourPass.to_string(), "FourPass");
+        assert_eq!(XferStyle::TwoPass.to_string(), "TwoPass");
+    }
+}
