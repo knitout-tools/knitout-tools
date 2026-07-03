@@ -14,7 +14,7 @@ pub use types::{
     WeakYarnHeader,
 };
 
-// Re-export knitout_ast types used in the public surface
+// Re-export knitout-ast types used in the public surface
 pub use knitout_ast::{Carrier, CarrierTable, IsSlider, Span};
 
 #[cfg(test)]
