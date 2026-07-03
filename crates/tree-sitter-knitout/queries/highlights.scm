@@ -152,8 +152,28 @@
 [
  "x-stitch-number"
  "x-speed-number"
+ "x-sub-roller-number"
+ "x-presser-mode"
+ "x-xfer-stitch-number"
+ "x-vis-color"
+ "x-loop-in"
+ "x-yarn-in"
+ "x-yarn-out"
+ "x-roller-advance"
+ "x-add-roller-advance"
+ "x-carrier-spacing"
+ "x-carrier-stopping-distance"
+ "x-xfer-style"
 ] @function.macro
 (nonneg_integer) @number
+(nonneg_half_integer) @number
+
+(x_end_pass) @function.macro
+(x_end) @function.macro
+
+(color) @string.special
+(presser_mode) @constant.builtin
+(xfer_style) @constant.builtin
 
 (extension_name) @function.macro
 (extension_argument) @string

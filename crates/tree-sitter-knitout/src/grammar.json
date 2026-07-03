@@ -1274,16 +1274,8 @@
           "type": "FIELD",
           "name": "carriers",
           "content": {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "pos_carrier_set"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "pos_carrier_set"
           }
         }
       ]
@@ -1458,10 +1450,14 @@
           "name": "amount",
           "content": {
             "type": "SYMBOL",
-            "name": "floating_point"
+            "name": "nonneg_half_integer"
           }
         }
       ]
+    },
+    "nonneg_half_integer": {
+      "type": "PATTERN",
+      "value": "[+]?\\d*(\\.5)"
     },
     "x_xfer_style": {
       "type": "SEQ",

@@ -324,7 +324,7 @@ export default grammar({
     x_vis_color: $ => seq(
       "x-vis-color",
       field("color", $.color),
-      field("carriers", optional($.pos_carrier_set))
+      field("carriers", $.pos_carrier_set)
     ),
     color: _$ => /[^\s]+/,
 
@@ -368,8 +368,9 @@ export default grammar({
 
     x_carrier_stopping_distance: $ => seq(
       "x-carrier-stopping-distance",
-      field("amount", $.floating_point)
+      field("amount", $.nonneg_half_integer)
     ),
+    nonneg_half_integer: _$ => /[+]?\d*(\.5)/,
 
     x_xfer_style: $ => seq(
       "x-xfer-style",
