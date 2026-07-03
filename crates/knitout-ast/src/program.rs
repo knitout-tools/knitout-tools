@@ -222,4 +222,3 @@ x-custom arg1 arg2 ;!source: test_source";
         assert_eq!(program.to_string(), expected_output);
     }
 }
-
