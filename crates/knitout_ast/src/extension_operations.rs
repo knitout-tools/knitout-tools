@@ -7,6 +7,8 @@ use crate::{
     program::DisplayCarrierTable,
 };
 
+/// An knitout extension operation `x-...`. Known extensions are parsed into their own variants,
+/// while unknown extensions are stored in the `UnknownExtension` variant.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ExtensionOperation {
     XStitchNumber {
@@ -69,6 +71,7 @@ pub enum ExtensionOperation {
     },
 }
 
+/// Valid presser modes for the `x-presser-mode` extension operation.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum PresserMode {
     Off,
@@ -86,6 +89,7 @@ impl Display for PresserMode {
     }
 }
 
+/// Valid transfer styles for the `x-xfer-style` extension operation.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum XferStyle {
     FourPass,

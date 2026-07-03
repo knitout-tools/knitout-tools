@@ -7,6 +7,8 @@ use crate::{
     program::{CarrierTable, DisplayCarrierTable},
 };
 
+/// A basic knitout operation. Excludes extension operations, which are a different enum. Also
+/// excludes syntactic sugar operations; faux constructors are provided.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BaseOperation {
     In {
@@ -53,9 +55,23 @@ pub enum BaseOperation {
         carriers: Vec<Carrier>,
     },
     Pause,
+    Drop {
+        needle: Needle,
+    },
+    Amiss {
+        needle: Needle,
+    },
+    Xfer {
+        source: Needle,
+        destination: Needle,
+    },
 }
 
-pub fn fmt_carriers(f: &mut Formatter<'_>, carriers: &[Carrier], table: &CarrierTable) -> Result {
+pub(crate) fn fmt_carriers(
+    f: &mut Formatter<'_>,
+    carriers: &[Carrier],
+    table: &CarrierTable,
+) -> Result {
     for (i, carrier) in carriers.iter().enumerate() {
         if i > 0 {
             write!(f, " ")?;
@@ -132,6 +148,18 @@ impl DisplayCarrierTable for BaseOperation {
             }
             BaseOperation::Pause => {
                 write!(f, "pause")
+            }
+            BaseOperation::Drop { needle } => {
+                write!(f, "drop {}", needle)
+            }
+            BaseOperation::Amiss { needle } => {
+                write!(f, "amiss {}", needle)
+            }
+            BaseOperation::Xfer {
+                source,
+                destination,
+            } => {
+                write!(f, "xfer {} {}", source, destination)
             }
         }
     }

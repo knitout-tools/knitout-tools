@@ -8,29 +8,33 @@ use crate::{
     program::{CarrierTable, DisplayCarrierTable},
 };
 
+/// The value of the `Carriers:` header, which is a list of carriers and rails.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct CarriersHeaderValue {
     carriers_and_rails: Vec<CarrierOrRail>,
 }
 
+/// Either a carrier or a rail.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum CarrierOrRail {
     Carrier(Carrier),
     Rail(Rail),
 }
 
+/// A rail, which has a left and right side, each of which has a list of carriers.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Rail {
     left: RailSide,
     right: RailSide,
 }
 
+/// The left or right side of a rail, which has an ordered list of carriers.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RailSide {
     carriers: Vec<Carrier>,
 }
 
-/// Acceptable values for the `Position:` header
+/// Acceptable values for the `Position:` header.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum PositionHeaderValue {
     Left,
@@ -50,6 +54,7 @@ impl Display for PositionHeaderValue {
     }
 }
 
+/// The header section of a knitout program.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Header {
     /// Carriers: value
@@ -66,6 +71,68 @@ pub struct Header {
     position: Option<PositionHeaderValue>,
     /// Unknown extension headers. The leading "X-" is included in the key.
     unknown: HashMap<String, String>,
+}
+
+impl Header {
+    pub fn new(carriers: CarriersHeaderValue) -> Self {
+        Self {
+            carriers,
+            yarn: HashMap::new(),
+            machine: None,
+            gauge: None,
+            width: None,
+            position: None,
+            unknown: HashMap::new(),
+        }
+    }
+
+    pub fn yarn(&self) -> &HashMap<Carrier, String> {
+        &self.yarn
+    }
+
+    pub fn machine(&self) -> Option<&str> {
+        self.machine.as_deref()
+    }
+
+    pub fn gauge(&self) -> Option<u32> {
+        self.gauge
+    }
+
+    pub fn width(&self) -> Option<u32> {
+        self.width
+    }
+
+    pub fn position(&self) -> Option<PositionHeaderValue> {
+        self.position
+    }
+
+    pub fn unknown(&self) -> &HashMap<String, String> {
+        &self.unknown
+    }
+
+    pub fn add_yarn(&mut self, carrier: Carrier, yarn: String) -> Option<String> {
+        self.yarn.insert(carrier, yarn)
+    }
+
+    pub fn set_machine(&mut self, machine: String) -> Option<String> {
+        self.machine.replace(machine)
+    }
+
+    pub fn set_gauge(&mut self, gauge: u32) -> Option<u32> {
+        self.gauge.replace(gauge)
+    }
+
+    pub fn set_width(&mut self, width: u32) -> Option<u32> {
+        self.width.replace(width)
+    }
+
+    pub fn set_position(&mut self, position: PositionHeaderValue) -> Option<PositionHeaderValue> {
+        self.position.replace(position)
+    }
+
+    pub fn add_unknown(&mut self, key: String, value: String) -> Option<String> {
+        self.unknown.insert(key, value)
+    }
 }
 
 impl DisplayCarrierTable for Header {

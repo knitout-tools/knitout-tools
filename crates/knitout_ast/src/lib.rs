@@ -6,8 +6,10 @@ mod program;
 mod provenance;
 
 pub use base_operations::BaseOperation;
-pub use extension_operations::ExtensionOperation;
-pub use header_types::{CarrierOrRail, Header, PositionHeaderValue, Rail, RailSide};
+pub use extension_operations::{ExtensionOperation, PresserMode, XferStyle};
+pub use header_types::{
+    CarrierOrRail, CarriersHeaderValue, Header, PositionHeaderValue, Rail, RailSide,
+};
 pub use knitting_types::{Bed, Carrier, Direction, IsSlider, Needle};
-pub use program::{Operation, Program};
+pub use program::{CarrierTable, DisplayCarrierTable, Operation, Program};
 pub use provenance::{Provenance, Span};
