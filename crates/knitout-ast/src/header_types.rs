@@ -1,7 +1,6 @@
-use std::{
-    collections::HashMap,
-    fmt::{Display, Formatter, Result},
-};
+use std::fmt::{Display, Formatter, Result};
+
+use indexmap::IndexMap;
 
 use crate::{
     knitting_types::Carrier,
@@ -59,6 +58,10 @@ pub struct RailSide {
 }
 
 impl RailSide {
+    pub fn new(carriers: Vec<Carrier>) -> Self {
+        Self { carriers }
+    }
+
     pub fn carriers(&self) -> &[Carrier] {
         &self.carriers
     }
@@ -90,7 +93,7 @@ pub struct Header {
     /// Carriers: value
     carriers: CarriersHeaderValue,
     /// Yarn-C: header values
-    yarn: HashMap<Carrier, String>,
+    yarn: IndexMap<Carrier, String>,
     /// Machine: value
     machine: Option<String>,
     /// Gauge: value
@@ -100,19 +103,19 @@ pub struct Header {
     /// Position: value
     position: Option<PositionHeaderValue>,
     /// Unknown extension headers. The leading "X-" is included in the key.
-    unknown: HashMap<String, String>,
+    unknown: IndexMap<String, String>,
 }
 
 impl Header {
     pub fn new(carriers: CarriersHeaderValue) -> Self {
         Self {
             carriers,
-            yarn: HashMap::new(),
+            yarn: IndexMap::new(),
             machine: None,
             gauge: None,
             width: None,
             position: None,
-            unknown: HashMap::new(),
+            unknown: IndexMap::new(),
         }
     }
 
@@ -120,7 +123,7 @@ impl Header {
         &self.carriers
     }
 
-    pub fn yarn(&self) -> &HashMap<Carrier, String> {
+    pub fn yarn(&self) -> &IndexMap<Carrier, String> {
         &self.yarn
     }
 
@@ -140,7 +143,7 @@ impl Header {
         self.position
     }
 
-    pub fn unknown(&self) -> &HashMap<String, String> {
+    pub fn unknown(&self) -> &IndexMap<String, String> {
         &self.unknown
     }
 

@@ -138,11 +138,11 @@ impl DisplayCarrierTable for BaseOperation {
             }
             BaseOperation::Split {
                 direction,
-                source: soruce,
+                source,
                 destination,
                 carriers,
             } => {
-                write!(f, "split {} {} {}", direction, soruce, destination)?;
+                write!(f, "split {} {} {}", direction, source, destination)?;
                 fmt_carriers(f, carriers, table)
             }
             BaseOperation::Pause => {

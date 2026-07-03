@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 bigdecimal = "0.4.10"
+indexmap = "2.14.0"

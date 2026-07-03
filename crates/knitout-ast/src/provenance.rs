@@ -1,11 +1,15 @@
-/// Byte offsets into source code
+/// Byte offsets into source code. Start is inclusive, end is exclusive. For example, a span of [0,
+/// 5) covers the first five bytes of the source code.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Span {
     start: u32,
     end: u32,
 }
 impl Span {
+    /// Only checks validity in debug builds. In release builds, the caller is responsible for
+    /// ensuring that start <= end.
     pub fn new(start: u32, end: u32) -> Self {
+        debug_assert!(start <= end, "Span start must be <= end");
         Self { start, end }
     }
     pub fn start(&self) -> u32 {

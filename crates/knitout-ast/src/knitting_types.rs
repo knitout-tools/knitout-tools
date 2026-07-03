@@ -113,7 +113,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_needele_getters() {
+    fn test_needle_getters() {
         let needle = Needle::new(Bed::Front, IsSlider::Slider, 5);
         assert_eq!(needle.bed(), Bed::Front);
         assert_eq!(needle.is_slider(), IsSlider::Slider);

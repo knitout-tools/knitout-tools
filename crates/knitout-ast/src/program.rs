@@ -92,7 +92,8 @@ impl CarrierTable {
         if let Some(&id) = self.name_to_id.get(name) {
             Carrier::new(id)
         } else {
-            let id = self.id_to_name.len() as u32;
+            let id = u32::try_from(self.id_to_name.len())
+                .expect("Too many carriers: carrier table overflowed u32");
             self.id_to_name.push(name.to_owned());
             self.name_to_id.insert(name.to_owned(), id);
             Carrier::new(id)
