@@ -22171,7 +22171,7 @@ rack 0
       (comment_text)))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -175618,4 +175618,4 @@ rack 0
         (needle_index))))
   (line
     (rack
-      (floating_point))))
+      (rational))))

@@ -33,5 +33,6 @@ Make sure to run `tree-sitter generate` from `crates/tree-sitter-knitout` to reg
 - Second-to-last digit for minor releases (new features, no breaking API changes)
 - Third-to-last digit for major releases (breaking API changes)
 
-There's two things to update when releasing a new version in `tree-sitter-knitout`: the `Cargo.toml` and `tree-sitter.json`.
+# Creating new crates
+`cargo new crates/my_crate --lib`
 

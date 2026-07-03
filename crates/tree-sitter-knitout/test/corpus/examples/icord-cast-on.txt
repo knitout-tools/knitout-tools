@@ -1255,7 +1255,7 @@ drop f1
         (nonneg_integer))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (tuck
       (direction)
@@ -1338,7 +1338,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (extension
       (x_stitch_number
@@ -1482,7 +1482,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -1530,7 +1530,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -1626,7 +1626,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -1674,7 +1674,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -1770,7 +1770,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -1818,7 +1818,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -1914,7 +1914,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -1962,7 +1962,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -2058,7 +2058,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2106,7 +2106,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -2202,7 +2202,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2250,7 +2250,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -2346,7 +2346,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2394,7 +2394,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -2490,7 +2490,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2538,7 +2538,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -2634,7 +2634,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2682,7 +2682,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -2778,7 +2778,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2826,7 +2826,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -2922,7 +2922,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2970,7 +2970,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -3066,7 +3066,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -3114,7 +3114,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -3210,7 +3210,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -3258,7 +3258,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -3354,7 +3354,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -3402,7 +3402,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -3498,7 +3498,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -3546,7 +3546,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -3642,7 +3642,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -3690,7 +3690,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -3786,7 +3786,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -3834,7 +3834,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -3930,7 +3930,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -3978,7 +3978,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -4074,7 +4074,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -4122,7 +4122,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -4218,7 +4218,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -4266,7 +4266,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -4362,7 +4362,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -4410,7 +4410,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -4506,7 +4506,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -4554,7 +4554,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -4650,7 +4650,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -4698,7 +4698,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -4794,7 +4794,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -4842,7 +4842,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -4938,7 +4938,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -4986,7 +4986,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -5082,7 +5082,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -5130,7 +5130,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -5226,7 +5226,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -5274,7 +5274,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -5370,7 +5370,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -5418,7 +5418,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -5514,7 +5514,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -5562,7 +5562,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -5658,7 +5658,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -5706,7 +5706,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -5802,7 +5802,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -5850,7 +5850,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -5946,7 +5946,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -5994,7 +5994,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -6090,7 +6090,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -6138,7 +6138,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -6234,7 +6234,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -6282,7 +6282,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -6378,7 +6378,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -6426,7 +6426,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -6522,7 +6522,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -6570,7 +6570,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -6666,7 +6666,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -6714,7 +6714,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -6810,7 +6810,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -6858,7 +6858,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -6954,7 +6954,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7002,7 +7002,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -7098,7 +7098,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7146,7 +7146,7 @@ drop f1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -7205,7 +7205,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7224,7 +7224,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7243,7 +7243,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7262,7 +7262,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7281,7 +7281,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7300,7 +7300,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7319,7 +7319,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7338,7 +7338,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7357,7 +7357,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -7376,7 +7376,7 @@ drop f1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle

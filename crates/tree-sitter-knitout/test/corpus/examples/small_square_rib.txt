@@ -2032,20 +2032,20 @@ rack 0
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (outhook
       (pos_carrier_set
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (rack
-      (floating_point))))
+      (rational))))

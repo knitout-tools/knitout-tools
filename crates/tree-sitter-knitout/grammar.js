@@ -178,7 +178,7 @@ export default grammar({
     carrier: _ => /[^ ,;:\n]+/,
     pos_carrier_set: $ => repeat1($.carrier),
     // possibly negative or for some reason marked positive. Either positive digits followed by possibly . with digits, or just a dot followed by positive digits
-    floating_point: _ => /[+-]?(\d+(\.\d*)?|\.\d+)/,
+    rational: _ => /[+-]?(\d+(\.\d*)?|\.\d+)/,
 
     in: $ => seq(
       "in",
@@ -207,13 +207,13 @@ export default grammar({
 
     stitch: $ => seq(
       "stitch",
-      field("loop_pull", $.floating_point),
-      field("tail_pull", $.floating_point)
+      field("before_pull", $.rational),
+      field("after_pull", $.rational)
     ),
 
     rack: $ => seq(
       "rack",
-      field("offset", $.floating_point)
+      field("offset", $.rational)
     ),
 
     knit: $ => seq(
@@ -353,12 +353,12 @@ export default grammar({
 
     x_roller_advance: $ => seq(
       "x-roller-advance",
-      field("amount", $.floating_point)
+      field("amount", $.rational)
     ),
 
     x_add_roller_advance: $ => seq(
       "x-add-roller-advance",
-      field("amount", $.floating_point)
+      field("amount", $.rational)
     ),
 
     x_carrier_spacing: $ => seq(

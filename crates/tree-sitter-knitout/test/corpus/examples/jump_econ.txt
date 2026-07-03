@@ -697,7 +697,7 @@ drop f14
       (header_value)))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (inhook
       (pos_carrier_set
@@ -899,7 +899,7 @@ drop f14
       (comment_text)))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -1142,13 +1142,13 @@ drop f14
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (comment
       (comment_text)))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -1391,7 +1391,7 @@ drop f14
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (extension
       (unknown_extension
@@ -2862,7 +2862,7 @@ drop f14
       (comment_text)))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (knit
       (direction)
@@ -3105,10 +3105,10 @@ drop f14
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (extension
       (unknown_extension

@@ -2080,7 +2080,7 @@ outhook 1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2099,7 +2099,7 @@ outhook 1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2110,37 +2110,7 @@ outhook 1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
-  (line
-    (xfer
-      (needle
-        (bed)
-        (needle_index))
-      (needle
-        (bed)
-        (needle_index))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (rack
-      (floating_point)))
-  (line
-    (xfer
-      (needle
-        (bed)
-        (needle_index))
-      (needle
-        (bed)
-        (needle_index))))
-  (line
-    (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2159,7 +2129,7 @@ outhook 1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2170,37 +2140,7 @@ outhook 1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
-  (line
-    (xfer
-      (needle
-        (bed)
-        (needle_index))
-      (needle
-        (bed)
-        (needle_index))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (rack
-      (floating_point)))
-  (line
-    (xfer
-      (needle
-        (bed)
-        (needle_index))
-      (needle
-        (bed)
-        (needle_index))))
-  (line
-    (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2219,7 +2159,7 @@ outhook 1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2230,37 +2170,7 @@ outhook 1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
-  (line
-    (xfer
-      (needle
-        (bed)
-        (needle_index))
-      (needle
-        (bed)
-        (needle_index))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (rack
-      (floating_point)))
-  (line
-    (xfer
-      (needle
-        (bed)
-        (needle_index))
-      (needle
-        (bed)
-        (needle_index))))
-  (line
-    (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2279,7 +2189,7 @@ outhook 1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2290,37 +2200,7 @@ outhook 1
         (needle_index))))
   (line
     (rack
-      (floating_point)))
-  (line
-    (xfer
-      (needle
-        (bed)
-        (needle_index))
-      (needle
-        (bed)
-        (needle_index))))
-  (line
-    (knit
-      (direction)
-      (needle
-        (bed)
-        (needle_index))
-      (pos_carrier_set
-        (carrier))))
-  (line
-    (rack
-      (floating_point)))
-  (line
-    (xfer
-      (needle
-        (bed)
-        (needle_index))
-      (needle
-        (bed)
-        (needle_index))))
-  (line
-    (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle
@@ -2339,7 +2219,127 @@ outhook 1
         (carrier))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (rack
+      (rational)))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (rack
+      (rational)))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (rack
+      (rational)))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (rack
+      (rational)))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (rack
+      (rational)))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (rack
+      (rational)))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (rack
+      (rational)))
+  (line
+    (xfer
+      (needle
+        (bed)
+        (needle_index))
+      (needle
+        (bed)
+        (needle_index))))
+  (line
+    (knit
+      (direction)
+      (needle
+        (bed)
+        (needle_index))
+      (pos_carrier_set
+        (carrier))))
+  (line
+    (rack
+      (rational)))
   (line
     (outhook
       (pos_carrier_set
