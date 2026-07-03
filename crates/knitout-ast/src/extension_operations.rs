@@ -58,7 +58,7 @@ pub enum ExtensionOperation {
         value: u32,
     },
     XCarrierStoppingDistance {
-        /// A parsed spacing of "0.5" is represented at "0" here. That is, carriers move `value` +
+        /// A parsed spacing of "0.5" is represented using 0 here. That is, carriers move `value` +
         /// 0.5 needles past the needle they just operated on.
         value: u32,
     },

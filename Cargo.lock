@@ -79,6 +79,7 @@ name = "knitout-ast"
 version = "0.1.0"
 dependencies = [
  "bigdecimal",
+ "indexmap",
 ]
 
 [[package]]

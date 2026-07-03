@@ -3,6 +3,10 @@ use std::{
     fmt::{Display, Formatter, Result},
 };
 
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static NEXT_CARRIER_TABLE_ID: AtomicU32 = AtomicU32::new(0);
+
 use crate::{
     Carrier, Provenance, base_operations::BaseOperation, extension_operations::ExtensionOperation,
     header_types::Header,
@@ -62,17 +66,36 @@ impl Program {
 }
 
 /// A table that stores carrier names once. Use `CarrierTable::make_carrier` to create `Carrier`s.
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, Eq, Debug)]
 pub struct CarrierTable {
     /// The map from carrier u32 IDs to their names in the source
     id_to_name: Vec<String>,
     /// The reverse map, taking a name and returning the carrier ID if it exists
     name_to_id: HashMap<String, u32>,
+    /// A unique ID for this carrier table, passed along to its carriers
+    id: u32,
+}
+
+/// We don't care about the ID; the name_to_id field is derived from id_to_name
+impl PartialEq for CarrierTable {
+    fn eq(&self, other: &Self) -> bool {
+        self.id_to_name == other.id_to_name
+    }
+}
+
+impl Default for CarrierTable {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CarrierTable {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            id_to_name: Vec::new(),
+            name_to_id: HashMap::new(),
+            id: NEXT_CARRIER_TABLE_ID.fetch_add(1, Ordering::Relaxed),
+        }
     }
 
     /// Gets the name of a carrier, panicking if the carrier ID is invalid. This should be
@@ -83,6 +106,11 @@ impl CarrierTable {
     }
 
     pub(crate) fn carrier_name_option(&self, carrier: Carrier) -> Option<&str> {
+        debug_assert_eq!(
+            self.id,
+            carrier.table_id(),
+            "Carrier table ID mismatch: carrier was created from a different carrier table"
+        );
         self.id_to_name
             .get(carrier.id() as usize)
             .map(String::as_str)
@@ -90,12 +118,13 @@ impl CarrierTable {
 
     pub fn make_carrier(&mut self, name: &str) -> Carrier {
         if let Some(&id) = self.name_to_id.get(name) {
-            Carrier::new(id)
+            Carrier::new(id, self.id)
         } else {
-            let id = self.id_to_name.len() as u32;
+            let id = u32::try_from(self.id_to_name.len())
+                .expect("Too many carriers: carrier table overflowed u32");
             self.id_to_name.push(name.to_owned());
             self.name_to_id.insert(name.to_owned(), id);
-            Carrier::new(id)
+            Carrier::new(id, self.id)
         }
     }
 }
@@ -148,6 +177,26 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn test_carrier_table_eq() {
+        let mut table1 = CarrierTable::new();
+        let mut table2 = CarrierTable::new();
+
+        table1.make_carrier("A");
+        table1.make_carrier("B");
+
+        table2.make_carrier("A");
+        table2.make_carrier("B");
+
+        assert_eq!(table1, table2);
+
+        // Add a new carrier to table1
+        table1.make_carrier("C");
+
+        // Now the tables should not be equal
+        assert_ne!(table1, table2);
+    }
 
     #[test]
     fn test_program_getters() {
