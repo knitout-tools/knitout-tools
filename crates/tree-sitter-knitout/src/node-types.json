@@ -612,7 +612,7 @@
         "required": true,
         "types": [
           {
-            "type": "floating_point",
+            "type": "rational",
             "named": true
           }
         ]
@@ -773,22 +773,22 @@
     "type": "stitch",
     "named": true,
     "fields": {
-      "loop_pull": {
+      "after_pull": {
         "multiple": false,
         "required": true,
         "types": [
           {
-            "type": "floating_point",
+            "type": "rational",
             "named": true
           }
         ]
       },
-      "tail_pull": {
+      "before_pull": {
         "multiple": false,
         "required": true,
         "types": [
           {
-            "type": "floating_point",
+            "type": "rational",
             "named": true
           }
         ]
@@ -882,7 +882,7 @@
         "required": true,
         "types": [
           {
-            "type": "floating_point",
+            "type": "rational",
             "named": true
           }
         ]
@@ -982,7 +982,7 @@
         "required": true,
         "types": [
           {
-            "type": "floating_point",
+            "type": "rational",
             "named": true
           }
         ]
@@ -1341,10 +1341,6 @@
     "named": false
   },
   {
-    "type": "floating_point",
-    "named": true
-  },
-  {
     "type": "four-pass",
     "named": false
   },
@@ -1399,6 +1395,10 @@
   {
     "type": "rack",
     "named": false
+  },
+  {
+    "type": "rational",
+    "named": true
   },
   {
     "type": "releasehook",

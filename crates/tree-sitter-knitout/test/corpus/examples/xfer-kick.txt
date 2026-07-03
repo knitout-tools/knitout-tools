@@ -309,8 +309,8 @@ outhook 5
         (carrier))))
   (line
     (stitch
-      (floating_point)
-      (floating_point)))
+      (rational)
+      (rational)))
   (line
     (knit
       (direction)
@@ -725,7 +725,7 @@ outhook 5
         (needle_index))))
   (line
     (rack
-      (floating_point)))
+      (rational)))
   (line
     (xfer
       (needle

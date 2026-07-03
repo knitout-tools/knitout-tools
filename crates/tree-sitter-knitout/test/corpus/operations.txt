@@ -73,25 +73,25 @@ rack 3.
     version: (version))
   (line
     operation: (stitch
-      loop_pull: (floating_point)
-      tail_pull: (floating_point)))
+      before_pull: (rational)
+      after_pull: (rational)))
   (line
     operation: (stitch
-      loop_pull: (floating_point)
-      tail_pull: (floating_point)))
+      before_pull: (rational)
+      after_pull: (rational)))
   (line
     operation: (stitch
-      loop_pull: (floating_point)
-      tail_pull: (floating_point)))
+      before_pull: (rational)
+      after_pull: (rational)))
   (line
     operation: (rack
-      offset: (floating_point)))
+      offset: (rational)))
   (line
     operation: (rack
-      offset: (floating_point)))
+      offset: (rational)))
   (line
     operation: (rack
-      offset: (floating_point))))
+      offset: (rational))))
 
 ================================================================================
 knit-tuck-miss-directions-and-optional-carriers

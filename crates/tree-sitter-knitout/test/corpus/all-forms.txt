@@ -119,13 +119,13 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
       (comment_text)))
   (line
     (stitch
-      (floating_point)
-      (floating_point))
+      (rational)
+      (rational))
     (comment
       (comment_text)))
   (line
     (rack
-      (floating_point))
+      (rational))
     (comment
       (comment_text)))
   (line
@@ -293,15 +293,15 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
   (line
     (extension
       (x_roller_advance
-        (floating_point))))
+        (rational))))
   (line
     (extension
       (x_roller_advance
-        (floating_point))))
+        (rational))))
   (line
     (extension
       (x_add_roller_advance
-        (floating_point))))
+        (rational))))
   (line
     (extension
       (x_carrier_spacing

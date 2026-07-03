@@ -690,7 +690,7 @@
         "name": "carrier"
       }
     },
-    "floating_point": {
+    "rational": {
       "type": "PATTERN",
       "value": "[+-]?(\\d+(\\.\\d*)?|\\.\\d+)"
     },
@@ -788,18 +788,18 @@
         },
         {
           "type": "FIELD",
-          "name": "loop_pull",
+          "name": "before_pull",
           "content": {
             "type": "SYMBOL",
-            "name": "floating_point"
+            "name": "rational"
           }
         },
         {
           "type": "FIELD",
-          "name": "tail_pull",
+          "name": "after_pull",
           "content": {
             "type": "SYMBOL",
-            "name": "floating_point"
+            "name": "rational"
           }
         }
       ]
@@ -816,7 +816,7 @@
           "name": "offset",
           "content": {
             "type": "SYMBOL",
-            "name": "floating_point"
+            "name": "rational"
           }
         }
       ]
@@ -1399,7 +1399,7 @@
           "name": "amount",
           "content": {
             "type": "SYMBOL",
-            "name": "floating_point"
+            "name": "rational"
           }
         }
       ]
@@ -1416,7 +1416,7 @@
           "name": "amount",
           "content": {
             "type": "SYMBOL",
-            "name": "floating_point"
+            "name": "rational"
           }
         }
       ]
