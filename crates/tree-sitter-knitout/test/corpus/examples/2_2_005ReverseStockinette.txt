@@ -39898,12 +39898,22 @@ drop b12
   (magic
     (version))
   (header
-    (header_name)
-    (header_value))
+    (carriers_header
+      (carriers_value
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier))))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (inhook
       (pos_carrier_set
@@ -40586,8 +40596,8 @@ drop b12
         (carrier))))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)
@@ -63984,8 +63994,8 @@ drop b12
       (floating_point)))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_presser_mode
+        (presser_mode))))
   (line
     (rack
       (floating_point)))

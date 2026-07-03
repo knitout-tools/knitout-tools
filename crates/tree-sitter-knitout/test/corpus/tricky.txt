@@ -68,8 +68,9 @@ drop f10
         bed: (bed)
         index: (needle_index))))
   (header
-    name: (header_name)
-    value: (header_value)))
+    (carriers_header
+      value: (carriers_value
+        (carrier)))))
 
 ================================================================================
 operation with source comment

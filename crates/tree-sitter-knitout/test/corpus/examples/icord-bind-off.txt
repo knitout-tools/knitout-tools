@@ -1113,19 +1113,29 @@ drop f1
   (magic
     (version))
   (header
-    (header_name)
-    (header_value))
+    (machine_header
+      (header_value)))
   (header
-    (header_name)
-    (header_value))
+    (carriers_header
+      (carriers_value
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier))))
   (line
     (inhook
       (pos_carrier_set
         (carrier))))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (tuck
       (direction)
@@ -1612,8 +1622,8 @@ drop f1
         (carrier))))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)
@@ -4816,8 +4826,8 @@ drop f1
         (carrier))))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (rack
       (floating_point)))
@@ -4890,8 +4900,8 @@ drop f1
       (floating_point)))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)

@@ -285,18 +285,21 @@ x-test 1 2.5 foo
     version: (version))
   (line
     operation: (extension
-      name: (extension_name)))
+      (unknown_extension
+        name: (extension_name))))
   (line
     operation: (extension
-      name: (extension_name)
-      (extension_argument)
-      (extension_argument)))
+      (unknown_extension
+        name: (extension_name)
+        (extension_argument)
+        (extension_argument))))
   (line
     operation: (extension
-      name: (extension_name)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument))))
+      (unknown_extension
+        name: (extension_name)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)))))
 
 ================================================================================
 operation-with-trailing-comment-and-source-comment

@@ -25,13 +25,37 @@ knit + fs-53 3 4; comment with one space
 tuck - bs0 1 myCarrier
 split - f0 f100 3 4 9 ;!source: this is source comment
 
-;;Header-In-The-Middle: value
+;;X-Header-In-The-Middle: value
 
 drop f100
 amiss b-30
 xfer f-53 b-30
 miss + f9 1 2 3
 pause
+
+x-stitch-number +03
+x-speed-number 3
+x-sub-roller-number 49
+x-presser-mode off
+x-presser-mode on
+x-presser-mode auto
+x-xfer-stitch-number 4
+x-end-pass
+x-vis-color #ff0000 myCarrier 4 2
+x-vis-color cyan myCarrier 4 2
+x-vis-color (1,2,3) myCarrier 4 2
+x-loop-in + f-20 myCarrier 3 1
+x-yarn-in + f-20 myCarrier 3 1
+x-yarn-out + f-20 myCarrier 3 1
+x-end
+x-roller-advance 0.102
+x-roller-advance 3
+x-add-roller-advance 31.2
+x-carrier-spacing 9
+x-carrier-stopping-distance 9.5
+x-xfer-style four-pass
+x-xfer-style two-pass
+
 x-my-extension 1 - f0 f-43 +0.75 myCarrier
 
 --------------------------------------------------------------------------------
@@ -40,20 +64,31 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
   (magic
     (version))
   (header
-    (header_name)
-    (header_value))
+    (machine_header
+      (header_value)))
   (header
-    (header_name)
-    (header_value))
+    (gauge_header
+      (nonneg_integer)))
   (header
-    (header_name)
-    (header_value))
+    (yarn_header
+      (carrier)
+      (header_value)))
   (header
-    (header_name)
-    (header_value))
+    (carriers_header
+      (carriers_value
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier))))
   (header
-    (header_name)
-    (header_value))
+    (position_header
+      (position_value)))
   (line
     (in
       (pos_carrier_set
@@ -131,8 +166,9 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
     (source_comment
       (comment_text)))
   (header
-    (header_name)
-    (header_value))
+    (extension_header
+      (extension_header_name)
+      (header_value)))
   (line
     (drop
       (needle
@@ -165,10 +201,130 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
     (pause))
   (line
     (extension
-      (extension_name)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument)
-      (extension_argument))))
+      (x_stitch_number
+        (nonneg_integer))))
+  (line
+    (extension
+      (x_speed_number
+        (nonneg_integer))))
+  (line
+    (extension
+      (x_sub_roller_number
+        (nonneg_integer))))
+  (line
+    (extension
+      (x_presser_mode
+        (presser_mode))))
+  (line
+    (extension
+      (x_presser_mode
+        (presser_mode))))
+  (line
+    (extension
+      (x_presser_mode
+        (presser_mode))))
+  (line
+    (extension
+      (x_xfer_stitch_number
+        (nonneg_integer))))
+  (line
+    (extension
+      (x_end_pass)))
+  (line
+    (extension
+      (x_vis_color
+        (color)
+        (pos_carrier_set
+          (carrier)
+          (carrier)
+          (carrier)))))
+  (line
+    (extension
+      (x_vis_color
+        (color)
+        (pos_carrier_set
+          (carrier)
+          (carrier)
+          (carrier)))))
+  (line
+    (extension
+      (x_vis_color
+        (color)
+        (pos_carrier_set
+          (carrier)
+          (carrier)
+          (carrier)))))
+  (line
+    (extension
+      (x_loop_in
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)
+          (carrier)
+          (carrier)))))
+  (line
+    (extension
+      (x_yarn_in
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)
+          (carrier)
+          (carrier)))))
+  (line
+    (extension
+      (x_yarn_out
+        (direction)
+        (needle
+          (bed)
+          (needle_index))
+        (pos_carrier_set
+          (carrier)
+          (carrier)
+          (carrier)))))
+  (line
+    (extension
+      (x_end)))
+  (line
+    (extension
+      (x_roller_advance
+        (floating_point))))
+  (line
+    (extension
+      (x_roller_advance
+        (floating_point))))
+  (line
+    (extension
+      (x_add_roller_advance
+        (floating_point))))
+  (line
+    (extension
+      (x_carrier_spacing
+        (nonneg_integer))))
+  (line
+    (extension
+      (x_carrier_stopping_distance
+        (nonneg_half_integer))))
+  (line
+    (extension
+      (x_xfer_style
+        (xfer_style))))
+  (line
+    (extension
+      (x_xfer_style
+        (xfer_style))))
+  (line
+    (extension
+      (unknown_extension
+        (extension_name)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)
+        (extension_argument)))))

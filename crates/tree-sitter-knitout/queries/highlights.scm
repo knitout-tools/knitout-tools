@@ -57,11 +57,52 @@
 ; ---------------------------------------------------------------------------
 ; Header lines: ;;Name: value
 ; ---------------------------------------------------------------------------
+
 ";;" @comment
-(header
-  name: (header_name) @property
+(extension_header
+  name: (extension_header_name) @property
   ": " @punctuation.delimiter
+  value: (header_value) @string)
+
+; ---------------------------------------------------------------------------
+; Specific headers
+; ---------------------------------------------------------------------------
+(yarn_header
+  "Yarn-" @property
+  ":" @punctuation.delimiter
   value: (header_value) @constant)
+
+(machine_header
+  "Machine" @property
+  ":" @punctuation.delimiter
+  value: (header_value) @constant)
+
+(gauge_header
+  "Gauge" @property
+  ":" @punctuation.delimiter)
+
+(width_header
+  "Width" @property
+  ":" @punctuation.delimiter)
+
+(position_header
+  "Position" @property
+  ":" @punctuation.delimiter)
+(position_value) @constant.builtin
+
+(carriers_header
+  "Carriers" @property
+  ":" @punctuation.delimiter)
+
+(rail_definition
+  left: (rail_side)
+  ";" @punctuation.delimiter
+  right: (rail_side))
+
+(rail_side
+  "," @punctuation.delimiter)
+
+(carrier) @variable
 
 ; ---------------------------------------------------------------------------
 ; Comments
@@ -108,12 +149,32 @@
 ; ---------------------------------------------------------------------------
 ; Extensions (x-whatever ...)
 ; ---------------------------------------------------------------------------
+[
+ "x-stitch-number"
+ "x-speed-number"
+ "x-sub-roller-number"
+ "x-presser-mode"
+ "x-xfer-stitch-number"
+ "x-vis-color"
+ "x-loop-in"
+ "x-yarn-in"
+ "x-yarn-out"
+ "x-roller-advance"
+ "x-add-roller-advance"
+ "x-carrier-spacing"
+ "x-carrier-stopping-distance"
+ "x-xfer-style"
+] @function.macro
+(nonneg_integer) @number
+(nonneg_half_integer) @number
+
+(x_end_pass) @function.macro
+(x_end) @function.macro
+
+(color) @constant
+(presser_mode) @constant.builtin
+(xfer_style) @constant.builtin
+
 (extension_name) @function.macro
 (extension_argument) @string
 
-; ---------------------------------------------------------------------------
-; Field-level fallbacks (helps themes that key off field names too)
-; ---------------------------------------------------------------------------
-(needle bed: (bed) @type)
-(needle slider: (slider) @type)
-(needle index: (needle_index) @number)

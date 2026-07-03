@@ -5215,12 +5215,22 @@ drop f80
   (magic
     (version))
   (header
-    (header_name)
-    (header_value))
+    (carriers_header
+      (carriers_value
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier))))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (inhook
       (pos_carrier_set
@@ -5867,8 +5877,8 @@ drop f80
         (carrier))))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)

@@ -128,32 +128,42 @@ outhook 5
   (magic
     (version))
   (header
-    (header_name)
-    (header_value))
+    (carriers_header
+      (carriers_value
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier)
+        (carrier))))
   (header
-    (header_name)
-    (header_value))
+    (machine_header
+      (header_value)))
   (header
-    (header_name)
-    (header_value))
+    (gauge_header
+      (nonneg_integer)))
   (header
-    (header_name)
-    (header_value))
+    (width_header
+      (nonneg_integer)))
   (header
-    (header_name)
-    (header_value))
+    (position_header
+      (position_value)))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_presser_mode
+        (presser_mode))))
   (line
     (inhook
       (pos_carrier_set
         (carrier))))
   (line
     (extension
-      (extension_name)
-      (extension_argument)))
+      (x_stitch_number
+        (nonneg_integer))))
   (line
     (knit
       (direction)

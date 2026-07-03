@@ -3,15 +3,16 @@ header missing value
 ================================================================================
 
 ;!knitout-2
-;;Carriers:
+;;Gauge:
 
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic version: (version))
-  (ERROR
-    (header_name)
-    (UNEXPECTED '\n')))
+  magic: (magic
+    version: (version))
+  (header
+    (gauge_header
+      value: (MISSING nonneg_integer))))
 
 ================================================================================
 space in magic string
@@ -22,7 +23,7 @@ space in magic string
 --------------------------------------------------------------------------------
 
 (ERROR
-    (UNEXPECTED '2'))
+  (nonneg_integer))
 
 ================================================================================
 needle requires adjacency
@@ -34,14 +35,11 @@ drop f 10
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic version: (version))
-  (line
-    operation: (drop
-      needle: (needle
-        bed: (bed)
-        (ERROR
-          (UNEXPECTED '1'))
-        index: (needle_index)))))
+  magic: (magic
+    version: (version))
+  (ERROR
+    (bed)
+    (nonneg_integer)))
 
 ================================================================================
 slider requires adjacency
@@ -53,15 +51,12 @@ drop fs 10
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic version: (version))
-  (line
-    operation: (drop
-      needle: (needle
-        bed: (bed)
-        slider: (slider)
-        (ERROR
-          (UNEXPECTED '1'))
-        index: (needle_index)))))
+  magic: (magic
+    version: (version))
+  (ERROR
+    (bed)
+    (slider)
+    (nonneg_integer)))
 
 ================================================================================
 double semicolon plain comment
@@ -73,6 +68,7 @@ double semicolon plain comment
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic version: (version))
+  magic: (magic
+    version: (version))
   (ERROR
-    (header_name)))
+    (UNEXPECTED 'n')))
