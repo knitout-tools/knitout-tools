@@ -20,7 +20,7 @@ almost source comment
 ================================================================================
 
 ;!knitout-2
-;!source caston.knit:12
+knit + f0 ;!source caston.knit:12
 
 --------------------------------------------------------------------------------
 
@@ -29,8 +29,13 @@ almost source comment
     (directive
       content: (line_content)))
   (line
-    (directive
-      content: (line_content))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument))
+      comment: (comment
+        text: (line_content)))))
 
 ================================================================================
 valid slider needle

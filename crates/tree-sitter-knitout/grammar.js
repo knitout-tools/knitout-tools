@@ -15,7 +15,7 @@ export default grammar({
   rules: {
     // A knitout file is a flat sequence of lines separated by newlines.
     // No magic string or specific structure is required at the file level;
-    // the weak AST layer is responsible for finding and validating the magic line.
+    // later layers is responsible for finding and validating the magic line, making sure headers come before operations, etc.
     //
     // Structure: optional leading blank lines, then optionally a first line
     // followed by zero or more (newline, optional-line) pairs. This guarantees
@@ -33,10 +33,10 @@ export default grammar({
 
     // Between two newlines, a line is one of four things.
     // Disambiguation is purely by the lexer's longest-match rule:
-    //   /;!/  (2 chars) beats ";" (1 char)  => directive wins over comment
+    //   ";!"  (2 chars) beats ";" (1 char)  => directive wins over comment
     //   ";;"  (2 chars) beats ";" (1 char)  => header wins over comment
     //   ";"   (1 char)  fallback            => plain comment
-    //   anything else                       => operation line
+    //   anything else                       => operation line (possibly w/ comment)
     line: $ => choice(
       $.directive,
       $.header,
@@ -45,9 +45,8 @@ export default grammar({
     ),
 
     // A ;! directive line: ;!knitout-2, or any other ;!... line.
-    // The /;!/ token is two characters and atomic; no space between ; and !.
     directive: $ => seq(
-      /;!/,
+      ";!",
       field("content", optional($.line_content))
     ),
 
@@ -68,37 +67,30 @@ export default grammar({
     // optionally followed by a trailing comment.
     // All semantic interpretation of arguments (direction, needle, carrier, etc.)
     // is handled by the weak AST layer.
-    // prec.right resolves the shift/reduce conflict that arises after parsing
-    // an operation: when the parser sees ";", it prefers to shift (consuming it
-    // as a trailing comment) rather than reducing the operation alone.
-    op_line: $ => prec.right(seq(
+    op_line: $ => seq(
       field("operation", $.operation),
       optional(choice(
         field("source_comment", $.source_comment),
         field("comment", $.comment),
       ))
-    )),
+    ),
 
     // An operation is just an opcode token followed by zero or more argument tokens.
-    // prec.right resolves the shift/reduce conflict: opcode and argument share the
-    // same lexer pattern, so after opcode the parser prefers to shift (consuming
-    // more arguments) over reducing immediately.
-    operation: $ => prec.right(seq(
+    operation: $ => seq(
       field("opcode", $.opcode),
       repeat(field("argument", $.argument))
-    )),
+    ),
 
-    // A ;!source: comment trailing an operation. The /;!source: / token is ten
+    // A ;!source: comment trailing an operation. The ";!source:" token is nine
     // characters (including the space), so the lexer always prefers it over the
-    // single-character ";" for comment. ";!source:foo" (missing space) does not
-    // match and falls through to a plain comment — matching current behaviour.
+    // single-character ";" for comment.
     source_comment: $ => seq(
-      /;!source: /,
+      ";!source:",
       field("source", optional($.line_content))
     ),
 
-    opcode:       _$ => /[^\s;]+/,
-    argument:     _$ => /[^\s;]+/,
+    opcode: _$ => /[^\s;]+/,
+    argument: _$ => /[^\s;]+/,
     line_content: _$ => /[^\n]+/,
   }
 });

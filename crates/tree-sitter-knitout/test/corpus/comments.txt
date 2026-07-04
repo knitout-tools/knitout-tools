@@ -70,7 +70,7 @@ source-comment-requires-exact-prefix
 ;!knitout-2
 knit + f3 1;!source: test.js:1
 knit + f3 1;!sourceXYZ not a source comment
-knit + f3 1;!source:missing space
+knit + f3 1;!source:missing space, but we accept this
 --------------------------------------------------------------------------------
 
 (source_file
@@ -102,8 +102,8 @@ knit + f3 1;!source:missing space
         argument: (argument)
         argument: (argument)
         argument: (argument))
-      comment: (comment
-        text: (line_content)))))
+      source_comment: (source_comment
+        source: (line_content)))))
 
 ================================================================================
 standalone-source-comment-like-line-without-operation
