@@ -724,6 +724,305 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
+    // Lowering: xfer_style (catches delete-arm mutants 144-145)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn lower_xfer_style_four_pass() {
+        let source = ";!knitout-2\nx-xfer-style four-pass\n";
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
+        match prog.lines[0].operation.as_ref().unwrap() {
+            WeakOperation::Extension(e) => match &e.kind {
+                WeakExtensionOperationKind::XXferStyle { style } => {
+                    assert_eq!(*style, WeakXferStyle::FourPass);
+                }
+                other => panic!("expected XXferStyle, got {other:?}"),
+            },
+            other => panic!("expected Extension, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_xfer_style_two_pass() {
+        let source = ";!knitout-2\nx-xfer-style two-pass\n";
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
+        match prog.lines[0].operation.as_ref().unwrap() {
+            WeakOperation::Extension(e) => match &e.kind {
+                WeakExtensionOperationKind::XXferStyle { style } => {
+                    assert_eq!(*style, WeakXferStyle::TwoPass);
+                }
+                other => panic!("expected XXferStyle, got {other:?}"),
+            },
+            other => panic!("expected Extension, got {other:?}"),
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Lowering: position header values (catches delete-arm mutants 157-159)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn lower_position_center() {
+        let source = ";!knitout-2\n;;Position: Center\n";
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
+        match &prog.headers[0].kind {
+            WeakHeaderKind::Position(ph) => assert_eq!(ph.value, WeakPositionValue::Center),
+            other => panic!("expected Position header, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_position_right() {
+        let source = ";!knitout-2\n;;Position: Right\n";
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
+        match &prog.headers[0].kind {
+            WeakHeaderKind::Position(ph) => assert_eq!(ph.value, WeakPositionValue::Right),
+            other => panic!("expected Position header, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_position_keep() {
+        let source = ";!knitout-2\n;;Position: Keep\n";
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
+        match &prog.headers[0].kind {
+            WeakHeaderKind::Position(ph) => assert_eq!(ph.value, WeakPositionValue::Keep),
+            other => panic!("expected Position header, got {other:?}"),
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Lowering: comment text (catches ! deletion mutants 624:25 and 624:44)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn lower_comment_text_extracted() {
+        // The comment text is " hello" — with guards deleted, valid nodes would
+        // be filtered out and text would become None.
+        let source = ";!knitout-2\nknit + f5 ; hello\n";
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
+        let line = &prog.lines[0];
+        let comment = line.comment.as_ref().expect("expected comment");
+        assert!(
+            comment.text.is_some(),
+            "expected comment text to be Some, got None"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Lowering: magic with MISSING version (catches is_missing guard 377)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn lower_magic_missing_version_produces_missing_version_diagnostic() {
+        // ";!knitout-" followed immediately by newline — version token is MISSING.
+        // With is_missing→false mutation, MISSING version flows to the parse arm,
+        // text_of(MISSING) = "" → fails → InvalidVersion pushed instead of MissingVersion.
+        let source = ";!knitout-\n";
+        let (prog, diags) = parse(source);
+        assert!(prog.magic.version.is_none(), "version should be None");
+        assert!(
+            diags.iter().any(|d| matches!(d, ParseError::MissingVersion(_))),
+            "expected MissingVersion diagnostic, got: {diags:?}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Lowering: extension operations (catches delete-arm mutants 788-881)
+    // -----------------------------------------------------------------------
+
+    fn get_extension_kind(source: &str) -> WeakExtensionOperationKind {
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags for {source:?}: {diags:?}");
+        match prog.lines[0].operation.as_ref().expect("expected operation") {
+            WeakOperation::Extension(e) => e.kind.clone(),
+            other => panic!("expected Extension, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_stitch_number() {
+        match get_extension_kind(";!knitout-2\nx-stitch-number 5\n") {
+            WeakExtensionOperationKind::XStitchNumber { value } => {
+                assert_eq!(value, Some(5));
+            }
+            other => panic!("expected XStitchNumber, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_speed_number() {
+        match get_extension_kind(";!knitout-2\nx-speed-number 3\n") {
+            WeakExtensionOperationKind::XSpeedNumber { value } => {
+                assert_eq!(value, Some(3));
+            }
+            other => panic!("expected XSpeedNumber, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_sub_roller_number() {
+        match get_extension_kind(";!knitout-2\nx-sub-roller-number 2\n") {
+            WeakExtensionOperationKind::XSubRollerNumber { value } => {
+                assert_eq!(value, Some(2));
+            }
+            other => panic!("expected XSubRollerNumber, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_xfer_stitch_number() {
+        match get_extension_kind(";!knitout-2\nx-xfer-stitch-number 4\n") {
+            WeakExtensionOperationKind::XXferStitchNumber { value } => {
+                assert_eq!(value, Some(4));
+            }
+            other => panic!("expected XXferStitchNumber, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_end_pass() {
+        match get_extension_kind(";!knitout-2\nx-end-pass\n") {
+            WeakExtensionOperationKind::XEndPass => {}
+            other => panic!("expected XEndPass, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_vis_color() {
+        match get_extension_kind(";!knitout-2\nx-vis-color 0xff0000 1\n") {
+            WeakExtensionOperationKind::XVisColor { color, carriers } => {
+                assert_eq!(color.as_deref(), Some("0xff0000"));
+                assert!(carriers.is_some());
+            }
+            other => panic!("expected XVisColor, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_loop_in() {
+        match get_extension_kind(";!knitout-2\nx-loop-in + f3 1\n") {
+            WeakExtensionOperationKind::XLoopIn {
+                direction,
+                needle,
+                carriers,
+            } => {
+                assert_eq!(direction, WeakDirection::Right);
+                assert!(needle.is_some());
+                assert!(carriers.is_some());
+            }
+            other => panic!("expected XLoopIn, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_yarn_in() {
+        match get_extension_kind(";!knitout-2\nx-yarn-in + f3 1\n") {
+            WeakExtensionOperationKind::XYarnIn {
+                direction,
+                needle,
+                carriers,
+            } => {
+                assert_eq!(direction, WeakDirection::Right);
+                assert!(needle.is_some());
+                assert!(carriers.is_some());
+            }
+            other => panic!("expected XYarnIn, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_yarn_out() {
+        match get_extension_kind(";!knitout-2\nx-yarn-out + f3 1\n") {
+            WeakExtensionOperationKind::XYarnOut {
+                direction,
+                needle,
+                carriers,
+            } => {
+                assert_eq!(direction, WeakDirection::Right);
+                assert!(needle.is_some());
+                assert!(carriers.is_some());
+            }
+            other => panic!("expected XYarnOut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_end() {
+        match get_extension_kind(";!knitout-2\nx-end\n") {
+            WeakExtensionOperationKind::XEnd => {}
+            other => panic!("expected XEnd, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_roller_advance() {
+        match get_extension_kind(";!knitout-2\nx-roller-advance 1.5\n") {
+            WeakExtensionOperationKind::XRollerAdvance { value } => {
+                assert!(value.is_some());
+            }
+            other => panic!("expected XRollerAdvance, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_add_roller_advance() {
+        match get_extension_kind(";!knitout-2\nx-add-roller-advance 0.5\n") {
+            WeakExtensionOperationKind::XAddRollerAdvance { value } => {
+                assert!(value.is_some());
+            }
+            other => panic!("expected XAddRollerAdvance, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_x_carrier_spacing() {
+        match get_extension_kind(";!knitout-2\nx-carrier-spacing 5\n") {
+            WeakExtensionOperationKind::XCarrierSpacing { value } => {
+                assert_eq!(value, Some(5));
+            }
+            other => panic!("expected XCarrierSpacing, got {other:?}"),
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Lowering: unknown_extension name and arguments (catches 888-890)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn lower_unknown_extension_name_extracted() {
+        // Name must be distinct from all known x- extensions.
+        match get_extension_kind(";!knitout-2\nx-my-custom arg1\n") {
+            WeakExtensionOperationKind::UnknownExtension { name, .. } => {
+                assert_eq!(name.as_deref(), Some("x-my-custom"));
+            }
+            other => panic!("expected UnknownExtension, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_unknown_extension_arguments_extracted() {
+        // With kind()=="extension_argument" → kind()!="extension_argument" mutation:
+        // the name node (kind "extension_name") would be included as an argument instead.
+        match get_extension_kind(";!knitout-2\nx-my-custom arg1 arg2\n") {
+            WeakExtensionOperationKind::UnknownExtension { arguments, .. } => {
+                assert_eq!(
+                    arguments.as_slice(),
+                    &["arg1", "arg2"],
+                    "arguments should be [arg1, arg2], got {arguments:?}"
+                );
+            }
+            other => panic!("expected UnknownExtension, got {other:?}"),
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Regression / smoke tests
     // -----------------------------------------------------------------------
 
