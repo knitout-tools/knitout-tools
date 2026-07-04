@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// A knitout program, complete with headers and magic string
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Program {
     /// The ;!knitout-`version` at the top
     version: u32,
@@ -66,7 +66,7 @@ impl Program {
 }
 
 /// A table that stores carrier names once. Use `CarrierTable::make_carrier` to create `Carrier`s.
-#[derive(Clone, Eq, Debug)]
+#[derive(Eq, Debug)]
 pub struct CarrierTable {
     /// The map from carrier u32 IDs to their names in the source
     id_to_name: Vec<String>,
