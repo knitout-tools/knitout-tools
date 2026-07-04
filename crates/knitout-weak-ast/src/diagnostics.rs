@@ -26,9 +26,15 @@ pub enum ParseError {
     // Field-level
     // -----------------------------------------------------------------------
     /// A required grammar field was absent or produced a MISSING node.
-    MissingField { span: Span, field: &'static str },
+    MissingField {
+        span: Span,
+        field: &'static str,
+    },
     /// A required grammar field was an ERROR node.
-    InvalidField { span: Span, field: &'static str },
+    InvalidField {
+        span: Span,
+        field: &'static str,
+    },
 
     // -----------------------------------------------------------------------
     // Unrecognized leaf enum values
@@ -98,14 +104,20 @@ impl fmt::Display for ParseError {
                 write!(f, "unrecognized direction; expected '+' or '-'")
             }
             Self::UnrecognizedPresserMode(_) => {
-                write!(f, "unrecognized presser mode; expected 'off', 'auto', or 'on'")
+                write!(
+                    f,
+                    "unrecognized presser mode; expected 'off', 'auto', or 'on'"
+                )
             }
             Self::UnrecognizedPositionValue(_) => write!(
                 f,
                 "unrecognized position value; expected 'Left', 'Center', 'Right', or 'Keep'"
             ),
             Self::UnrecognizedXferStyle(_) => {
-                write!(f, "unrecognized xfer style; expected 'four-pass' or 'two-pass'")
+                write!(
+                    f,
+                    "unrecognized xfer style; expected 'four-pass' or 'two-pass'"
+                )
             }
             Self::InvalidInteger(_) => write!(f, "invalid non-negative integer"),
             Self::InvalidRational(_) => write!(f, "invalid number"),

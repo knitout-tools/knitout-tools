@@ -35,7 +35,10 @@ mod tests {
         let span = Span::new(0, 0);
         WeakProgram {
             span,
-            magic: WeakMagic { span, version: Some(2) },
+            magic: WeakMagic {
+                span,
+                version: Some(2),
+            },
             headers: vec![],
             lines,
             carrier_table: CarrierTable::new(),
@@ -173,7 +176,10 @@ mod tests {
         assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
         match prog.lines[0].operation.as_ref().unwrap() {
             WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Xfer { source, destination } => {
+                WeakBaseOperationKind::Xfer {
+                    source,
+                    destination,
+                } => {
                     assert!(source.is_some());
                     assert!(destination.is_some());
                 }
@@ -224,7 +230,10 @@ mod tests {
         match prog.lines[0].operation.as_ref().unwrap() {
             WeakOperation::Base(b) => match &b.kind {
                 WeakBaseOperationKind::Knit { carriers, .. } => {
-                    assert!(carriers.is_empty(), "expected no carriers, got {carriers:?}");
+                    assert!(
+                        carriers.is_empty(),
+                        "expected no carriers, got {carriers:?}"
+                    );
                 }
                 other => panic!("expected Knit, got {other:?}"),
             },
@@ -304,9 +313,13 @@ mod tests {
             other => panic!("expected Base, got {other:?}"),
         }
         assert!(
-            diags
-                .iter()
-                .any(|d| matches!(d, ParseError::MissingField { field: "after_pull", .. })),
+            diags.iter().any(|d| matches!(
+                d,
+                ParseError::MissingField {
+                    field: "after_pull",
+                    ..
+                }
+            )),
             "expected MissingField{{after_pull}}, got: {diags:?}"
         );
     }
@@ -320,10 +333,9 @@ mod tests {
         let (prog, diags) = parse(source);
         assert!(prog.magic.version.is_none(), "version should be None");
         assert!(
-            diags.iter().any(|d| matches!(
-                d,
-                ParseError::MissingMagic(_) | ParseError::UnparsedFile(_)
-            )),
+            diags
+                .iter()
+                .any(|d| matches!(d, ParseError::MissingMagic(_) | ParseError::UnparsedFile(_))),
             "expected a file-level diagnostic, got: {diags:?}"
         );
     }
@@ -334,7 +346,10 @@ mod tests {
     fn completely_invalid_syntax_produces_diagnostics() {
         let source = ";!knitout-2\nthis_is_not_valid!!!\n";
         let (prog, diags) = parse(source);
-        assert!(!diags.is_empty(), "expected at least one diagnostic for garbage input");
+        assert!(
+            !diags.is_empty(),
+            "expected at least one diagnostic for garbage input"
+        );
         let _ = prog;
     }
 
@@ -345,7 +360,9 @@ mod tests {
         let source = ";!knitout-2\nthis_is_not_valid!!!\n";
         let (_prog, diags) = parse(source);
         assert!(
-            diags.iter().any(|d| matches!(d, ParseError::InvalidOperation(_))),
+            diags
+                .iter()
+                .any(|d| matches!(d, ParseError::InvalidOperation(_))),
             "expected InvalidOperation diagnostic, got: {diags:?}"
         );
     }
@@ -385,12 +402,18 @@ mod tests {
 
     #[test]
     fn convert_front_bed_succeeds() {
-        assert!(matches!(WeakBed::Front.try_into_strong(), Ok(knitout_ast::Bed::Front)));
+        assert!(matches!(
+            WeakBed::Front.try_into_strong(),
+            Ok(knitout_ast::Bed::Front)
+        ));
     }
 
     #[test]
     fn convert_back_bed_succeeds() {
-        assert!(matches!(WeakBed::Back.try_into_strong(), Ok(knitout_ast::Bed::Back)));
+        assert!(matches!(
+            WeakBed::Back.try_into_strong(),
+            Ok(knitout_ast::Bed::Back)
+        ));
     }
 
     #[test]
@@ -519,7 +542,10 @@ mod tests {
         let span = Span::new(0, 0);
         let prog = WeakProgram {
             span,
-            magic: WeakMagic { span, version: None },
+            magic: WeakMagic {
+                span,
+                version: None,
+            },
             headers: vec![],
             lines: vec![],
             carrier_table: CarrierTable::new(),
@@ -549,7 +575,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "offset", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "offset",
+                    ..
+                })
+            ),
             "expected MissingField{{offset}}, got {result:?}"
         );
     }
@@ -562,7 +594,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "before_pull", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "before_pull",
+                    ..
+                })
+            ),
             "expected MissingField{{before_pull}}, got {result:?}"
         );
     }
@@ -577,7 +615,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "after_pull", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "after_pull",
+                    ..
+                })
+            ),
             "expected MissingField{{after_pull}}, got {result:?}"
         );
     }
@@ -589,7 +633,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "carriers", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "carriers",
+                    ..
+                })
+            ),
             "expected MissingField{{carriers}}, got {result:?}"
         );
     }
@@ -601,7 +651,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "carriers", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "carriers",
+                    ..
+                })
+            ),
             "expected MissingField{{carriers}}, got {result:?}"
         );
     }
@@ -615,7 +671,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "needle", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "needle",
+                    ..
+                })
+            ),
             "expected MissingField{{needle}}, got {result:?}"
         );
     }
@@ -629,7 +691,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "needle", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "needle",
+                    ..
+                })
+            ),
             "expected MissingField{{needle}}, got {result:?}"
         );
     }
@@ -642,7 +710,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "source", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "source",
+                    ..
+                })
+            ),
             "expected MissingField{{source}}, got {result:?}"
         );
     }
@@ -655,7 +729,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "destination", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "destination",
+                    ..
+                })
+            ),
             "expected MissingField{{destination}}, got {result:?}"
         );
     }
@@ -667,7 +747,13 @@ mod tests {
         }))]);
         let result = prog.try_into_strong();
         assert!(
-            matches!(result, Err(ParseError::MissingField { field: "needle", .. })),
+            matches!(
+                result,
+                Err(ParseError::MissingField {
+                    field: "needle",
+                    ..
+                })
+            ),
             "expected MissingField{{needle}}, got {result:?}"
         );
     }
@@ -828,7 +914,9 @@ mod tests {
         let (prog, diags) = parse(source);
         assert!(prog.magic.version.is_none(), "version should be None");
         assert!(
-            diags.iter().any(|d| matches!(d, ParseError::MissingVersion(_))),
+            diags
+                .iter()
+                .any(|d| matches!(d, ParseError::MissingVersion(_))),
             "expected MissingVersion diagnostic, got: {diags:?}"
         );
     }
@@ -839,8 +927,15 @@ mod tests {
 
     fn get_extension_kind(source: &str) -> WeakExtensionOperationKind {
         let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags for {source:?}: {diags:?}");
-        match prog.lines[0].operation.as_ref().expect("expected operation") {
+        assert!(
+            diags.is_empty(),
+            "unexpected diags for {source:?}: {diags:?}"
+        );
+        match prog.lines[0]
+            .operation
+            .as_ref()
+            .expect("expected operation")
+        {
             WeakOperation::Extension(e) => e.kind.clone(),
             other => panic!("expected Extension, got {other:?}"),
         }
@@ -1069,16 +1164,8 @@ mod tests {
                 assert_eq!(items.len(), 1, "expected 1 rail item");
                 match &items[0] {
                     WeakCarrierOrRail::Rail(rail) => {
-                        assert_eq!(
-                            rail.left.carriers.len(),
-                            2,
-                            "left should have 2 carriers"
-                        );
-                        assert_eq!(
-                            rail.right.carriers.len(),
-                            2,
-                            "right should have 2 carriers"
-                        );
+                        assert_eq!(rail.left.carriers.len(), 2, "left should have 2 carriers");
+                        assert_eq!(rail.right.carriers.len(), 2, "right should have 2 carriers");
                     }
                     other => panic!("expected Rail, got {other:?}"),
                 }

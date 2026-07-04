@@ -265,7 +265,11 @@ impl<'s> LowerCtx<'s> {
     // -----------------------------------------------------------------------
 
     /// Parse a required carrier_set field. Returns None when absent/errored.
-    fn lower_required_carrier_set(&mut self, parent: Node, field: &'static str) -> Option<Vec<Carrier>> {
+    fn lower_required_carrier_set(
+        &mut self,
+        parent: Node,
+        field: &'static str,
+    ) -> Option<Vec<Carrier>> {
         let node = self.required_field(parent, field)?;
         Some(self.lower_carrier_set_node(node))
     }
@@ -434,9 +438,7 @@ impl<'s> LowerCtx<'s> {
                     "position_header" => WeakHeaderKind::Position(self.lower_position_header(c)),
                     "machine_header" => WeakHeaderKind::Machine(self.lower_machine_header(c)),
                     "yarn_header" => WeakHeaderKind::Yarn(self.lower_yarn_header(c)),
-                    "extension_header" => {
-                        WeakHeaderKind::Extension(self.lower_extension_header(c))
-                    }
+                    "extension_header" => WeakHeaderKind::Extension(self.lower_extension_header(c)),
                     _ => {
                         self.push_error(ParseError::UnrecognizedHeader(self.span_of(c)));
                         WeakHeaderKind::Unknown
