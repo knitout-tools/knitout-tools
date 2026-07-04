@@ -1,180 +1,40 @@
 ; highlights.scm — knitout (.k)
 ;
-; Node-shape reminder for this grammar:
-;   - Rules whose ENTIRE body is a bare terminal (e.g., pause) become
-;     leaf NAMED nodes — match them with (rule_name), not a string literal.
-;   - Rules that wrap a keyword in seq(...) alongside fields (e.g., in)
-;     keep the keyword as an ANONYMOUS child
-;     token — match those with a quoted string literal.
-
-; types:
-; @attribute
-;
-; @comment
-;
-; @constant
-; @constant.builtin
-;
-; @constructor
-;
-; @embedded
-;
-; @function
-; @function.builtin
-;
-; @keyword
-;
-; @module
-;
-; @number
-;
-; @operator
-;
-; @property
-;
-; @punctuation.bracket
-; @punctuation.delimiter
-;
-; @string
-; @string.special
-;
-; @tag
-;
-; @type
-; @type.builtin
-;
-; @variable.builtin
-; @variable.parameter
+; With the weak grammar all semantic structure (operation type, argument
+; meaning, header name/value) is resolved in the weak-AST layer, not here.
+; Highlighting is therefore structural: mark line categories and let the LSP
+; layer add semantic tokens on top.
 
 ; ---------------------------------------------------------------------------
-; Magic line: ;!knitout-N
+; Directive lines: ;!knitout-2, ;!source: …
 ; ---------------------------------------------------------------------------
-(magic ";" @comment)
-(magic "!knitout-" @keyword)
-(version) @number
-
+(directive
+  content: (line_content) @keyword)
+(directive) @comment
 
 ; ---------------------------------------------------------------------------
 ; Header lines: ;;Name: value
 ; ---------------------------------------------------------------------------
-
-";;" @comment
-(extension_header
-  name: (extension_header_name) @property
-  ": " @punctuation.delimiter
-  value: (header_value) @string)
+(header
+  content: (line_content) @attribute)
+(header) @comment
 
 ; ---------------------------------------------------------------------------
-; Specific headers
+; Comment lines and trailing comments
 ; ---------------------------------------------------------------------------
-(yarn_header
-  "Yarn-" @property
-  ":" @punctuation.delimiter
-  value: (header_value) @constant)
-
-(machine_header
-  "Machine" @property
-  ":" @punctuation.delimiter
-  value: (header_value) @constant)
-
-(gauge_header
-  "Gauge" @property
-  ":" @punctuation.delimiter)
-
-(width_header
-  "Width" @property
-  ":" @punctuation.delimiter)
-
-(position_header
-  "Position" @property
-  ":" @punctuation.delimiter)
-(position_value) @constant.builtin
-
-(carriers_header
-  "Carriers" @property
-  ":" @punctuation.delimiter)
-
-(rail_definition
-  left: (rail_side)
-  ";" @punctuation.delimiter
-  right: (rail_side))
-
-(rail_side
-  "," @punctuation.delimiter)
-
-(carrier) @variable
-
-; ---------------------------------------------------------------------------
-; Comments
-; ---------------------------------------------------------------------------
+(comment
+  text: (line_content) @comment)
 (comment) @comment
-(source_comment ";" @comment)
-(source_comment "!source: " @keyword)
-(comment_text) @comment
 
 ; ---------------------------------------------------------------------------
-; Operation keywords (anonymous tokens inside their operation node)
+; Source comments trailing an operation: ;!source: …
 ; ---------------------------------------------------------------------------
-[
-  "in"
-  "inhook"
-  "releasehook"
-  "out"
-  "outhook"
-  "stitch"
-  "rack"
-  "knit"
-  "tuck"
-  "split"
-  "drop"
-  "amiss"
-  "xfer"
-  "miss"
-] @function.builtin
-
-; pause / direction / bed / slider are bare-terminal leaf nodes, not
-; anonymous children — match them directly.
-(pause) @function.builtin
-(direction) @operator
-(bed) @type
-(slider) @type
+(source_comment
+  source: (line_content) @string.special)
+(source_comment) @comment
 
 ; ---------------------------------------------------------------------------
-; Needles, indices, carriers, numbers
+; Operations
 ; ---------------------------------------------------------------------------
-(needle_index) @number
-(rational) @number
-(carrier) @variable
-
-; ---------------------------------------------------------------------------
-; Extensions (x-whatever ...)
-; ---------------------------------------------------------------------------
-[
- "x-stitch-number"
- "x-speed-number"
- "x-sub-roller-number"
- "x-presser-mode"
- "x-xfer-stitch-number"
- "x-vis-color"
- "x-loop-in"
- "x-yarn-in"
- "x-yarn-out"
- "x-roller-advance"
- "x-add-roller-advance"
- "x-carrier-spacing"
- "x-carrier-stopping-distance"
- "x-xfer-style"
-] @function.macro
-(nonneg_integer) @number
-(nonneg_half_integer) @number
-
-(x_end_pass) @function.macro
-(x_end) @function.macro
-
-(color) @constant
-(presser_mode) @constant.builtin
-(xfer_style) @constant.builtin
-
-(extension_name) @function.macro
-(extension_argument) @string
-
+(opcode) @function.builtin
+(argument) @variable

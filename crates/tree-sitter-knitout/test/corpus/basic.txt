@@ -9,17 +9,16 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))))
+    (directive
+      content: (line_content)))
+  (line
+    (header
+      content: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)))))

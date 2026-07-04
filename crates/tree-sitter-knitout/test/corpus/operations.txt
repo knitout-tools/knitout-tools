@@ -10,28 +10,34 @@ outhook 5
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (in
-      carriers: (pos_carrier_set
-        (carrier))))
+    (directive
+      content: (line_content)))
   (line
-    operation: (inhook
-      carriers: (pos_carrier_set
-        (carrier))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument))))
   (line
-    operation: (releasehook
-      carriers: (pos_carrier_set
-        (carrier))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument))))
   (line
-    operation: (out
-      carriers: (pos_carrier_set
-        (carrier))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument))))
   (line
-    operation: (outhook
-      carriers: (pos_carrier_set
-        (carrier)))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)))))
 
 ================================================================================
 multiple-carriers
@@ -42,19 +48,22 @@ out 4 5
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (in
-      carriers: (pos_carrier_set
-        (carrier)
-        (carrier)
-        (carrier))))
+    (directive
+      content: (line_content)))
   (line
-    operation: (out
-      carriers: (pos_carrier_set
-        (carrier)
-        (carrier)))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 stitch-and-rack
@@ -69,29 +78,42 @@ rack 3.
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (stitch
-      before_pull: (rational)
-      after_pull: (rational)))
+    (directive
+      content: (line_content)))
   (line
-    operation: (stitch
-      before_pull: (rational)
-      after_pull: (rational)))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument))))
   (line
-    operation: (stitch
-      before_pull: (rational)
-      after_pull: (rational)))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument))))
   (line
-    operation: (rack
-      offset: (rational)))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument))))
   (line
-    operation: (rack
-      offset: (rational)))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument))))
   (line
-    operation: (rack
-      offset: (rational))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)))))
 
 ================================================================================
 knit-tuck-miss-directions-and-optional-carriers
@@ -106,54 +128,50 @@ miss - b3
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (directive
+      content: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)
-        (carrier))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
   (line
-    operation: (tuck
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
   (line
-    operation: (tuck
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        slider: (slider)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument))))
   (line
-    operation: (miss
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
   (line
-    operation: (miss
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index)))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 split-operation
@@ -165,42 +183,33 @@ split + f0 b0 1 2
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (split
-      direction: (direction)
-      source: (needle
-        bed: (bed)
-        index: (needle_index))
-      destination: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (directive
+      content: (line_content)))
   (line
-    operation: (split
-      direction: (direction)
-      source: (needle
-        bed: (bed)
-        slider: (slider)
-        index: (needle_index))
-      destination: (needle
-        bed: (bed)
-        slider: (slider)
-        index: (needle_index))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
   (line
-    operation: (split
-      direction: (direction)
-      source: (needle
-        bed: (bed)
-        index: (needle_index))
-      destination: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)
-        (carrier)))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 xfer-operation
@@ -211,26 +220,21 @@ xfer fs3 bs-2
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (xfer
-      source: (needle
-        bed: (bed)
-        index: (needle_index))
-      destination: (needle
-        bed: (bed)
-        index: (needle_index))))
+    (directive
+      content: (line_content)))
   (line
-    operation: (xfer
-      source: (needle
-        bed: (bed)
-        slider: (slider)
-        index: (needle_index))
-      destination: (needle
-        bed: (bed)
-        slider: (slider)
-        index: (needle_index)))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 drop-and-amiss
@@ -241,19 +245,19 @@ amiss bs-5
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (drop
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))))
+    (directive
+      content: (line_content)))
   (line
-    operation: (amiss
-      needle: (needle
-        bed: (bed)
-        slider: (slider)
-        index: (needle_index)))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)))))
 
 ================================================================================
 pause-operation
@@ -264,12 +268,17 @@ pause
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (pause))
+    (directive
+      content: (line_content)))
   (line
-    operation: (pause)))
+    (op_line
+      operation: (operation
+        opcode: (opcode))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)))))
 
 ================================================================================
 extension-operation
@@ -281,25 +290,26 @@ x-test 1 2.5 foo
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (extension
-      (unknown_extension
-        name: (extension_name))))
+    (directive
+      content: (line_content)))
   (line
-    operation: (extension
-      (unknown_extension
-        name: (extension_name)
-        (extension_argument)
-        (extension_argument))))
+    (op_line
+      operation: (operation
+        opcode: (opcode))))
   (line
-    operation: (extension
-      (unknown_extension
-        name: (extension_name)
-        (extension_argument)
-        (extension_argument)
-        (extension_argument)))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 operation-with-trailing-comment-and-source-comment
@@ -310,25 +320,24 @@ knit - b3 1;!source: file.js:10
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
-    comment: (comment
-      text: (comment_text)))
+    (directive
+      content: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
-    source_comment: (source_comment
-      source: (comment_text))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))
+      comment: (comment
+        text: (line_content))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))
+      source_comment: (source_comment
+        source: (line_content)))))
