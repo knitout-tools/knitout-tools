@@ -1023,6 +1023,71 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
+    // Rail definition tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn lower_rail_definition_carriers_extracted() {
+        let source = ";!knitout-2\n;;Carriers: A;B\n";
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
+        match &prog.headers[0].kind {
+            WeakHeaderKind::Carriers(ch) => {
+                let items = &ch.value.as_ref().unwrap().items;
+                assert_eq!(items.len(), 1, "expected 1 item (a rail)");
+                match &items[0] {
+                    WeakCarrierOrRail::Rail(rail) => {
+                        assert_eq!(
+                            rail.left.carriers.len(),
+                            1,
+                            "left should have 1 carrier, got {:?}",
+                            rail.left.carriers
+                        );
+                        assert_eq!(
+                            rail.right.carriers.len(),
+                            1,
+                            "right should have 1 carrier, got {:?}",
+                            rail.right.carriers
+                        );
+                    }
+                    other => panic!("expected Rail, got {other:?}"),
+                }
+            }
+            other => panic!("expected Carriers header, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_rail_definition_multi_carrier_rail() {
+        // Rail with 2 carriers on each side: "A,C;B,D"
+        let source = ";!knitout-2\n;;Carriers: A,C;B,D\n";
+        let (prog, diags) = parse(source);
+        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
+        match &prog.headers[0].kind {
+            WeakHeaderKind::Carriers(ch) => {
+                let items = &ch.value.as_ref().unwrap().items;
+                assert_eq!(items.len(), 1, "expected 1 rail item");
+                match &items[0] {
+                    WeakCarrierOrRail::Rail(rail) => {
+                        assert_eq!(
+                            rail.left.carriers.len(),
+                            2,
+                            "left should have 2 carriers"
+                        );
+                        assert_eq!(
+                            rail.right.carriers.len(),
+                            2,
+                            "right should have 2 carriers"
+                        );
+                    }
+                    other => panic!("expected Rail, got {other:?}"),
+                }
+            }
+            other => panic!("expected Carriers header, got {other:?}"),
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Regression / smoke tests
     // -----------------------------------------------------------------------
 
