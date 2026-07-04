@@ -169,9 +169,9 @@ enum ts_field_identifiers {
   field_content = 3,
   field_opcode = 4,
   field_operation = 5,
-  field_source = 6,
-  field_tag_comment = 7,
-  field_text = 8,
+  field_tag_comment = 6,
+  field_text = 7,
+  field_value = 8,
 };
 
 static const char * const ts_field_names[] = {
@@ -181,9 +181,9 @@ static const char * const ts_field_names[] = {
   [field_content] = "content",
   [field_opcode] = "opcode",
   [field_operation] = "operation",
-  [field_source] = "source",
   [field_tag_comment] = "tag_comment",
   [field_text] = "text",
+  [field_value] = "value",
 };
 
 static const TSMapSlice ts_field_map_slices[PRODUCTION_ID_COUNT] = {
@@ -209,7 +209,7 @@ static const TSFieldMapEntry ts_field_map_entries[] = {
   [3] =
     {field_text, 1},
   [4] =
-    {field_source, 1},
+    {field_value, 1},
   [5] =
     {field_comment, 1},
     {field_operation, 0},

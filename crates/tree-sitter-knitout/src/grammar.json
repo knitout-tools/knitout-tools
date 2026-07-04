@@ -205,7 +205,7 @@
         },
         {
           "type": "FIELD",
-          "name": "source",
+          "name": "value",
           "content": {
             "type": "CHOICE",
             "members": [

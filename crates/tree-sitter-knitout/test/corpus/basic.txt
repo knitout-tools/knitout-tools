@@ -11,7 +11,7 @@ knit + f3 1
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (header
       content: (line_content)))

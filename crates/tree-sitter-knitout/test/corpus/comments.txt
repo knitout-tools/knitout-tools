@@ -9,7 +9,7 @@ plain-comment
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (comment
       text: (line_content)))
@@ -28,7 +28,7 @@ knit + f3 1
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (comment))
   (line
@@ -50,7 +50,7 @@ knit + f3 1;trailing: comment; text
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (comment
       text: (line_content)))
@@ -76,7 +76,7 @@ knit + f3 1;!source:missing space, but we accept this
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -85,7 +85,7 @@ knit + f3 1;!source:missing space, but we accept this
         argument: (argument)
         argument: (argument))
       tag_comment: (tag_comment
-        source: (line_content))))
+        value: (line_content))))
   (line
     (op_line
       operation: (operation
@@ -94,7 +94,7 @@ knit + f3 1;!source:missing space, but we accept this
         argument: (argument)
         argument: (argument))
       tag_comment: (tag_comment
-        source: (line_content))))
+        value: (line_content))))
   (line
     (op_line
       operation: (operation
@@ -103,7 +103,7 @@ knit + f3 1;!source:missing space, but we accept this
         argument: (argument)
         argument: (argument))
       tag_comment: (tag_comment
-        source: (line_content)))))
+        value: (line_content)))))
 
 ================================================================================
 standalone-source-comment-like-line-without-operation
@@ -116,10 +116,10 @@ knit + f3 1
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -143,7 +143,7 @@ tuck - b3 2;!source: main.js:20
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (header
       content: (line_content)))
@@ -168,7 +168,7 @@ tuck - b3 2;!source: main.js:20
         argument: (argument)
         argument: (argument))
       tag_comment: (tag_comment
-        source: (line_content))))
+        value: (line_content))))
   (line
     (header
       content: (line_content))))

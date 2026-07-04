@@ -22,4 +22,4 @@ magic-with-newlines
 (source_file
   (line
     (tag_comment
-      source: (line_content))))
+      value: (line_content))))

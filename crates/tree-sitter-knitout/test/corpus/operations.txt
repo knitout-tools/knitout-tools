@@ -12,7 +12,7 @@ outhook 5
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -50,7 +50,7 @@ out 4 5
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -80,7 +80,7 @@ rack 3.
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -130,7 +130,7 @@ miss - b3
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -185,7 +185,7 @@ split + f0 b0 1 2
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -222,7 +222,7 @@ xfer fs3 bs-2
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -247,7 +247,7 @@ amiss bs-5
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -270,7 +270,7 @@ pause
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -292,7 +292,7 @@ x-test 1 2.5 foo
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -322,7 +322,7 @@ knit - b3 1;!source: file.js:10
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -340,4 +340,4 @@ knit - b3 1;!source: file.js:10
         argument: (argument)
         argument: (argument))
       tag_comment: (tag_comment
-        source: (line_content)))))
+        value: (line_content)))))

@@ -150,7 +150,7 @@
     "type": "tag_comment",
     "named": true,
     "fields": {
-      "source": {
+      "value": {
         "multiple": false,
         "required": false,
         "types": [

@@ -10,10 +10,10 @@ unassociated source comment is a comment
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (tag_comment
-      source: (line_content))))
+      value: (line_content))))
 
 ================================================================================
 almost source comment
@@ -27,7 +27,7 @@ knit + f0 ;!source caston.knit:12
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -35,7 +35,7 @@ knit + f0 ;!source caston.knit:12
         argument: (argument)
         argument: (argument))
       tag_comment: (tag_comment
-        source: (line_content)))))
+        value: (line_content)))))
 
 ================================================================================
 valid slider needle
@@ -49,7 +49,7 @@ drop fs10
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -69,7 +69,7 @@ drop f10
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -91,7 +91,7 @@ knit + f10 1 ;!source: caston.knit:17
 (source_file
   (line
     (tag_comment
-      source: (line_content)))
+      value: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -100,4 +100,4 @@ knit + f10 1 ;!source: caston.knit:17
         argument: (argument)
         argument: (argument))
       tag_comment: (tag_comment
-        source: (line_content)))))
+        value: (line_content)))))

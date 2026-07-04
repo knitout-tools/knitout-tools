@@ -33,10 +33,10 @@ export default grammar({
 
     // Between two newlines, a line is one of four things.
     // Disambiguation is purely by the lexer's longest-match rule:
-    //   ";!"  (2 chars) beats ";" (1 char)  => directive wins over comment
+    //   ";!"  (2 chars) beats ";" (1 char)  => tag directive wins over comment
     //   ";;"  (2 chars) beats ";" (1 char)  => header wins over comment
     //   ";"   (1 char)  fallback            => plain comment
-    //   anything else                       => operation line (possibly w/ comment)
+    //   anything else                       => operation line (possibly w/ comment or tag directive)
     line: $ => choice(
       $.tag_comment,
       $.header,
@@ -64,6 +64,7 @@ export default grammar({
     op_line: $ => seq(
       field("operation", $.operation),
       optional(choice(
+        // again, tag comments win out over regular comments in the tokenizer
         field("tag_comment", $.tag_comment),
         field("comment", $.comment),
       ))
@@ -75,12 +76,10 @@ export default grammar({
       repeat(field("argument", $.argument))
     ),
 
-    // A ;!source: comment trailing an operation. The ";!source:" token is nine
-    // characters (including the space), so the lexer always prefers it over the
-    // single-character ";" for comment.
+    // A ";!" comment, possibly trailing an operation.
     tag_comment: $ => seq(
       ";!",
-      field("source", optional($.line_content))
+      field("value", optional($.line_content))
     ),
 
     opcode: _$ => /[^\s;]+/,
