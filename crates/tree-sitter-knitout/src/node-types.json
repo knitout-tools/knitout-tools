@@ -183,6 +183,14 @@
     "named": false
   },
   {
+    "type": ";!",
+    "named": false
+  },
+  {
+    "type": ";!source:",
+    "named": false
+  },
+  {
     "type": ";;",
     "named": false
   },

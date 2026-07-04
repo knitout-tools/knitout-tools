@@ -1,40 +1,254 @@
-;!knitout-2
+ ;!knitout-2
 ;^ comment
-; ^ keyword
+;  ^ keyword
 ;         ^ keyword
+;          ^ keyword
 
-;;Machine: Shima Stoll
+ ;;Machine: SWG091N2
 ;^ comment
-; ^ attribute
-;         ^ attribute
-;           ^ attribute
+; ^ comment
+;  ^ attribute
+;          ^ attribute
 
-; a plain comment
+;;Gauge: 15
 ;^ comment
-;  ^ comment
+;  ^ attribute
+;        ^ attribute
 
-knit + f5 1
+;;Yarn-5: 50-50 Rust
+;^ comment
+;  ^ attribute
+
+ ;;Carriers: 1 2 3 4 5 6 7 8 9 10
+;^ comment
+; ^ comment
+;  ^ attribute
+;            ^ attribute
+
+;;Position: Right
+;^ comment
+;  ^ attribute
+;            ^ attribute
+
+ in 1 2
 ;^ function.builtin
-;    ^ variable
-;      ^ variable
-;         ^ variable
-
-rack 0.75
+;   ^ variable
+;     ^ variable
+ inhook myCarrier
 ;^ function.builtin
-;    ^ variable
-
-knit + f5 1 ;!source: foo.kn:3
+;       ^ variable
+ releasehook 3
+;^ function.builtin
+;            ^ variable
+out 4 9 1 ; comment on operation
+;^ function.builtin
+;   ^ variable
+;     ^ variable
+;       ^ variable
+;         ^ comment
 ;           ^ comment
-;            ^ comment
-;                      ^ string.special
+outhook 1
+;^ function.builtin
+;       ^ variable
 
-knit + f5 1 ; trailing comment
-;           ^ comment
+ ; comment without operation
+;^ comment
+;   ^ comment
+
+stitch 1.3 -.5;comment without space
+;^ function.builtin
+;      ^ number
+;       ^ number
+;        ^ number
+;          ^ number
+;           ^ number
+;            ^ number
 ;             ^ comment
-
-x-stitch-number 48
+;              ^ comment
+rack +0.75 ;comment with one space
 ;^ function.builtin
-;               ^ variable
+;    ^ number
+;     ^ number
+;      ^ number
+;       ^ number
+;        ^ number
+;         ^ number
+;          ^ comment
+;           ^ comment
 
+knit + f-53 3 4; comment with one space
+;^ function.builtin
+;    ^ operator
+;      ^ type
+;       ^ type
+;        ^ type
+;         ^ type
+;           ^ variable
+;             ^ variable
+tuck - bs0 1 myCarrier
+;^ function.builtin
+;    ^ operator
+;      ^ type
+;       ^ type
+;        ^ type
+;          ^ variable
+;             ^ variable
+
+split - f0 f100 3 4 9 ;!source: this is source comment
+;^ function.builtin
+;     ^ operator
+;       ^ type
+;        ^ type
+;          ^ type
+;           ^ type
+;            ^ type
+;             ^ type
+;               ^ variable
+;                 ^ variable
+;                   ^ variable
+;                      ^ keyword
+;                       ^ keyword
+;                        ^ keyword
+;                               ^ comment
+
+ ;;X-Header-In-The-Middle: value
+;^ comment
+; ^ comment
+;  ^ attribute
+;             ^ attribute
+
+drop f100
+;^ function.builtin
+;    ^ type
+;     ^ type
+;      ^ type
+;       ^ type
+amiss b-30
+;^ function.builtin
+;     ^ type
+;      ^ type
+;       ^ type
+;        ^ type
+xfer f-53 b-30
+;^ function.builtin
+;    ^ type
+;          ^ type
+miss + f9 1 2 3
+;^ function.builtin
+;    ^ operator
+;      ^ type
+;       ^ type
+;         ^ variable
 pause
 ;^ function.builtin
+x-my-extension 1 - f0 f-43 +0.75 myCarrier
+;^ function.macro
+;              ^ variable
+;                ^ variable
+;                  ^ variable
+;                      ^ variable
+;                           ^ variable
+;                                 ^ variable
+x-stitch-number 48
+;^ function.macro
+;               ^ number
+x-speed-number -89
+;^ function.macro
+;              ^ number
+x-speed-number foo
+;^ function.macro
+x-speed-number -89 7
+;^ function.macro
+;              ^ number
+
+
+x-stitch-number +03
+;^ function.macro
+;               ^ number
+
+x-speed-number 3
+;^ function.macro
+;              ^ number
+
+x-sub-roller-number 49
+;^ function.macro
+;                   ^ number
+
+x-presser-mode off
+;^ function.macro
+;              ^ constant.builtin
+x-presser-mode on
+;^ function.macro
+;              ^ constant.builtin
+x-presser-mode auto
+;^ function.macro
+;              ^ constant.builtin
+
+x-xfer-stitch-number 4
+;^ function.macro
+;                    ^ number
+
+x-end-pass
+;^ function.macro
+
+x-vis-color #ff0000 myCarrier 4 2
+;^ function.macro
+;           ^ constant
+;                   ^ variable
+;                             ^ variable
+;                               ^ variable
+
+x-vis-color cyan myCarrier 4 2
+;^ function.macro
+;           ^ constant
+
+x-vis-color (1,2,3) myCarrier 4 2
+;^ function.macro
+;           ^ constant
+
+x-loop-in + f-20 myCarrier 3 1
+;^ function.macro
+;          ^ operator
+;            ^ type
+;             ^ type
+;              ^ type
+;              ^ type
+;                  ^ variable
+;                             ^ variable
+
+x-yarn-in + f-20 myCarrier 3 1
+;^ function.macro
+
+x-yarn-out + f-20 myCarrier 3 1
+;^ function.macro
+
+x-end
+;^ function.macro
+
+x-roller-advance 0.102
+;^ function.macro
+;                ^ number
+
+x-roller-advance 3
+;^ function.macro
+;                ^ number
+
+x-add-roller-advance 31.2
+;^ function.macro
+;                    ^ number
+
+x-carrier-spacing 9
+;^ function.macro
+;                 ^ number
+
+x-carrier-stopping-distance 9.5
+;^ function.macro
+;                            ^ number
+
+x-xfer-style four-pass
+;^ function.macro
+;            ^ constant.builtin
+
+x-xfer-style two-pass
+;^ function.macro
+;            ^ constant.builtin

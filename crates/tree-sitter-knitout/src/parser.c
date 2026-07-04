@@ -21,10 +21,10 @@
 
 enum ts_symbol_identifiers {
   sym__newline = 1,
-  aux_sym_directive_token1 = 2,
+  anon_sym_SEMI_BANG = 2,
   anon_sym_SEMI_SEMI = 3,
   anon_sym_SEMI = 4,
-  aux_sym_source_comment_token1 = 5,
+  anon_sym_SEMI_BANGsource_COLON = 5,
   aux_sym_opcode_token1 = 6,
   sym_line_content = 7,
   sym_source_file = 8,
@@ -45,10 +45,10 @@ enum ts_symbol_identifiers {
 static const char * const ts_symbol_names[] = {
   [ts_builtin_sym_end] = "end",
   [sym__newline] = "_newline",
-  [aux_sym_directive_token1] = "directive_token1",
+  [anon_sym_SEMI_BANG] = ";!",
   [anon_sym_SEMI_SEMI] = ";;",
   [anon_sym_SEMI] = ";",
-  [aux_sym_source_comment_token1] = "source_comment_token1",
+  [anon_sym_SEMI_BANGsource_COLON] = ";!source:",
   [aux_sym_opcode_token1] = "opcode_token1",
   [sym_line_content] = "line_content",
   [sym_source_file] = "source_file",
@@ -69,10 +69,10 @@ static const char * const ts_symbol_names[] = {
 static const TSSymbol ts_symbol_map[] = {
   [ts_builtin_sym_end] = ts_builtin_sym_end,
   [sym__newline] = sym__newline,
-  [aux_sym_directive_token1] = aux_sym_directive_token1,
+  [anon_sym_SEMI_BANG] = anon_sym_SEMI_BANG,
   [anon_sym_SEMI_SEMI] = anon_sym_SEMI_SEMI,
   [anon_sym_SEMI] = anon_sym_SEMI,
-  [aux_sym_source_comment_token1] = aux_sym_source_comment_token1,
+  [anon_sym_SEMI_BANGsource_COLON] = anon_sym_SEMI_BANGsource_COLON,
   [aux_sym_opcode_token1] = aux_sym_opcode_token1,
   [sym_line_content] = sym_line_content,
   [sym_source_file] = sym_source_file,
@@ -99,8 +99,8 @@ static const TSSymbolMetadata ts_symbol_metadata[] = {
     .visible = false,
     .named = true,
   },
-  [aux_sym_directive_token1] = {
-    .visible = false,
+  [anon_sym_SEMI_BANG] = {
+    .visible = true,
     .named = false,
   },
   [anon_sym_SEMI_SEMI] = {
@@ -111,8 +111,8 @@ static const TSSymbolMetadata ts_symbol_metadata[] = {
     .visible = true,
     .named = false,
   },
-  [aux_sym_source_comment_token1] = {
-    .visible = false,
+  [anon_sym_SEMI_BANGsource_COLON] = {
+    .visible = true,
     .named = false,
   },
   [aux_sym_opcode_token1] = {
@@ -344,7 +344,7 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       ACCEPT_TOKEN(sym__newline);
       END_STATE();
     case 13:
-      ACCEPT_TOKEN(aux_sym_directive_token1);
+      ACCEPT_TOKEN(anon_sym_SEMI_BANG);
       END_STATE();
     case 14:
       ACCEPT_TOKEN(anon_sym_SEMI_SEMI);
@@ -359,7 +359,7 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       if (lookahead == '!') ADVANCE(7);
       END_STATE();
     case 17:
-      ACCEPT_TOKEN(aux_sym_source_comment_token1);
+      ACCEPT_TOKEN(anon_sym_SEMI_BANGsource_COLON);
       END_STATE();
     case 18:
       ACCEPT_TOKEN(aux_sym_opcode_token1);
@@ -429,7 +429,7 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
   [STATE(0)] = {
     [ts_builtin_sym_end] = ACTIONS(1),
     [sym__newline] = ACTIONS(1),
-    [aux_sym_directive_token1] = ACTIONS(1),
+    [anon_sym_SEMI_BANG] = ACTIONS(1),
     [anon_sym_SEMI_SEMI] = ACTIONS(1),
     [anon_sym_SEMI] = ACTIONS(1),
     [aux_sym_opcode_token1] = ACTIONS(1),
@@ -446,7 +446,7 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
     [aux_sym_source_file_repeat1] = STATE(2),
     [ts_builtin_sym_end] = ACTIONS(3),
     [sym__newline] = ACTIONS(5),
-    [aux_sym_directive_token1] = ACTIONS(7),
+    [anon_sym_SEMI_BANG] = ACTIONS(7),
     [anon_sym_SEMI_SEMI] = ACTIONS(9),
     [anon_sym_SEMI] = ACTIONS(11),
     [aux_sym_opcode_token1] = ACTIONS(13),
@@ -462,7 +462,7 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
     [aux_sym_source_file_repeat1] = STATE(5),
     [ts_builtin_sym_end] = ACTIONS(15),
     [sym__newline] = ACTIONS(17),
-    [aux_sym_directive_token1] = ACTIONS(7),
+    [anon_sym_SEMI_BANG] = ACTIONS(7),
     [anon_sym_SEMI_SEMI] = ACTIONS(9),
     [anon_sym_SEMI] = ACTIONS(11),
     [aux_sym_opcode_token1] = ACTIONS(13),
@@ -477,7 +477,7 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
     [sym_opcode] = STATE(4),
     [ts_builtin_sym_end] = ACTIONS(19),
     [sym__newline] = ACTIONS(19),
-    [aux_sym_directive_token1] = ACTIONS(7),
+    [anon_sym_SEMI_BANG] = ACTIONS(7),
     [anon_sym_SEMI_SEMI] = ACTIONS(9),
     [anon_sym_SEMI] = ACTIONS(11),
     [aux_sym_opcode_token1] = ACTIONS(13),
@@ -497,7 +497,7 @@ static const uint16_t ts_small_parse_table[] = {
     ACTIONS(21), 3,
       ts_builtin_sym_end,
       sym__newline,
-      aux_sym_source_comment_token1,
+      anon_sym_SEMI_BANGsource_COLON,
   [18] = 4,
     ACTIONS(29), 1,
       sym__newline,
@@ -507,7 +507,7 @@ static const uint16_t ts_small_parse_table[] = {
       aux_sym_source_file_repeat1,
     ACTIONS(27), 4,
       ts_builtin_sym_end,
-      aux_sym_directive_token1,
+      anon_sym_SEMI_BANG,
       anon_sym_SEMI_SEMI,
       aux_sym_opcode_token1,
   [34] = 5,
@@ -522,7 +522,7 @@ static const uint16_t ts_small_parse_table[] = {
     ACTIONS(34), 3,
       ts_builtin_sym_end,
       sym__newline,
-      aux_sym_source_comment_token1,
+      anon_sym_SEMI_BANGsource_COLON,
   [52] = 5,
     ACTIONS(40), 1,
       anon_sym_SEMI,
@@ -535,12 +535,12 @@ static const uint16_t ts_small_parse_table[] = {
     ACTIONS(38), 3,
       ts_builtin_sym_end,
       sym__newline,
-      aux_sym_source_comment_token1,
+      anon_sym_SEMI_BANGsource_COLON,
   [70] = 5,
     ACTIONS(11), 1,
       anon_sym_SEMI,
     ACTIONS(47), 1,
-      aux_sym_source_comment_token1,
+      anon_sym_SEMI_BANGsource_COLON,
     STATE(25), 1,
       sym_comment,
     STATE(27), 1,
@@ -554,7 +554,7 @@ static const uint16_t ts_small_parse_table[] = {
     ACTIONS(49), 4,
       ts_builtin_sym_end,
       sym__newline,
-      aux_sym_source_comment_token1,
+      anon_sym_SEMI_BANGsource_COLON,
       aux_sym_opcode_token1,
   [97] = 2,
     ACTIONS(55), 1,
@@ -562,7 +562,7 @@ static const uint16_t ts_small_parse_table[] = {
     ACTIONS(53), 4,
       ts_builtin_sym_end,
       sym__newline,
-      aux_sym_source_comment_token1,
+      anon_sym_SEMI_BANGsource_COLON,
       aux_sym_opcode_token1,
   [107] = 2,
     ACTIONS(59), 1,
@@ -570,7 +570,7 @@ static const uint16_t ts_small_parse_table[] = {
     ACTIONS(57), 4,
       ts_builtin_sym_end,
       sym__newline,
-      aux_sym_source_comment_token1,
+      anon_sym_SEMI_BANGsource_COLON,
       aux_sym_opcode_token1,
   [117] = 3,
     ACTIONS(61), 1,
