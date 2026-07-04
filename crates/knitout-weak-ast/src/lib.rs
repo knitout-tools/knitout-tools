@@ -52,7 +52,7 @@ mod tests {
         // Feed a file that tree-sitter will parse with a missing version
         let source = ";\n";
         let (prog, diags) = parse(source);
-        assert!(prog.magic.version.is_none() || !diags.is_empty());
+        assert!(prog.magic.version.is_none() && !diags.is_empty());
     }
 
     #[test]
