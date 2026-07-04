@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use bigdecimal::BigDecimal;
-use knitout_ast::{Carrier, Direction, Needle, PresserMode, XferStyle};
+use knitout_ast::{Carrier, Direction, Needle, PresserMode, Program, XferStyle};
+
+use crate::backend::Backend;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct NeedleSide {
@@ -119,7 +121,7 @@ impl MachineSettings {
 
 impl MachineState {
     /// Create a new state
-    pub fn new() -> Self {
+    fn new() -> Self {
         Default::default()
     }
 
@@ -149,5 +151,30 @@ impl MachineState {
 
     pub fn settings(&self) -> &MachineSettings {
         &self.settings
+    }
+
+    /// Execute a program, passing effects to a backend as it is executed.
+    pub fn execute<B: Backend>(
+        program: &Program,
+    ) -> Result<<B as Backend>::Output, <B as Backend>::Error> {
+        let mut backend = B::register(program)?;
+        let mut state = MachineState::new();
+        for i in 0..program.operations().len() {
+            state
+                .apply_operation(i, program, &mut backend)
+                .map_or(Ok(()), Err)?;
+        }
+        backend.finish()
+    }
+
+    /// Apply the operation at index `i` to the machine state, passing effects to the backend as
+    /// they are generated.
+    fn apply_operation<B: Backend>(
+        &mut self,
+        i: usize,
+        program: &Program,
+        backend: &mut B,
+    ) -> Option<<B as Backend>::Error> {
+        todo!()
     }
 }
