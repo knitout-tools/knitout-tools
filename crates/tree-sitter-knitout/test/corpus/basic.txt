@@ -10,8 +10,8 @@ knit + f3 1
 
 (source_file
   (line
-    (directive
-      content: (line_content)))
+    (tag_comment
+      source: (line_content)))
   (line
     (header
       content: (line_content)))

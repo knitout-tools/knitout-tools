@@ -22616,7 +22616,7 @@ drop b12
 
 (source_file
   (line
-    (directive
+    (tag_comment
       (line_content)))
   (line
     (header

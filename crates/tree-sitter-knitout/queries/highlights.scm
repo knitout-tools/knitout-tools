@@ -20,237 +20,145 @@
 ; ---------------------------------------------------------------------------
 ; Opcode — fallback (overridden by later patterns)
 ; ---------------------------------------------------------------------------
-(opcode) @function.builtin
 
-; ---------------------------------------------------------------------------
-; Directive lines  ;!knitout-N
-; ---------------------------------------------------------------------------
-(directive) @comment
-(directive
-  content: (line_content) @keyword)
+; headers
 
-; ---------------------------------------------------------------------------
-; Header lines  ;;Name: value
-; ---------------------------------------------------------------------------
-(header) @comment
 (header
-  content: (line_content) @attribute)
+  ";;" @comment)
+(header
+  (line_content) @attribute)
 
-; ---------------------------------------------------------------------------
-; Comments
-; ---------------------------------------------------------------------------
+
 (comment) @comment
-(comment
-  text: (line_content) @comment)
 
-; ---------------------------------------------------------------------------
-; Source comments  ;!source: path:line
-; ---------------------------------------------------------------------------
-(source_comment) @comment
-(source_comment ";!source:" @keyword)
+(tag_comment
+  ";!" @comment)
+(tag_comment
+  (line_content) @tag)
 
-; ---------------------------------------------------------------------------
-; Opcode — known extensions (listed explicitly + ^x- catch-all)
-; ---------------------------------------------------------------------------
-((opcode) @function.macro
- (#match? @function.macro "^x-"))
+(opcode) @function
 
-((opcode) @function.macro
- (#any-of? @function.macro
-   "x-stitch-number" "x-speed-number" "x-sub-roller-number"
-   "x-presser-mode" "x-xfer-stitch-number" "x-vis-color"
-   "x-loop-in" "x-yarn-in" "x-yarn-out"
-   "x-roller-advance" "x-add-roller-advance"
-   "x-carrier-spacing" "x-carrier-stopping-distance"
-   "x-xfer-style" "x-end-pass" "x-end"))
+; IN/OUT/INHOOK/OUTHOOK/RELEASEHOOK
 
-; ---------------------------------------------------------------------------
-; Opcode — standard operations
-; ---------------------------------------------------------------------------
-((opcode) @function.builtin
- (#any-of? @function.builtin
-   "in" "inhook" "releasehook" "out" "outhook"
-   "stitch" "rack"
-   "knit" "tuck" "split" "drop" "amiss" "xfer" "miss"
-   "pause"))
+((operation
+   opcode: (opcode) @function
+   (argument)* @variable)
+  (#any-of? @function "in" "out" "inhook" "outhook" "releasehook"))
 
-; ---------------------------------------------------------------------------
-; Arguments — direction (+/-) as first arg
-; ---------------------------------------------------------------------------
-(operation
-  . (opcode) @function.builtin
-  . (argument) @operator
-  (#any-of? @function.builtin "knit" "tuck" "miss" "split"))
+; STITCH
 
-(operation
-  . (opcode) @function.macro
-  . (argument) @operator
-  (#any-of? @function.macro "x-loop-in" "x-yarn-in" "x-yarn-out"))
+((operation
+   opcode: (opcode) @function
+   (argument) @number)
+  (#any-of? @function "stitch"))
 
-; ---------------------------------------------------------------------------
-; Arguments — needle  (bed + optional slider + index, e.g. f5 bs-3)
-; ---------------------------------------------------------------------------
-; knit/tuck/miss  →  arg[1]  (after direction)
-(operation
-  . (opcode) @function.builtin
-  . (argument)
-  . (argument) @type
-  (#any-of? @function.builtin "knit" "tuck" "miss"))
+((operation
+   opcode: (opcode) @function
+   (argument) @number
+   (argument) @number)
+  (#any-of? @function "stitch"))
 
-; x-loop-in/x-yarn-in/x-yarn-out  →  arg[1]
-(operation
-  . (opcode) @function.macro
-  . (argument)
-  . (argument) @type
-  (#any-of? @function.macro "x-loop-in" "x-yarn-in" "x-yarn-out"))
+; 1 NUMBER
 
-; drop/amiss  →  arg[0]
-(operation
-  . (opcode) @function.builtin
-  . (argument) @type
-  (#any-of? @function.builtin "drop" "amiss"))
+((operation
+   opcode: (opcode) @function
+   (argument) @number)
+  (#any-of? @function "rack" "x-stitch-number" "x-speed-number" "x-sub-roller-number" "x-xfer-stitch-number" "x-roller-advance" "x-add-roller-advance" "x-carrier-spacing" "x-carrier-stopping-distance"))
 
-; xfer: source needle (arg[0])
-(operation
-  . (opcode) @function.builtin
-  . (argument) @type
-  (#eq? @function.builtin "xfer"))
+; DIR, NEEDLE, CARRIERS
 
-; xfer: dest needle (arg[1])
-(operation
-  . (opcode) @function.builtin
-  . (argument)
-  . (argument) @type
-  (#eq? @function.builtin "xfer"))
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator)
+  (#any-of? @function "knit" "tuck" "miss" "x-loop-in" "x-yarn-in" "x-yarn-out"))
 
-; split: source needle (arg[1], after direction)
-(operation
-  . (opcode) @function.builtin
-  . (argument)
-  . (argument) @type
-  (#eq? @function.builtin "split"))
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator
+   .
+   (argument) @type
+   .
+   (argument)* @variable)
+  (#any-of? @function "knit" "tuck" "miss" "x-loop-in" "x-yarn-in" "x-yarn-out"))
 
-; split: dest needle (arg[2])
-(operation
-  . (opcode) @function.builtin
-  . (argument)
-  . (argument)
-  . (argument) @type
-  (#eq? @function.builtin "split"))
+; SPLIT
 
-; ---------------------------------------------------------------------------
-; Arguments — rack (one float) and stitch (two floats)
-; ---------------------------------------------------------------------------
-(operation
-  . (opcode) @function.builtin
-  . (argument) @number
-  (#any-of? @function.builtin "rack" "stitch"))
+((operation opcode: (opcode) @function)
+  (#any-of? @function "split"))
 
-(operation
-  . (opcode) @function.builtin
-  . (argument)
-  . (argument) @number
-  (#eq? @function.builtin "stitch"))
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator)
+  (#any-of? @function "split"))
 
-; ---------------------------------------------------------------------------
-; Arguments — carrier variables, enumerated per opcode
-;
-; Each pattern includes ". (opcode) @_name" so the first capture lands at
-; byte 0 of the operation.  The trailing non-anchored "(argument) @variable"
-; generates one match per qualifying argument child.
-; ---------------------------------------------------------------------------
 
-; in / out / inhook / outhook / releasehook — carriers at each argument position
-; Fully-anchored per position because tree-sitter's non-anchored matching
-; generates only one match (the last child) per operation node.
-(operation . (opcode) @function.builtin . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) . (argument) . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
-(operation . (opcode) @function.builtin . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) . (argument) @variable
-  (#any-of? @function.builtin "in" "out" "inhook" "outhook" "releasehook"))
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator
+   .
+   (argument) @type
+   .
+   (argument) @type)
+  (#any-of? @function "split"))
 
-; knit / tuck / miss — arg[2+]  (arg[0]=direction, arg[1]=needle)
-(operation
-  . (opcode) @function.builtin
-  . (argument)
-  . (argument)
-  (argument) @variable
-  (#any-of? @function.builtin "knit" "tuck" "miss"))
 
-; split — arg[3+]  (arg[0]=direction, arg[1]=src needle, arg[2]=dst needle)
-(operation
-  . (opcode) @function.builtin
-  . (argument)
-  . (argument)
-  . (argument)
-  (argument) @variable
-  (#eq? @function.builtin "split"))
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator
+   .
+   (argument) @type
+   .
+   (argument) @type
+   .
+   (argument)* @variable)
+  (#any-of? @function "split"))
 
-; x-loop-in / x-yarn-in / x-yarn-out — arg[2+]
-(operation
-  . (opcode) @function.macro
-  . (argument)
-  . (argument)
-  (argument) @variable
-  (#any-of? @function.macro "x-loop-in" "x-yarn-in" "x-yarn-out"))
+; DROP/AMISS
 
-; x-vis-color — arg[1+]  (arg[0] is the colour literal)
-(operation
-  . (opcode) @function.macro
-  . (argument)
-  (argument) @variable
-  (#eq? @function.macro "x-vis-color"))
+((operation
+   opcode: (opcode) @function
+   (argument) @type)
+  (#any-of? @function "drop" "amiss"))
 
-; ---------------------------------------------------------------------------
-; Arguments — unknown x- extensions: all arguments are variables
-;
-; Placed before the specific x- argument patterns so that known extensions'
-; types win via higher pattern index.
-; ---------------------------------------------------------------------------
-(operation
-  . (opcode) @function.macro
-  (argument) @variable
-  (#match? @function.macro "^x-"))
+; XFER
 
-; ---------------------------------------------------------------------------
-; Arguments — single-number known extensions
-; (appear after the x- catch-all so they take priority)
-; ---------------------------------------------------------------------------
-(operation
-  . (opcode) @function.macro
-  . (argument) @number
-  (#any-of? @function.macro
-    "x-stitch-number" "x-speed-number" "x-sub-roller-number"
-    "x-xfer-stitch-number" "x-roller-advance" "x-add-roller-advance"
-    "x-carrier-spacing" "x-carrier-stopping-distance"))
+((operation
+   opcode: (opcode) @function
+   (argument) @type)
+  (#any-of? @function "xfer"))
 
-; ---------------------------------------------------------------------------
-; Arguments — x-presser-mode and x-xfer-style values
-; ---------------------------------------------------------------------------
-(operation
-  . (opcode) @function.macro
-  . (argument) @constant.builtin
-  (#any-of? @function.macro "x-presser-mode" "x-xfer-style"))
+((operation
+   opcode: (opcode) @function
+   (argument) @type
+   (argument) @type)
+  (#any-of? @function "xfer"))
 
-; ---------------------------------------------------------------------------
-; Arguments — x-vis-color: first arg is a colour literal
-; ---------------------------------------------------------------------------
-(operation
-  . (opcode) @function.macro
-  . (argument) @constant
-  (#eq? @function.macro "x-vis-color"))
+; KEYWORD
+
+((operation
+   opcode: (opcode) @function
+   (argument) @constant.builtin)
+  (#any-of? @function "x-presser-mode" "x-xfer-style"))
+
+; STRING, CARRIERS*
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @string)
+  (#any-of? @function "x-vis-color"))
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @string
+   .
+   (argument)* @variable)
+  (#any-of? @function "x-vis-color"))
+
+

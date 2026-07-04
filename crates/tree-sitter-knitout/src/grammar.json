@@ -64,7 +64,7 @@
       "members": [
         {
           "type": "SYMBOL",
-          "name": "directive"
+          "name": "tag_comment"
         },
         {
           "type": "SYMBOL",
@@ -77,31 +77,6 @@
         {
           "type": "SYMBOL",
           "name": "op_line"
-        }
-      ]
-    },
-    "directive": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "STRING",
-          "value": ";!"
-        },
-        {
-          "type": "FIELD",
-          "name": "content",
-          "content": {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "line_content"
-              },
-              {
-                "type": "BLANK"
-              }
-            ]
-          }
         }
       ]
     },
@@ -174,10 +149,10 @@
               "members": [
                 {
                   "type": "FIELD",
-                  "name": "source_comment",
+                  "name": "tag_comment",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "source_comment"
+                    "name": "tag_comment"
                   }
                 },
                 {
@@ -221,12 +196,12 @@
         }
       ]
     },
-    "source_comment": {
+    "tag_comment": {
       "type": "SEQ",
       "members": [
         {
           "type": "STRING",
-          "value": ";!source:"
+          "value": ";!"
         },
         {
           "type": "FIELD",
@@ -249,6 +224,10 @@
     "opcode": {
       "type": "PATTERN",
       "value": "[^\\s;]+"
+    },
+    "tag": {
+      "type": "PATTERN",
+      "value": "[^\\s]+"
     },
     "argument": {
       "type": "PATTERN",

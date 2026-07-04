@@ -234,7 +234,7 @@ outhook 1
 
 (source_file
   (line
-    (directive
+    (tag_comment
       (line_content)))
   (line
     (header

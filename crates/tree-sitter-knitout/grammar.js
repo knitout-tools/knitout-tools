@@ -38,16 +38,10 @@ export default grammar({
     //   ";"   (1 char)  fallback            => plain comment
     //   anything else                       => operation line (possibly w/ comment)
     line: $ => choice(
-      $.directive,
+      $.tag_comment,
       $.header,
       $.comment,
       $.op_line,
-    ),
-
-    // A ;! directive line: ;!knitout-2, or any other ;!... line.
-    directive: $ => seq(
-      ";!",
-      field("content", optional($.line_content))
     ),
 
     // A ;; header line: ;;Machine: Shima Stoll, or even ;;NoColon or just ;;
@@ -70,7 +64,7 @@ export default grammar({
     op_line: $ => seq(
       field("operation", $.operation),
       optional(choice(
-        field("source_comment", $.source_comment),
+        field("tag_comment", $.tag_comment),
         field("comment", $.comment),
       ))
     ),
@@ -84,12 +78,13 @@ export default grammar({
     // A ;!source: comment trailing an operation. The ";!source:" token is nine
     // characters (including the space), so the lexer always prefers it over the
     // single-character ";" for comment.
-    source_comment: $ => seq(
-      ";!source:",
+    tag_comment: $ => seq(
+      ";!",
       field("source", optional($.line_content))
     ),
 
     opcode: _$ => /[^\s;]+/,
+    tag: _$ => /[^\s]+/,
     argument: _$ => /[^\s;]+/,
     line_content: _$ => /[^\n]+/,
   }

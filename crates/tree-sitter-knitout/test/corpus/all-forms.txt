@@ -62,7 +62,7 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
 
 (source_file
   (line
-    (directive
+    (tag_comment
       (line_content)))
   (line
     (header
@@ -155,7 +155,7 @@ x-my-extension 1 - f0 f-43 +0.75 myCarrier
         (argument)
         (argument)
         (argument))
-      (source_comment
+      (tag_comment
         (line_content))))
   (line
     (header

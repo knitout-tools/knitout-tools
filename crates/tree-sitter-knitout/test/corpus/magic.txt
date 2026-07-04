@@ -6,7 +6,7 @@ just-magic
 
 (source_file
   (line
-    (directive
+    (tag_comment
       (line_content))))
 
 ================================================================================
@@ -21,5 +21,5 @@ magic-with-newlines
 
 (source_file
   (line
-    (directive
-      content: (line_content))))
+    (tag_comment
+      source: (line_content))))

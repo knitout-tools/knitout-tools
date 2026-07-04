@@ -9,11 +9,24 @@ header missing value
 
 (source_file
   (line
-    (directive
-      content: (line_content)))
+    (tag_comment
+      source: (line_content)))
   (line
     (header
       content: (line_content))))
+
+================================================================================
+bad knitout declaration
+================================================================================
+
+;!knito
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (line
+    (tag_comment
+      source: (line_content))))
 
 ================================================================================
 space in magic string
@@ -25,7 +38,7 @@ space in magic string
 
 (source_file
   (line
-    (directive
+    (tag_comment
       (line_content))))
 
 ================================================================================
@@ -39,8 +52,8 @@ drop f 10
 
 (source_file
   (line
-    (directive
-      content: (line_content)))
+    (tag_comment
+      source: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -59,8 +72,8 @@ drop fs 10
 
 (source_file
   (line
-    (directive
-      content: (line_content)))
+    (tag_comment
+      source: (line_content)))
   (line
     (op_line
       operation: (operation
@@ -79,8 +92,8 @@ double semicolon plain comment
 
 (source_file
   (line
-    (directive
-      content: (line_content)))
+    (tag_comment
+      source: (line_content)))
   (line
     (header
       content: (line_content))))
