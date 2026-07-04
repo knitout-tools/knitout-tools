@@ -3,7 +3,7 @@ use knitout_ast::{Carrier, CarrierTable, IsSlider, Span};
 use std::str::FromStr;
 use tree_sitter::Node;
 
-use crate::diagnostics::ParseDiagnostic;
+use crate::diagnostics::ParseError;
 use crate::types::*;
 
 // ---------------------------------------------------------------------------
@@ -11,17 +11,16 @@ use crate::types::*;
 // ---------------------------------------------------------------------------
 
 /// Walk a tree-sitter CST for a knitout source file and produce a weak AST
-/// plus diagnostics. Never panics; always returns a (possibly incomplete)
-/// program for all inputs tree-sitter can produce.
-pub fn lower_cst(source: &[u8], tree: &tree_sitter::Tree) -> (WeakProgram, Vec<ParseDiagnostic>) {
+/// plus errors. Never panics; always returns a (possibly incomplete) program.
+pub fn lower_cst(source: &[u8], tree: &tree_sitter::Tree) -> (WeakProgram, Vec<ParseError>) {
     let mut ctx = LowerCtx {
         source,
-        diagnostics: Vec::new(),
+        errors: Vec::new(),
         carrier_table: CarrierTable::new(),
     };
     let root = tree.root_node();
     let program = ctx.lower_source_file(root);
-    (program, ctx.diagnostics)
+    (program, ctx.errors)
 }
 
 // ---------------------------------------------------------------------------
@@ -30,7 +29,7 @@ pub fn lower_cst(source: &[u8], tree: &tree_sitter::Tree) -> (WeakProgram, Vec<P
 
 struct LowerCtx<'s> {
     source: &'s [u8],
-    diagnostics: Vec<ParseDiagnostic>,
+    errors: Vec<ParseError>,
     carrier_table: CarrierTable,
 }
 
@@ -43,44 +42,56 @@ impl<'s> LowerCtx<'s> {
         node.utf8_text(self.source).unwrap_or("")
     }
 
-    fn error(&mut self, span: Span, message: impl Into<String>) {
-        self.diagnostics.push(ParseDiagnostic::new(span, message));
+    fn push_error(&mut self, e: ParseError) {
+        self.errors.push(e);
     }
 
-    /// Get a required named field. Emits a diagnostic and returns None if the
+    /// Get a required named field. Emits an error and returns None when the
     /// field is absent, MISSING, or an ERROR node.
-    fn required_field<'t>(&mut self, parent: Node<'t>, field: &str) -> Option<Node<'t>> {
+    fn required_field<'t>(&mut self, parent: Node<'t>, field: &'static str) -> Option<Node<'t>> {
         match parent.child_by_field_name(field) {
             None => {
-                self.error(
-                    self.span_of(parent),
-                    format!("missing required field `{field}`"),
-                );
+                self.push_error(ParseError::MissingField {
+                    span: self.span_of(parent),
+                    field,
+                });
                 None
             }
             Some(n) if n.is_missing() => {
-                self.error(self.span_of(n), format!("missing `{field}`"));
+                self.push_error(ParseError::MissingField {
+                    span: self.span_of(n),
+                    field,
+                });
                 None
             }
             Some(n) if n.is_error() => {
-                self.error(self.span_of(n), format!("invalid `{field}`"));
+                self.push_error(ParseError::InvalidField {
+                    span: self.span_of(n),
+                    field,
+                });
                 None
             }
             Some(n) => Some(n),
         }
     }
 
-    /// Get an optional named field. Returns None silently when absent (that
-    /// is valid). Emits a diagnostic for MISSING or ERROR nodes.
-    fn optional_field<'t>(&mut self, parent: Node<'t>, field: &str) -> Option<Node<'t>> {
+    /// Get an optional named field. Returns None silently when absent.
+    /// Emits an error for MISSING or ERROR nodes.
+    fn optional_field<'t>(&mut self, parent: Node<'t>, field: &'static str) -> Option<Node<'t>> {
         match parent.child_by_field_name(field) {
             None => None,
             Some(n) if n.is_missing() => {
-                self.error(self.span_of(n), format!("missing `{field}`"));
+                self.push_error(ParseError::MissingField {
+                    span: self.span_of(n),
+                    field,
+                });
                 None
             }
             Some(n) if n.is_error() => {
-                self.error(self.span_of(n), format!("invalid `{field}`"));
+                self.push_error(ParseError::InvalidField {
+                    span: self.span_of(n),
+                    field,
+                });
                 None
             }
             Some(n) => Some(n),
@@ -97,7 +108,7 @@ impl<'s> LowerCtx<'s> {
             "b" => WeakBed::Back,
             _ => {
                 let span = self.span_of(node);
-                self.error(span, format!("unrecognized bed `{}`", self.text_of(node)));
+                self.push_error(ParseError::UnrecognizedBed(span));
                 WeakBed::Unknown(span)
             }
         }
@@ -109,10 +120,7 @@ impl<'s> LowerCtx<'s> {
             "-" => WeakDirection::Left,
             _ => {
                 let span = self.span_of(node);
-                self.error(
-                    span,
-                    format!("unrecognized direction `{}`", self.text_of(node)),
-                );
+                self.push_error(ParseError::UnrecognizedDirection(span));
                 WeakDirection::Unknown(span)
             }
         }
@@ -125,10 +133,7 @@ impl<'s> LowerCtx<'s> {
             "on" => WeakPresserMode::On,
             _ => {
                 let span = self.span_of(node);
-                self.error(
-                    span,
-                    format!("unrecognized presser mode `{}`", self.text_of(node)),
-                );
+                self.push_error(ParseError::UnrecognizedPresserMode(span));
                 WeakPresserMode::Unknown(span)
             }
         }
@@ -140,10 +145,7 @@ impl<'s> LowerCtx<'s> {
             "two-pass" => WeakXferStyle::TwoPass,
             _ => {
                 let span = self.span_of(node);
-                self.error(
-                    span,
-                    format!("unrecognized xfer style `{}`", self.text_of(node)),
-                );
+                self.push_error(ParseError::UnrecognizedXferStyle(span));
                 WeakXferStyle::Unknown(span)
             }
         }
@@ -157,10 +159,7 @@ impl<'s> LowerCtx<'s> {
             "Keep" => WeakPositionValue::Keep,
             _ => {
                 let span = self.span_of(node);
-                self.error(
-                    span,
-                    format!("unrecognized position value `{}`", self.text_of(node)),
-                );
+                self.push_error(ParseError::UnrecognizedPositionValue(span));
                 WeakPositionValue::Unknown(span)
             }
         }
@@ -171,10 +170,7 @@ impl<'s> LowerCtx<'s> {
         match BigDecimal::from_str(text) {
             Ok(v) => Some(v),
             Err(_) => {
-                self.error(
-                    self.span_of(node),
-                    format!("invalid rational number `{text}`"),
-                );
+                self.push_error(ParseError::InvalidRational(self.span_of(node)));
                 None
             }
         }
@@ -185,10 +181,7 @@ impl<'s> LowerCtx<'s> {
         match text.parse::<u32>() {
             Ok(v) => Some(v),
             Err(_) => {
-                self.error(
-                    self.span_of(node),
-                    format!("invalid non-negative integer `{text}`"),
-                );
+                self.push_error(ParseError::InvalidInteger(self.span_of(node)));
                 None
             }
         }
@@ -196,7 +189,7 @@ impl<'s> LowerCtx<'s> {
 
     fn lower_nonneg_half_integer(&mut self, node: Node) -> Option<u32> {
         // Grammar: /[+]?\d*(\.5)/  — values like "0.5", "1.5", "10.5"
-        // The knitout-ast encodes these as the integer part only (0.5 → 0)
+        // Encoded as the integer part only (0.5 → 0)
         let text = self.text_of(node).trim_start_matches('+');
         let integer_part = if let Some(dot) = text.find('.') {
             &text[..dot]
@@ -209,10 +202,7 @@ impl<'s> LowerCtx<'s> {
             match integer_part.parse() {
                 Ok(v) => v,
                 Err(_) => {
-                    self.error(
-                        self.span_of(node),
-                        format!("invalid half-integer `{}`", self.text_of(node)),
-                    );
+                    self.push_error(ParseError::InvalidInteger(self.span_of(node)));
                     return None;
                 }
             }
@@ -221,11 +211,10 @@ impl<'s> LowerCtx<'s> {
     }
 
     fn lower_needle_index(&mut self, node: Node) -> Option<i32> {
-        let text = self.text_of(node);
-        match text.parse::<i32>() {
+        match self.text_of(node).parse::<i32>() {
             Ok(v) => Some(v),
             Err(_) => {
-                self.error(self.span_of(node), format!("invalid needle index `{text}`"));
+                self.push_error(ParseError::InvalidInteger(self.span_of(node)));
                 None
             }
         }
@@ -266,7 +255,7 @@ impl<'s> LowerCtx<'s> {
         }
     }
 
-    fn lower_required_needle(&mut self, parent: Node, field: &str) -> Option<WeakNeedle> {
+    fn lower_required_needle(&mut self, parent: Node, field: &'static str) -> Option<WeakNeedle> {
         self.required_field(parent, field)
             .map(|n| self.lower_needle(n))
     }
@@ -275,14 +264,14 @@ impl<'s> LowerCtx<'s> {
     // Carrier sets
     // -----------------------------------------------------------------------
 
-    /// Parse a required pos_carrier_set field. Returns None when absent/errored.
-    fn lower_required_carrier_set(&mut self, parent: Node, field: &str) -> Option<Vec<Carrier>> {
+    /// Parse a required carrier_set field. Returns None when absent/errored.
+    fn lower_required_carrier_set(&mut self, parent: Node, field: &'static str) -> Option<Vec<Carrier>> {
         let node = self.required_field(parent, field)?;
         Some(self.lower_carrier_set_node(node))
     }
 
-    /// Parse an optional pos_carrier_set field. Returns empty vec when absent.
-    fn lower_optional_carrier_set(&mut self, parent: Node, field: &str) -> Vec<Carrier> {
+    /// Parse an optional carrier_set field. Returns empty vec when absent.
+    fn lower_optional_carrier_set(&mut self, parent: Node, field: &'static str) -> Vec<Carrier> {
         match self.optional_field(parent, field) {
             Some(n) => self.lower_carrier_set_node(n),
             None => Vec::new(),
@@ -296,7 +285,7 @@ impl<'s> LowerCtx<'s> {
             if child.kind() == "carrier" && !child.is_missing() && !child.is_error() {
                 carriers.push(self.lower_carrier_name(child));
             } else if child.is_error() || child.is_missing() {
-                self.error(self.span_of(child), "invalid carrier");
+                self.push_error(ParseError::InvalidCarrier(self.span_of(child)));
             }
         }
         carriers
@@ -309,9 +298,8 @@ impl<'s> LowerCtx<'s> {
     fn lower_source_file(&mut self, root: Node) -> WeakProgram {
         let span = self.span_of(root);
 
-        // If the root itself is ERROR (shouldn't happen in practice) treat as empty
         if root.is_error() {
-            self.error(span, "file could not be parsed");
+            self.push_error(ParseError::UnparsedFile(span));
             return WeakProgram {
                 span,
                 magic: WeakMagic {
@@ -324,17 +312,16 @@ impl<'s> LowerCtx<'s> {
             };
         }
 
-        // Magic string is a required field on source_file
         let magic = match root.child_by_field_name("magic") {
             Some(n) if n.is_missing() => {
-                self.error(span, "missing magic string `;!knitout-VERSION`");
+                self.push_error(ParseError::MissingMagic(span));
                 WeakMagic {
                     span,
                     version: None,
                 }
             }
             Some(n) if n.is_error() => {
-                self.error(self.span_of(n), "invalid magic string");
+                self.push_error(ParseError::InvalidMagic(self.span_of(n)));
                 WeakMagic {
                     span: self.span_of(n),
                     version: None,
@@ -342,7 +329,7 @@ impl<'s> LowerCtx<'s> {
             }
             Some(n) => self.lower_magic(n),
             None => {
-                self.error(span, "missing magic string `;!knitout-VERSION`");
+                self.push_error(ParseError::MissingMagic(span));
                 WeakMagic {
                     span,
                     version: None,
@@ -356,11 +343,11 @@ impl<'s> LowerCtx<'s> {
         let mut cursor = root.walk();
         for child in root.named_children(&mut cursor) {
             match child.kind() {
-                "magic" => {} // already handled
+                "magic" => {}
                 "header" => headers.push(self.lower_header(child)),
                 "line" => lines.push(self.lower_line(child)),
                 _ if child.is_error() => {
-                    self.error(self.span_of(child), "unexpected content");
+                    self.push_error(ParseError::InvalidOperation(self.span_of(child)));
                 }
                 _ => {}
             }
@@ -384,27 +371,24 @@ impl<'s> LowerCtx<'s> {
         let span = self.span_of(node);
         let version = match node.child_by_field_name("version") {
             None => {
-                self.error(span, "missing version number in magic string");
+                self.push_error(ParseError::MissingVersion(span));
                 None
             }
             Some(n) if n.is_missing() => {
-                self.error(self.span_of(n), "missing version number in magic string");
+                self.push_error(ParseError::MissingVersion(self.span_of(n)));
                 None
             }
             Some(n) if n.is_error() => {
-                self.error(self.span_of(n), "invalid version number in magic string");
+                self.push_error(ParseError::InvalidVersion(self.span_of(n)));
                 None
             }
-            Some(n) => {
-                let text = self.text_of(n);
-                match text.parse::<u32>() {
-                    Ok(v) => Some(v),
-                    Err(_) => {
-                        self.error(self.span_of(n), format!("invalid version `{text}`"));
-                        None
-                    }
+            Some(n) => match self.text_of(n).parse::<u32>() {
+                Ok(v) => Some(v),
+                Err(_) => {
+                    self.push_error(ParseError::InvalidVersion(self.span_of(n)));
+                    None
                 }
-            }
+            },
         };
         WeakMagic { span, version }
     }
@@ -417,27 +401,26 @@ impl<'s> LowerCtx<'s> {
         let span = self.span_of(node);
 
         if node.is_error() {
-            self.error(span, "invalid header");
+            self.push_error(ParseError::InvalidHeader(span));
             return WeakHeader {
                 span,
                 kind: WeakHeaderKind::Unknown,
             };
         }
 
-        // The `header` node has exactly one named child: the specific header type
         let mut cursor = node.walk();
         let child = node.named_children(&mut cursor).next();
 
         match child {
             None => {
-                self.error(span, "empty header");
+                self.push_error(ParseError::InvalidHeader(span));
                 WeakHeader {
                     span,
                     kind: WeakHeaderKind::Unknown,
                 }
             }
             Some(c) if c.is_error() => {
-                self.error(self.span_of(c), "unrecognized header");
+                self.push_error(ParseError::UnrecognizedHeader(self.span_of(c)));
                 WeakHeader {
                     span,
                     kind: WeakHeaderKind::Unknown,
@@ -451,12 +434,11 @@ impl<'s> LowerCtx<'s> {
                     "position_header" => WeakHeaderKind::Position(self.lower_position_header(c)),
                     "machine_header" => WeakHeaderKind::Machine(self.lower_machine_header(c)),
                     "yarn_header" => WeakHeaderKind::Yarn(self.lower_yarn_header(c)),
-                    "extension_header" => WeakHeaderKind::Extension(self.lower_extension_header(c)),
+                    "extension_header" => {
+                        WeakHeaderKind::Extension(self.lower_extension_header(c))
+                    }
                     _ => {
-                        self.error(
-                            self.span_of(c),
-                            format!("unknown header type `{}`", c.kind()),
-                        );
+                        self.push_error(ParseError::UnrecognizedHeader(self.span_of(c)));
                         WeakHeaderKind::Unknown
                     }
                 };
@@ -466,11 +448,20 @@ impl<'s> LowerCtx<'s> {
     }
 
     fn lower_carriers_header(&mut self, node: Node) -> WeakCarriersHeader {
-        // `value` is optional in the grammar
         let value = match node.child_by_field_name("value") {
             None => None,
-            Some(n) if n.is_missing() || n.is_error() => {
-                self.error(self.span_of(n), "invalid carriers value");
+            Some(n) if n.is_missing() => {
+                self.push_error(ParseError::MissingField {
+                    span: self.span_of(n),
+                    field: "value",
+                });
+                None
+            }
+            Some(n) if n.is_error() => {
+                self.push_error(ParseError::InvalidField {
+                    span: self.span_of(n),
+                    field: "value",
+                });
                 None
             }
             Some(n) => Some(self.lower_carriers_value(n)),
@@ -484,22 +475,18 @@ impl<'s> LowerCtx<'s> {
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
             if child.is_error() {
-                self.error(self.span_of(child), "invalid carrier or rail");
+                self.push_error(ParseError::InvalidCarrierOrRail(self.span_of(child)));
                 items.push(WeakCarrierOrRail::Unknown(self.span_of(child)));
             } else {
                 match child.kind() {
                     "carrier" => {
-                        let c = self.lower_carrier_name(child);
-                        items.push(WeakCarrierOrRail::Carrier(c));
+                        items.push(WeakCarrierOrRail::Carrier(self.lower_carrier_name(child)));
                     }
                     "rail_definition" => {
                         items.push(WeakCarrierOrRail::Rail(self.lower_rail_definition(child)));
                     }
                     _ => {
-                        self.error(
-                            self.span_of(child),
-                            format!("unexpected node `{}`", child.kind()),
-                        );
+                        self.push_error(ParseError::InvalidCarrierOrRail(self.span_of(child)));
                         items.push(WeakCarrierOrRail::Unknown(self.span_of(child)));
                     }
                 }
@@ -535,7 +522,7 @@ impl<'s> LowerCtx<'s> {
             if child.kind() == "carrier" && !child.is_missing() && !child.is_error() {
                 carriers.push(self.lower_carrier_name(child));
             } else if child.is_error() || child.is_missing() {
-                self.error(self.span_of(child), "invalid carrier in rail");
+                self.push_error(ParseError::InvalidCarrier(self.span_of(child)));
             }
         }
         WeakRailSide { span, carriers }
@@ -600,12 +587,15 @@ impl<'s> LowerCtx<'s> {
         let operation = match node.child_by_field_name("operation") {
             None => None,
             Some(n) if n.is_missing() => {
-                self.error(self.span_of(n), "missing operation");
+                self.push_error(ParseError::MissingField {
+                    span: self.span_of(n),
+                    field: "operation",
+                });
                 None
             }
             Some(n) if n.is_error() => {
                 let op_span = self.span_of(n);
-                self.error(op_span, "invalid operation");
+                self.push_error(ParseError::InvalidOperation(op_span));
                 Some(WeakOperation::Unknown(op_span))
             }
             Some(n) => Some(self.lower_operation(n)),
@@ -615,10 +605,9 @@ impl<'s> LowerCtx<'s> {
             .child_by_field_name("comment")
             .map(|n| self.lower_comment(n));
 
-        let source = match node.child_by_field_name("source_comment") {
-            None => None,
-            Some(n) => self.lower_source_comment(n),
-        };
+        let source = node
+            .child_by_field_name("source_comment")
+            .and_then(|n| self.lower_source_comment(n));
 
         WeakLine {
             span,
@@ -651,7 +640,7 @@ impl<'s> LowerCtx<'s> {
         let span = self.span_of(node);
 
         if node.is_error() {
-            self.error(span, "invalid operation");
+            self.push_error(ParseError::InvalidOperation(span));
             return WeakOperation::Unknown(span);
         }
 
@@ -661,7 +650,6 @@ impl<'s> LowerCtx<'s> {
                 WeakOperation::Base(self.lower_base_operation(node))
             }
             "extension" => {
-                // The extension node wraps the specific extension kind
                 let mut cursor = node.walk();
                 match node.named_children(&mut cursor).next() {
                     Some(inner) if !inner.is_error() => {
@@ -669,17 +657,17 @@ impl<'s> LowerCtx<'s> {
                     }
                     Some(inner) => {
                         let s = self.span_of(inner);
-                        self.error(s, "invalid extension operation");
+                        self.push_error(ParseError::InvalidOperation(s));
                         WeakOperation::Unknown(s)
                     }
                     None => {
-                        self.error(span, "empty extension");
+                        self.push_error(ParseError::InvalidOperation(span));
                         WeakOperation::Unknown(span)
                     }
                 }
             }
             _ => {
-                self.error(span, format!("unknown operation kind `{}`", node.kind()));
+                self.push_error(ParseError::InvalidOperation(span));
                 WeakOperation::Unknown(span)
             }
         }
@@ -906,8 +894,8 @@ impl<'s> LowerCtx<'s> {
                 }
                 WeakExtensionOperationKind::UnknownExtension { name, arguments }
             }
-            other => {
-                self.error(span, format!("unknown extension type `{other}`"));
+            _ => {
+                self.push_error(ParseError::InvalidOperation(span));
                 WeakExtensionOperationKind::UnknownExtension {
                     name: None,
                     arguments: Vec::new(),

@@ -1,7 +1,4 @@
 //! Converters from weak AST nodes to their strong knitout-ast equivalents.
-//!
-//! Each converter returns `Result<Strong, ParseDiagnostic>` — the first
-//! encountered deficiency wins; nothing beyond that is checked.
 
 use knitout_ast::{
     BaseOperation, Bed, CarrierOrRail, CarriersHeaderValue, Direction, ExtensionOperation, Header,
@@ -9,7 +6,7 @@ use knitout_ast::{
     XferStyle,
 };
 
-use crate::diagnostics::ParseDiagnostic;
+use crate::diagnostics::ParseError;
 use crate::types::*;
 
 // ---------------------------------------------------------------------------
@@ -17,62 +14,54 @@ use crate::types::*;
 // ---------------------------------------------------------------------------
 
 impl WeakBed {
-    pub fn try_into_strong(self) -> Result<Bed, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<Bed, ParseError> {
         match self {
             WeakBed::Front => Ok(Bed::Front),
             WeakBed::Back => Ok(Bed::Back),
-            WeakBed::Unknown(span) => Err(ParseDiagnostic::new(span, "unrecognized bed")),
+            WeakBed::Unknown(span) => Err(ParseError::UnrecognizedBed(span)),
         }
     }
 }
 
 impl WeakDirection {
-    pub fn try_into_strong(self) -> Result<Direction, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<Direction, ParseError> {
         match self {
             WeakDirection::Left => Ok(Direction::Left),
             WeakDirection::Right => Ok(Direction::Right),
-            WeakDirection::Unknown(span) => {
-                Err(ParseDiagnostic::new(span, "unrecognized direction"))
-            }
+            WeakDirection::Unknown(span) => Err(ParseError::UnrecognizedDirection(span)),
         }
     }
 }
 
 impl WeakPresserMode {
-    pub fn try_into_strong(self) -> Result<PresserMode, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<PresserMode, ParseError> {
         match self {
             WeakPresserMode::Off => Ok(PresserMode::Off),
             WeakPresserMode::Auto => Ok(PresserMode::Auto),
             WeakPresserMode::On => Ok(PresserMode::On),
-            WeakPresserMode::Unknown(span) => {
-                Err(ParseDiagnostic::new(span, "unrecognized presser mode"))
-            }
+            WeakPresserMode::Unknown(span) => Err(ParseError::UnrecognizedPresserMode(span)),
         }
     }
 }
 
 impl WeakXferStyle {
-    pub fn try_into_strong(self) -> Result<XferStyle, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<XferStyle, ParseError> {
         match self {
             WeakXferStyle::FourPass => Ok(XferStyle::FourPass),
             WeakXferStyle::TwoPass => Ok(XferStyle::TwoPass),
-            WeakXferStyle::Unknown(span) => {
-                Err(ParseDiagnostic::new(span, "unrecognized xfer style"))
-            }
+            WeakXferStyle::Unknown(span) => Err(ParseError::UnrecognizedXferStyle(span)),
         }
     }
 }
 
 impl WeakPositionValue {
-    pub fn try_into_strong(self) -> Result<PositionHeaderValue, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<PositionHeaderValue, ParseError> {
         match self {
             WeakPositionValue::Left => Ok(PositionHeaderValue::Left),
             WeakPositionValue::Center => Ok(PositionHeaderValue::Center),
             WeakPositionValue::Right => Ok(PositionHeaderValue::Right),
             WeakPositionValue::Keep => Ok(PositionHeaderValue::Keep),
-            WeakPositionValue::Unknown(span) => {
-                Err(ParseDiagnostic::new(span, "unrecognized position value"))
-            }
+            WeakPositionValue::Unknown(span) => Err(ParseError::UnrecognizedPositionValue(span)),
         }
     }
 }
@@ -82,13 +71,13 @@ impl WeakPositionValue {
 // ---------------------------------------------------------------------------
 
 impl WeakNeedle {
-    pub fn try_into_strong(self) -> Result<Needle, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<Needle, ParseError> {
         let span = self.span;
         let bed = self.bed.try_into_strong()?;
         let is_slider = self.is_slider;
         let index = self
             .index
-            .ok_or_else(|| ParseDiagnostic::new(span, "missing needle index"))?;
+            .ok_or(ParseError::MissingField { span, field: "index" })?;
         Ok(Needle::new(bed, is_slider, index))
     }
 }
@@ -98,11 +87,11 @@ impl WeakNeedle {
 // ---------------------------------------------------------------------------
 
 impl WeakProgram {
-    pub fn try_into_strong(self) -> Result<Program, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<Program, ParseError> {
         let version = self
             .magic
             .version
-            .ok_or_else(|| ParseDiagnostic::new(self.magic.span, "missing version number"))?;
+            .ok_or(ParseError::MissingVersion(self.magic.span))?;
 
         let (strong_header, carrier_table) = convert_headers(self.headers, self.carrier_table)?;
 
@@ -126,14 +115,10 @@ impl WeakProgram {
 // Headers
 // ---------------------------------------------------------------------------
 
-/// Convert a Vec of weak headers into a strong `Header`, using the provided
-/// carrier table (which may already contain carriers from previous scans).
 fn convert_headers(
     weak_headers: Vec<WeakHeader>,
     mut carrier_table: knitout_ast::CarrierTable,
-) -> Result<(Header, knitout_ast::CarrierTable), ParseDiagnostic> {
-    // We need to find the Carriers header first to build the strong Header.
-    // Walk the headers and collect them.
+) -> Result<(Header, knitout_ast::CarrierTable), ParseError> {
     let mut carriers_value: Option<CarriersHeaderValue> = None;
     let mut deferred: Vec<WeakHeader> = Vec::new();
 
@@ -160,13 +145,13 @@ fn convert_headers(
             WeakHeaderKind::Gauge(gh) => {
                 let v = gh
                     .value
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing gauge value"))?;
+                    .ok_or(ParseError::MissingField { span, field: "value" })?;
                 header.set_gauge(v);
             }
             WeakHeaderKind::Width(wh) => {
                 let v = wh
                     .value
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing width value"))?;
+                    .ok_or(ParseError::MissingField { span, field: "value" })?;
                 header.set_width(v);
             }
             WeakHeaderKind::Position(ph) => {
@@ -176,29 +161,29 @@ fn convert_headers(
             WeakHeaderKind::Machine(mh) => {
                 let v = mh
                     .value
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing machine value"))?;
+                    .ok_or(ParseError::MissingField { span, field: "value" })?;
                 header.set_machine(v);
             }
             WeakHeaderKind::Yarn(yh) => {
                 let carrier = yh
                     .carrier
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing carrier in Yarn header"))?;
+                    .ok_or(ParseError::MissingField { span, field: "carrier" })?;
                 let value = yh
                     .value
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing value in Yarn header"))?;
+                    .ok_or(ParseError::MissingField { span, field: "value" })?;
                 header.add_yarn(carrier, value);
             }
             WeakHeaderKind::Extension(eh) => {
                 let name = eh
                     .name
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing extension header name"))?;
+                    .ok_or(ParseError::MissingField { span, field: "name" })?;
                 let value = eh
                     .value
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing extension header value"))?;
+                    .ok_or(ParseError::MissingField { span, field: "value" })?;
                 header.add_unknown(name, value);
             }
             WeakHeaderKind::Unknown => {
-                return Err(ParseDiagnostic::new(span, "unrecognized header"));
+                return Err(ParseError::UnrecognizedHeader(span));
             }
         }
     }
@@ -209,7 +194,7 @@ fn convert_headers(
 fn convert_carriers_value(
     weak: WeakCarriersHeader,
     carrier_table: &mut knitout_ast::CarrierTable,
-) -> Result<CarriersHeaderValue, ParseDiagnostic> {
+) -> Result<CarriersHeaderValue, ParseError> {
     let items = match weak.value {
         None => return Ok(CarriersHeaderValue::new(vec![])),
         Some(v) => v,
@@ -223,10 +208,7 @@ fn convert_carriers_value(
                 result.push(CarrierOrRail::Rail(convert_rail(wr, carrier_table)?));
             }
             WeakCarrierOrRail::Unknown(span) => {
-                return Err(ParseDiagnostic::new(
-                    span,
-                    "invalid carrier or rail in Carriers header",
-                ));
+                return Err(ParseError::InvalidCarrierOrRail(span));
             }
         }
     }
@@ -236,14 +218,14 @@ fn convert_carriers_value(
 fn convert_rail(
     weak: WeakRail,
     _carrier_table: &mut knitout_ast::CarrierTable,
-) -> Result<Rail, ParseDiagnostic> {
+) -> Result<Rail, ParseError> {
     let span = weak.span;
     let left = convert_rail_side(weak.left, span)?;
     let right = convert_rail_side(weak.right, span)?;
     Ok(Rail::new(left, right))
 }
 
-fn convert_rail_side(weak: WeakRailSide, _parent_span: Span) -> Result<RailSide, ParseDiagnostic> {
+fn convert_rail_side(weak: WeakRailSide, _parent_span: Span) -> Result<RailSide, ParseError> {
     Ok(RailSide::new(weak.carriers))
 }
 
@@ -252,11 +234,11 @@ fn convert_rail_side(weak: WeakRailSide, _parent_span: Span) -> Result<RailSide,
 // ---------------------------------------------------------------------------
 
 impl WeakOperation {
-    pub fn try_into_strong(self) -> Result<Operation, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<Operation, ParseError> {
         match self {
             WeakOperation::Base(b) => Ok(Operation::BaseOperation(b.try_into_strong()?)),
             WeakOperation::Extension(e) => Ok(Operation::ExtensionOperation(e.try_into_strong()?)),
-            WeakOperation::Unknown(span) => Err(ParseDiagnostic::new(span, "invalid operation")),
+            WeakOperation::Unknown(span) => Err(ParseError::InvalidOperation(span)),
         }
     }
 }
@@ -266,43 +248,40 @@ impl WeakOperation {
 // ---------------------------------------------------------------------------
 
 impl WeakBaseOperation {
-    pub fn try_into_strong(self) -> Result<BaseOperation, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<BaseOperation, ParseError> {
         let span = self.span;
         match self.kind {
             WeakBaseOperationKind::In { carriers } => Ok(BaseOperation::In {
                 carriers: carriers
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing carriers for `in`"))?,
+                    .ok_or(ParseError::MissingField { span, field: "carriers" })?,
             }),
             WeakBaseOperationKind::Inhook { carriers } => Ok(BaseOperation::Inhook {
                 carriers: carriers
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing carriers for `inhook`"))?,
+                    .ok_or(ParseError::MissingField { span, field: "carriers" })?,
             }),
             WeakBaseOperationKind::Releasehook { carriers } => Ok(BaseOperation::Releasehook {
-                carriers: carriers.ok_or_else(|| {
-                    ParseDiagnostic::new(span, "missing carriers for `releasehook`")
-                })?,
+                carriers: carriers
+                    .ok_or(ParseError::MissingField { span, field: "carriers" })?,
             }),
             WeakBaseOperationKind::Out { carriers } => Ok(BaseOperation::Out {
                 carriers: carriers
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing carriers for `out`"))?,
+                    .ok_or(ParseError::MissingField { span, field: "carriers" })?,
             }),
             WeakBaseOperationKind::Outhook { carriers } => Ok(BaseOperation::Outhook {
                 carriers: carriers
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing carriers for `outhook`"))?,
+                    .ok_or(ParseError::MissingField { span, field: "carriers" })?,
             }),
             WeakBaseOperationKind::Stitch {
                 before_pull,
                 after_pull,
             } => Ok(BaseOperation::Stitch {
-                before_pull: before_pull.ok_or_else(|| {
-                    ParseDiagnostic::new(span, "missing before_pull for `stitch`")
-                })?,
+                before_pull: before_pull
+                    .ok_or(ParseError::MissingField { span, field: "before_pull" })?,
                 after_pull: after_pull
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing after_pull for `stitch`"))?,
+                    .ok_or(ParseError::MissingField { span, field: "after_pull" })?,
             }),
             WeakBaseOperationKind::Rack { offset } => Ok(BaseOperation::Rack {
-                offset: offset
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing offset for `rack`"))?,
+                offset: offset.ok_or(ParseError::MissingField { span, field: "offset" })?,
             }),
             WeakBaseOperationKind::Knit {
                 direction,
@@ -311,7 +290,7 @@ impl WeakBaseOperation {
             } => Ok(BaseOperation::Knit {
                 direction: direction.try_into_strong()?,
                 needle: needle
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing needle for `knit`"))?
+                    .ok_or(ParseError::MissingField { span, field: "needle" })?
                     .try_into_strong()?,
                 carriers,
             }),
@@ -322,7 +301,7 @@ impl WeakBaseOperation {
             } => Ok(BaseOperation::Tuck {
                 direction: direction.try_into_strong()?,
                 needle: needle
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing needle for `tuck`"))?
+                    .ok_or(ParseError::MissingField { span, field: "needle" })?
                     .try_into_strong()?,
                 carriers,
             }),
@@ -333,7 +312,7 @@ impl WeakBaseOperation {
             } => Ok(BaseOperation::Miss {
                 direction: direction.try_into_strong()?,
                 needle: needle
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing needle for `miss`"))?
+                    .ok_or(ParseError::MissingField { span, field: "needle" })?
                     .try_into_strong()?,
                 carriers,
             }),
@@ -345,24 +324,22 @@ impl WeakBaseOperation {
             } => Ok(BaseOperation::Split {
                 direction: direction.try_into_strong()?,
                 source: source
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing source needle for `split`"))?
+                    .ok_or(ParseError::MissingField { span, field: "source" })?
                     .try_into_strong()?,
                 destination: destination
-                    .ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing destination needle for `split`")
-                    })?
+                    .ok_or(ParseError::MissingField { span, field: "destination" })?
                     .try_into_strong()?,
                 carriers,
             }),
             WeakBaseOperationKind::Pause => Ok(BaseOperation::Pause),
             WeakBaseOperationKind::Drop { needle } => Ok(BaseOperation::Drop {
                 needle: needle
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing needle for `drop`"))?
+                    .ok_or(ParseError::MissingField { span, field: "needle" })?
                     .try_into_strong()?,
             }),
             WeakBaseOperationKind::Amiss { needle } => Ok(BaseOperation::Amiss {
                 needle: needle
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing needle for `amiss`"))?
+                    .ok_or(ParseError::MissingField { span, field: "needle" })?
                     .try_into_strong()?,
             }),
             WeakBaseOperationKind::Xfer {
@@ -370,12 +347,10 @@ impl WeakBaseOperation {
                 destination,
             } => Ok(BaseOperation::Xfer {
                 source: source
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing source needle for `xfer`"))?
+                    .ok_or(ParseError::MissingField { span, field: "source" })?
                     .try_into_strong()?,
                 destination: destination
-                    .ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing destination needle for `xfer`")
-                    })?
+                    .ok_or(ParseError::MissingField { span, field: "destination" })?
                     .try_into_strong()?,
             }),
         }
@@ -387,28 +362,25 @@ impl WeakBaseOperation {
 // ---------------------------------------------------------------------------
 
 impl WeakExtensionOperation {
-    pub fn try_into_strong(self) -> Result<ExtensionOperation, ParseDiagnostic> {
+    pub fn try_into_strong(self) -> Result<ExtensionOperation, ParseError> {
         let span = self.span;
         match self.kind {
             WeakExtensionOperationKind::XStitchNumber { value } => {
                 Ok(ExtensionOperation::XStitchNumber {
-                    value: value.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing value for `x-stitch-number`")
-                    })?,
+                    value: value
+                        .ok_or(ParseError::MissingField { span, field: "value" })?,
                 })
             }
             WeakExtensionOperationKind::XSpeedNumber { value } => {
                 Ok(ExtensionOperation::XSpeedNumber {
-                    value: value.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing value for `x-speed-number`")
-                    })?,
+                    value: value
+                        .ok_or(ParseError::MissingField { span, field: "value" })?,
                 })
             }
             WeakExtensionOperationKind::XSubRollerNumber { value } => {
                 Ok(ExtensionOperation::XSubRollerNumber {
-                    value: value.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing value for `x-sub-roller-number`")
-                    })?,
+                    value: value
+                        .ok_or(ParseError::MissingField { span, field: "value" })?,
                 })
             }
             WeakExtensionOperationKind::XPresserMode { mode } => {
@@ -418,20 +390,16 @@ impl WeakExtensionOperation {
             }
             WeakExtensionOperationKind::XXferStitchNumber { value } => {
                 Ok(ExtensionOperation::XXferStitchNumber {
-                    value: value.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing value for `x-xfer-stitch-number`")
-                    })?,
+                    value: value
+                        .ok_or(ParseError::MissingField { span, field: "value" })?,
                 })
             }
             WeakExtensionOperationKind::XEndPass => Ok(ExtensionOperation::XEndPass),
             WeakExtensionOperationKind::XVisColor { color, carriers } => {
                 Ok(ExtensionOperation::XVisColor {
-                    color: color.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing color for `x-vis-color`")
-                    })?,
-                    carriers: carriers.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing carriers for `x-vis-color`")
-                    })?,
+                    color: color.ok_or(ParseError::MissingField { span, field: "color" })?,
+                    carriers: carriers
+                        .ok_or(ParseError::MissingField { span, field: "carriers" })?,
                 })
             }
             WeakExtensionOperationKind::XLoopIn {
@@ -441,11 +409,10 @@ impl WeakExtensionOperation {
             } => Ok(ExtensionOperation::XLoopIn {
                 direction: direction.try_into_strong()?,
                 needle: needle
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing needle for `x-loop-in`"))?
+                    .ok_or(ParseError::MissingField { span, field: "needle" })?
                     .try_into_strong()?,
-                carriers: carriers.ok_or_else(|| {
-                    ParseDiagnostic::new(span, "missing carriers for `x-loop-in`")
-                })?,
+                carriers: carriers
+                    .ok_or(ParseError::MissingField { span, field: "carriers" })?,
             }),
             WeakExtensionOperationKind::XYarnIn {
                 direction,
@@ -454,11 +421,10 @@ impl WeakExtensionOperation {
             } => Ok(ExtensionOperation::XYarnIn {
                 direction: direction.try_into_strong()?,
                 needle: needle
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing needle for `x-yarn-in`"))?
+                    .ok_or(ParseError::MissingField { span, field: "needle" })?
                     .try_into_strong()?,
-                carriers: carriers.ok_or_else(|| {
-                    ParseDiagnostic::new(span, "missing carriers for `x-yarn-in`")
-                })?,
+                carriers: carriers
+                    .ok_or(ParseError::MissingField { span, field: "carriers" })?,
             }),
             WeakExtensionOperationKind::XYarnOut {
                 direction,
@@ -467,42 +433,34 @@ impl WeakExtensionOperation {
             } => Ok(ExtensionOperation::XYarnOut {
                 direction: direction.try_into_strong()?,
                 needle: needle
-                    .ok_or_else(|| ParseDiagnostic::new(span, "missing needle for `x-yarn-out`"))?
+                    .ok_or(ParseError::MissingField { span, field: "needle" })?
                     .try_into_strong()?,
-                carriers: carriers.ok_or_else(|| {
-                    ParseDiagnostic::new(span, "missing carriers for `x-yarn-out`")
-                })?,
+                carriers: carriers
+                    .ok_or(ParseError::MissingField { span, field: "carriers" })?,
             }),
             WeakExtensionOperationKind::XEnd => Ok(ExtensionOperation::XEnd),
             WeakExtensionOperationKind::XRollerAdvance { value } => {
                 Ok(ExtensionOperation::XRollerAdvance {
-                    value: value.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing value for `x-roller-advance`")
-                    })?,
+                    value: value
+                        .ok_or(ParseError::MissingField { span, field: "value" })?,
                 })
             }
             WeakExtensionOperationKind::XAddRollerAdvance { value } => {
                 Ok(ExtensionOperation::XAddRollerAdvance {
-                    value: value.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing value for `x-add-roller-advance`")
-                    })?,
+                    value: value
+                        .ok_or(ParseError::MissingField { span, field: "value" })?,
                 })
             }
             WeakExtensionOperationKind::XCarrierSpacing { value } => {
                 Ok(ExtensionOperation::XCarrierSpacing {
-                    value: value.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing value for `x-carrier-spacing`")
-                    })?,
+                    value: value
+                        .ok_or(ParseError::MissingField { span, field: "value" })?,
                 })
             }
             WeakExtensionOperationKind::XCarrierStoppingDistance { value } => {
                 Ok(ExtensionOperation::XCarrierStoppingDistance {
-                    value: value.ok_or_else(|| {
-                        ParseDiagnostic::new(
-                            span,
-                            "missing value for `x-carrier-stopping-distance`",
-                        )
-                    })?,
+                    value: value
+                        .ok_or(ParseError::MissingField { span, field: "value" })?,
                 })
             }
             WeakExtensionOperationKind::XXferStyle { style } => {
@@ -512,9 +470,7 @@ impl WeakExtensionOperation {
             }
             WeakExtensionOperationKind::UnknownExtension { name, arguments } => {
                 Ok(ExtensionOperation::UnknownExtension {
-                    name: name.ok_or_else(|| {
-                        ParseDiagnostic::new(span, "missing name for unknown extension")
-                    })?,
+                    name: name.ok_or(ParseError::MissingField { span, field: "name" })?,
                     arguments,
                 })
             }
