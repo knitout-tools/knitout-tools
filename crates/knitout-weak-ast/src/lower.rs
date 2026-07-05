@@ -96,6 +96,8 @@ impl<'src> LowerCtx<'src> {
         (prog, self.warnings, self.errors)
     }
 
+    /// Turns the span into utf8 text. If the span is not valid utf8, pushes a `BadUtf8` error and
+    /// returns `None`.
     fn text_of(&mut self, span: Span) -> Option<&'src str> {
         match std::str::from_utf8(&self.source[span.start()..span.end()]) {
             Ok(s) => Some(s),
@@ -104,6 +106,19 @@ impl<'src> LowerCtx<'src> {
                 None
             }
         }
+    }
+
+    fn make_carrier(&mut self, name: &str, span: Span) -> knitout_ast::Carrier<Parsed> {
+        if name.is_empty() {
+            self.errors.push(ParseError::BadCarrierName(span));
+        }
+        if name
+            .chars()
+            .any(|c| c.is_whitespace() || c == ';' || c == ',')
+        {
+            self.errors.push(ParseError::BadCarrierName(span));
+        }
+        self.carrier_table.make_carrier(name, span)
     }
 
     // ── header helpers ────────────────────────────────────────────────────────
@@ -152,7 +167,9 @@ impl<'src> LowerCtx<'src> {
             "tag_comment" => {
                 self.lower_top_tag_comment(inner, *line_index);
             }
-            "header" => self.lower_header(inner),
+            "header" => {
+                self.lower_header(inner);
+            }
             "comment" => {} // plain unassociated comment, nothing to do
             "op_line" => {
                 self.lower_op_line(inner);
@@ -176,12 +193,6 @@ impl<'src> LowerCtx<'src> {
         if is_magic {
             // Span for ";!knitout-"
             let (prefix_span, ver_span) = tag_span.split(value_span.start() + MAGIC_PREFIX.len());
-
-            // if self.magic.is_some_and(|(ver, _)|) {
-            //     // Second magic line → warning (treat as MagicNotFirst of this occurrence)
-            //     self.warnings.push(ParseWarning::MagicNotFirst(tag_span));
-            //     return;
-            // }
 
             if line_index > 0 {
                 self.warnings.push(ParseWarning::MagicNotFirst(tag_span));
@@ -210,52 +221,41 @@ impl<'src> LowerCtx<'src> {
                 }
             };
         }
+        // if not magic, just ignore it as a regular comment. At some point, LSP directives would be
+        // handled here: ";!lsp-*" to disable certain warnings
 
         Some(())
-
-        // Source tag at the top level — unusual but we just ignore it (not an error).
-        // Unknown tags are also ignored here since we can't attach them to an operation.
     }
 
     // ── header parsing ────────────────────────────────────────────────────────
 
-    fn lower_header(&mut self, node: Node<'_>) {
+    fn lower_header(&mut self, node: Node<'_>) -> Option<()> {
         let header_span = node_span(node);
 
-        let content_node = match node.child_by_field_name("content") {
-            Some(n) => n,
-            None => return, // just ";;" with no content
-        };
+        // o.w. just ";;" with no content
+        let content_node = node.child_by_field_name("content")?;
 
         let content_span = node_span(content_node);
-        let content_text = match self.text_of(content_span) {
-            Some(s) => s,
-            None => return,
-        };
+        let content_text = self.text_of(content_span)?;
         let content_start = content_span.start();
 
-        // Split at the first ':' to get name and value.
-        let colon_pos = match content_text.find(':') {
-            Some(p) => p,
-            None => return, // No colon — treat as a comment
-        };
+        // Split at the first ':' to get name and value. If no colon, treat it as a comment.
+        let colon_pos = content_text.find(':')?;
 
         let name_str = content_text[..colon_pos].trim();
         let value_str = &content_text[colon_pos + 1..];
 
         // Trim leading whitespace from value
-        let value_trimmed = value_str.trim_start_matches([' ', '\t']);
+        let value_trimmed = value_str.trim_start();
         let value_trimmed_offset = value_str.len() - value_trimmed.len();
         let value_trim_start = content_start + colon_pos + 1 + value_trimmed_offset;
-        let value_end = content_span.end();
-        let value_span = Span::new(value_trim_start, value_end);
+        let value_trimmed = value_trimmed.trim_end();
+        let value_span = Span::new(value_trim_start, value_trim_start + value_trimmed.len());
 
         self.check_header_after_ops(header_span);
 
         match name_str {
-            "Carriers" => {
-                self.lower_carriers_header(header_span, value_trimmed.as_bytes(), value_span)
-            }
+            "Carriers" => self.lower_carriers_header(header_span, value_trimmed, value_span),
             "Machine" => {
                 self.lower_string_header("Machine", header_span, value_trimmed, value_span)
             }
@@ -281,10 +281,12 @@ impl<'src> LowerCtx<'src> {
                     header_span,
                 );
             }
-        }
+        };
+
+        Some(())
     }
 
-    fn lower_carriers_header(&mut self, header_span: Span, value: &[u8], value_span: Span) {
+    fn lower_carriers_header(&mut self, header_span: Span, value: &str, value_span: Span) {
         if self.header_already_defined("Carriers", header_span) {
             return;
         }
@@ -351,7 +353,7 @@ impl<'src> LowerCtx<'src> {
     ) {
         // "Yarn-A" → carrier name is "A"
         let carrier_name = &name_str["Yarn-".len()..];
-        let carrier = self.carrier_table.make_carrier(carrier_name, header_span);
+        let carrier = self.make_carrier(carrier_name, header_span);
         let my_string = MyString::new(Either::Left(value.trim().to_owned()), value_span);
         self.headers_partial
             .add_yarn(carrier, my_string, header_span);
@@ -361,50 +363,55 @@ impl<'src> LowerCtx<'src> {
 
     fn parse_carriers_header_value(
         &mut self,
-        text: &[u8],
+        text: &str,
         span: Span,
     ) -> CarriersHeaderValue<Parsed> {
         let abs_start = span.start();
         let mut items: Vec<CarrierOrRail<Parsed>> = Vec::new();
 
-        let mut i = 0usize;
-        while i < text.len() {
-            // Skip spaces
-            while i < text.len() && (text[i] == b' ' || text[i] == b'\t') {
-                i += 1;
-            }
-            if i >= text.len() {
-                break;
-            }
-            // Collect token (no whitespace)
-            let token_start = i;
-            while i < text.len() && text[i] != b' ' && text[i] != b'\t' {
-                i += 1;
-            }
-            let token = &text[token_start..i];
-            let token_span = Span::new(abs_start + token_start, abs_start + i);
+        let mut token_start = None;
 
-            if let Some(semi_pos) = token.iter().position(|&b| b == b';') {
-                // Rail: "left;right"
-                let left_bytes = &token[..semi_pos];
-                let right_bytes = &token[semi_pos + 1..];
-                let left_span = Span::new(token_span.start(), token_span.start() + semi_pos);
-                let right_span = Span::new(token_span.start() + semi_pos + 1, token_span.end());
+        // Push a space on the back to trigger final tokenization
+        for (i, c) in text
+            .char_indices()
+            .chain(std::iter::once((text.len(), ' ')))
+        {
+            if c.is_whitespace() {
+                match token_start {
+                    None => continue, // still skipping whitespace
+                    Some(start) => {
+                        token_start = None; // reset
+                        let token_span = Span::new(abs_start + start, abs_start + i);
+                        let token = match self.text_of(token_span) {
+                            Some(t) => t,
+                            None => continue, // skip invalid utf8 token
+                        };
 
-                let left_side = self.parse_rail_side(left_bytes, left_span);
-                let right_side = self.parse_rail_side(right_bytes, right_span);
+                        if let Some(semi_pos) = token.find(';') {
+                            // Rail: "left;right"
+                            let (left_span, right_span) =
+                                token_span.split_remove(token_span.start() + semi_pos);
+                            let left_str = &token[..semi_pos];
+                            let right_str = &token[semi_pos + 1..];
 
-                items.push(CarrierOrRail::Rail(Rail::new(
-                    Either::Left(left_side),
-                    Either::Left(right_side),
-                    token_span,
-                )));
+                            let left_side = self.parse_rail_side(left_str, left_span);
+                            let right_side = self.parse_rail_side(right_str, right_span);
+
+                            items.push(CarrierOrRail::Rail(Rail::new(
+                                Either::Left(left_side),
+                                Either::Left(right_side),
+                                token_span,
+                            )));
+                        } else {
+                            // Single carrier. We're sure the token is nonempty
+                            let carrier = self.make_carrier(token, token_span);
+                            items.push(CarrierOrRail::Carrier(carrier));
+                        }
+                    }
+                }
             } else {
-                // Single carrier
-                let name = std::str::from_utf8(token).unwrap_or("").trim();
-                if !name.is_empty() {
-                    let carrier = self.carrier_table.make_carrier(name, token_span);
-                    items.push(CarrierOrRail::Carrier(carrier));
+                if token_start.is_none() {
+                    token_start = Some(i)
                 }
             }
         }
@@ -412,19 +419,18 @@ impl<'src> LowerCtx<'src> {
         CarriersHeaderValue::new(Either::Left(items), span)
     }
 
-    fn parse_rail_side(&mut self, text: &[u8], span: Span) -> RailSide<Parsed> {
+    fn parse_rail_side(&mut self, text: &str, span: Span) -> RailSide<Parsed> {
         let mut carriers = Vec::new();
         let mut pos = 0usize;
 
-        for part in text.split(|&b| b == b',') {
+        for part in text.split(",") {
             let part_start = span.start() + pos;
             let part_len = part.len();
             let part_span = Span::new(part_start, part_start + part_len);
             pos += part_len + 1; // +1 for ','
 
-            let name = std::str::from_utf8(part).unwrap_or("").trim();
-            if !name.is_empty() {
-                let carrier = self.carrier_table.make_carrier(name, part_span);
+            if !part.is_empty() {
+                let carrier = self.make_carrier(part, part_span);
                 carriers.push(carrier);
             }
         }
@@ -435,6 +441,11 @@ impl<'src> LowerCtx<'src> {
     // ── operation line ────────────────────────────────────────────────────────
 
     fn lower_op_line(&mut self, node: Node<'_>) {
+        if !self.operations_started {
+            self.operations_started = true;
+            self.first_op_span = Some(node_span(node));
+        }
+
         let op_node = match node.child_by_field_name("operation") {
             Some(n) => n,
             None => return,
@@ -479,11 +490,6 @@ impl<'src> LowerCtx<'src> {
         let op = self.parse_operation(opcode_text, opcode_span, &args);
         self.operations
             .push(Annotated::new(op, (op_span, comment_info)));
-
-        if !self.operations_started {
-            self.operations_started = true;
-            self.first_op_span = Some(op_span);
-        }
     }
 
     // ── argument helpers ──────────────────────────────────────────────────────
@@ -585,7 +591,7 @@ impl<'src> LowerCtx<'src> {
 
     fn parse_carrier(&mut self, text: &[u8], span: Span) -> knitout_ast::Carrier<Parsed> {
         let name = std::str::from_utf8(text).unwrap_or("").trim();
-        self.carrier_table.make_carrier(name, span)
+        self.make_carrier(name, span)
     }
 
     /// Consume `args[at]` as a direction.  If absent, emits `MissingArgument` and returns Other.

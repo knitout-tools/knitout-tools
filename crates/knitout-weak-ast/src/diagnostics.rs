@@ -71,40 +71,6 @@ pub enum ParseError {
     TooManyArguments(Span),
     /// Couldn't read the source as UTF-8.
     BadUtf8(Span),
-}
-
-impl ParseWarning {
-    pub fn span(&self) -> Span {
-        match self {
-            ParseWarning::MagicNotFirst(s) => *s,
-            ParseWarning::DuplicateHeader { span, .. } => *span,
-            ParseWarning::HeaderAfterOperations(s) => *s,
-            ParseWarning::UnrecognizedExtensionHeader(s) => *s,
-        }
-    }
-}
-
-impl ParseError {
-    pub fn span(&self) -> Option<Span> {
-        match self {
-            ParseError::MagicMissing => None,
-            ParseError::MissingCarriersHeader => None,
-            ParseError::BadMagicVersion(s) => Some(*s),
-            ParseError::ConflictingMagicVersion { span, .. } => Some(*span),
-            ParseError::ConflictingHeader { span, .. } => Some(*span),
-            ParseError::UnrecognizedOpcode(s) => Some(*s),
-            ParseError::MissingArgument(s) => Some(*s),
-            ParseError::BadDirection(s) => Some(*s),
-            ParseError::BadNeedle(s) => Some(*s),
-            ParseError::BadNeedleIndex(s) => Some(*s),
-            ParseError::BadBed(s) => Some(*s),
-            ParseError::BadU32(s) => Some(*s),
-            ParseError::BadBigDecimal(s) => Some(*s),
-            ParseError::BadPresserMode(s) => Some(*s),
-            ParseError::BadXferStyle(s) => Some(*s),
-            ParseError::BadPositionValue(s) => Some(*s),
-            ParseError::TooManyArguments(s) => Some(*s),
-            ParseError::BadUtf8(s) => Some(*s),
-        }
-    }
+    /// Illegal carrier name (empty, whitespace, semicolon, comma)
+    BadCarrierName(Span),
 }

@@ -929,21 +929,6 @@ mod tests {
         assert!(span_within(op_span, source));
     }
 
-    #[test]
-    fn all_error_spans_within_source() {
-        let source = ";!knitout-2\n;;Carriers: A\nknit x badneedle\n";
-        let (_, _, errors) = parse(source);
-        for e in &errors {
-            if let Some(span) = e.span() {
-                assert!(
-                    span_within(span, source),
-                    "span {span:?} out of bounds for source len {}",
-                    source.len()
-                );
-            }
-        }
-    }
-
     // ─── parsed_to_valid ──────────────────────────────────────────────────────
 
     #[test]
@@ -1008,58 +993,6 @@ mod tests {
         let (prog, _, _) = parse(source);
         let result = transform_program::<Parsed, knitout_ast::Validated, ParsedToValidated>(prog);
         assert!(result.is_some());
-    }
-
-    // ─── ParseError::span ─────────────────────────────────────────────────────
-
-    #[test]
-    fn parse_error_span_missing_magic_is_none() {
-        assert_eq!(ParseError::MagicMissing.span(), None);
-    }
-
-    #[test]
-    fn parse_error_span_missing_carriers_is_none() {
-        assert_eq!(ParseError::MissingCarriersHeader.span(), None);
-    }
-
-    #[test]
-    fn parse_error_span_bad_direction_is_some() {
-        let s = Span::new(0, 1);
-        assert_eq!(ParseError::BadDirection(s).span(), Some(s));
-    }
-
-    // ─── ParseWarning::span ───────────────────────────────────────────────────
-
-    #[test]
-    fn parse_warning_span_magic_not_first() {
-        let s = Span::new(5, 15);
-        assert_eq!(ParseWarning::MagicNotFirst(s).span(), s);
-    }
-
-    #[test]
-    fn parse_warning_span_header_after_ops() {
-        let s = Span::new(3, 9);
-        assert_eq!(ParseWarning::HeaderAfterOperations(s).span(), s);
-    }
-
-    #[test]
-    fn parse_warning_span_unrecognized_extension() {
-        let s = Span::new(0, 5);
-        assert_eq!(ParseWarning::UnrecognizedExtensionHeader(s).span(), s);
-    }
-
-    #[test]
-    fn parse_warning_span_duplicate_same_value() {
-        let s = Span::new(10, 15);
-        let p = Span::new(0, 5);
-        assert_eq!(
-            ParseWarning::DuplicateHeader {
-                span: s,
-                previous: p
-            }
-            .span(),
-            s
-        );
     }
 
     // ─── needle annotation ────────────────────────────────────────────────────
@@ -1398,6 +1331,7 @@ mod tests {
         match &items[0] {
             CarrierOrRail::Carrier(c) => {
                 let span = *c.annotation();
+                println!("Carrier A span: {:?}", span);
                 assert_eq!(&src[span.start()..span.end()], b"A");
                 assert_eq!(span.start(), 24);
                 assert_eq!(span.end(), 25);
