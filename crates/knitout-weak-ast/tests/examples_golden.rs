@@ -1,3 +1,4 @@
+#![cfg(not(mutants))]
 //! Golden tests over the `examples/` corpus.
 //!
 //! For every example file this test:

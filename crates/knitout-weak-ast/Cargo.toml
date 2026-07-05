@@ -19,3 +19,6 @@ zstd = "0.13"
 [[test]]
 name = "examples_golden"
 harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mutants)'] }
