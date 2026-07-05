@@ -18,6 +18,8 @@ pub enum ParseWarning {
     HeaderAfterOperations(Span),
     /// An unrecognized extension header `;;X-foo: ...` that does not match any known header.
     UnrecognizedExtensionHeader(Span),
+    /// An unrecognized extension operation `x-foo ...` that does not match any known operation.
+    UnrecognizedExtension(Span),
 }
 
 /// An unrecoverable parse error: the `Program<Parsed>` is still produced, but it will contain

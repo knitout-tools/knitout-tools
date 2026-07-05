@@ -983,6 +983,8 @@ impl<'src> LowerCtx<'src> {
             _ => {
                 // Unknown x- extension — store name + all args as strings.
                 let name = self.parse_my_string(opcode_str, opcode_span);
+                self.warnings
+                    .push(ParseWarning::UnrecognizedExtension(opcode_span));
                 let arguments = args
                     .iter()
                     .map(|&(span, text)| self.parse_my_string(text, span))

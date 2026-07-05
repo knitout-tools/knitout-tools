@@ -890,22 +890,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn unknown_extension_op() {
-        match get_ext(";!knitout-2\n;;Carriers: A\nx-my-custom arg1 arg2\n") {
-            ExtensionOperation::UnknownExtension { name, arguments } => {
-                let n = name.value().as_ref().left().unwrap();
-                assert_eq!(n, "x-my-custom");
-                assert_eq!(arguments.len(), 2);
-                let a0 = arguments[0].value().as_ref().left().unwrap();
-                let a1 = arguments[1].value().as_ref().left().unwrap();
-                assert_eq!(a0, "arg1");
-                assert_eq!(a1, "arg2");
-            }
-            other => panic!("{other:?}"),
-        }
-    }
-
     // ─── unrecognized opcode ──────────────────────────────────────────────────
 
     #[test]
@@ -1776,6 +1760,26 @@ mod tests {
                 .any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
             "non-X- header should not emit UnrecognizedExtensionHeader: {warnings:?}"
         );
+    }
+
+    // ─── unknown extension operation ─────────────────────────────────────────
+
+    #[test]
+    fn unknown_extension_op() {
+        let (parsed, warnings, errors) =
+            parse(";!knitout-2\n;;Carriers: A\nx-my-custom arg1 arg2\n");
+        assert!(warnings.len() == 1);
+        assert!(matches!(
+            &warnings[0],
+            ParseWarning::UnrecognizedExtension { .. }
+        ));
+        assert!(errors.is_empty());
+        let ops = parsed.operations();
+        assert_eq!(ops.len(), 1);
+        assert!(matches!(
+            ops[0].value,
+            Operation::ExtensionOperation(ExtensionOperation::UnknownExtension { .. })
+        ));
     }
 
     // ─── carriers trailing-space loop-bound test ──────────────────────────────
