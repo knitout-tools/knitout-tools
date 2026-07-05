@@ -11,7 +11,9 @@ pub use extension_operations::{ExtensionOperation, PresserMode, XferStyle};
 pub use header_types::{
     CarrierOrRail, CarriersHeaderValue, Headers, PositionHeaderValue, Rail, RailSide,
 };
-pub use knitting_types::{Bed, Carrier, Direction, IsSlider, MyBigDecimal, MyString, MyU32, Needle};
+pub use knitting_types::{
+    Bed, Carrier, Direction, IsSlider, MyBigDecimal, MyString, MyU32, Needle,
+};
 pub use phase::{Annotated, Phase, PhaseType, Validated};
 pub use program::{CarrierTable, DisplayCarrierTable, Operation, Program};
 pub use provenance::{Provenance, Span};

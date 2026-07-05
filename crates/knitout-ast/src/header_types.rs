@@ -41,7 +41,10 @@ impl<P: Phase> CarriersHeaderValue<P> {
     /// Consume self, returning the inner carriers-and-rails and the annotation.
     pub fn into_inner(
         self,
-    ) -> (Either<Vec<CarrierOrRail<P>>, P::Other>, P::CarriersHeaderValue) {
+    ) -> (
+        Either<Vec<CarrierOrRail<P>>, P::Other>,
+        P::CarriersHeaderValue,
+    ) {
         (self.carriers_and_rails, self.annotation)
     }
 }
