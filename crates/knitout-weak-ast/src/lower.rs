@@ -152,13 +152,10 @@ impl<'src> LowerCtx<'src> {
 
     /// Keeps track of line_index for magic header. Increments line index after. Does not increment
     /// line index for empty lines. Increments on tag, header, comment, and op.
-    fn lower_line(&mut self, node: Node<'_>, line_index: &mut usize) {
+    fn lower_line(&mut self, node: Node<'_>, line_index: &mut usize) -> Option<()> {
         // The grammar's `line` rule is a transparent choice; the named child is the real node.
         let inner = if node.kind() == "line" {
-            match node.named_child(0) {
-                Some(n) => n,
-                None => return,
-            }
+            node.named_child(0)?
         } else {
             node
         };
@@ -177,6 +174,7 @@ impl<'src> LowerCtx<'src> {
             _ => {}
         }
         *line_index += 1;
+        Some(())
     }
 
     // ── magic / tag line ──────────────────────────────────────────────────────
@@ -440,24 +438,24 @@ impl<'src> LowerCtx<'src> {
 
     // ── operation line ────────────────────────────────────────────────────────
 
-    fn lower_op_line(&mut self, node: Node<'_>) {
+    fn lower_op_line(&mut self, node: Node<'_>) -> Option<()> {
         if !self.operations_started {
             self.operations_started = true;
             self.first_op_span = Some(node_span(node));
         }
 
-        let op_node = match node.child_by_field_name("operation") {
-            Some(n) => n,
-            None => return,
-        };
+        let op_node = node.child_by_field_name("operation")?;
 
         // Trailing comment
         let comment_info = if let Some(tag) = node.child_by_field_name("tag_comment") {
             let tag_span = node_span(tag);
-            let value_text = tag
-                .child_by_field_name("value")
-                .map(|v| &self.source[v.start_byte()..v.end_byte()]);
-            if value_text.is_some_and(|t| t.starts_with(b"source: ")) {
+            let is_source_tag = if let Some(v) = tag.child_by_field_name("value") {
+                self.text_of(node_span(v))
+                    .is_some_and(|t| t.starts_with("source: "))
+            } else {
+                false
+            };
+            if is_source_tag {
                 CommentInfo::SourceTag(tag_span)
             } else {
                 CommentInfo::UnknownTag(tag_span)
@@ -470,34 +468,32 @@ impl<'src> LowerCtx<'src> {
 
         let op_span = node_span(op_node);
 
-        let opcode_node = match op_node.child_by_field_name("opcode") {
-            Some(n) => n,
-            None => return,
-        };
-        let opcode_text = &self.source[opcode_node.start_byte()..opcode_node.end_byte()];
+        let opcode_node = op_node.child_by_field_name("opcode")?;
         let opcode_span = node_span(opcode_node);
+        let opcode_text = self.text_of(opcode_span)?;
 
         // Collect argument nodes
-        let mut args: Vec<(Span, &[u8])> = Vec::new();
+        let mut args: Vec<(Span, &'src str)> = Vec::new();
         let mut cursor = op_node.walk();
         for arg in op_node.children_by_field_name("argument", &mut cursor) {
-            args.push((
-                node_span(arg),
-                &self.source[arg.start_byte()..arg.end_byte()],
-            ));
+            let arg_span = node_span(arg);
+            if let Some(text) = self.text_of(arg_span) {
+                args.push((arg_span, text));
+            }
         }
 
         let op = self.parse_operation(opcode_text, opcode_span, &args);
         self.operations
             .push(Annotated::new(op, (op_span, comment_info)));
+        Some(())
     }
 
     // ── argument helpers ──────────────────────────────────────────────────────
 
-    fn parse_direction(&mut self, text: &[u8], span: Span) -> Direction<Parsed> {
+    fn parse_direction(&mut self, text: &str, span: Span) -> Direction<Parsed> {
         match text {
-            b"+" => Direction::Right(span),
-            b"-" => Direction::Left(span),
+            "+" => Direction::Right(span),
+            "-" => Direction::Left(span),
             _ => {
                 self.errors.push(ParseError::BadDirection(span));
                 Direction::Other(span, span)
@@ -505,15 +501,14 @@ impl<'src> LowerCtx<'src> {
         }
     }
 
-    fn parse_needle(&mut self, text: &[u8], span: Span) -> Either<Needle<Parsed>, Span> {
+    fn parse_needle(&mut self, text: &str, span: Span) -> Either<Needle<Parsed>, Span> {
         if text.is_empty() {
             self.errors.push(ParseError::BadNeedle(span));
             return Either::Right(span);
         }
 
-        let bed_byte = text[0];
         let bed_span = Span::new(span.start(), span.start() + 1);
-        let bed = match bed_byte {
+        let bed = match text.as_bytes()[0] {
             b'f' => Bed::Front(bed_span),
             b'b' => Bed::Back(bed_span),
             _ => {
@@ -523,7 +518,7 @@ impl<'src> LowerCtx<'src> {
         };
 
         let mut pos = 1usize;
-        let is_slider = if pos < text.len() && text[pos] == b's' {
+        let is_slider = if text[pos..].starts_with('s') {
             let s_span = Span::new(span.start() + 1, span.start() + 2);
             pos += 1;
             IsSlider::Slider(s_span)
@@ -532,12 +527,9 @@ impl<'src> LowerCtx<'src> {
             IsSlider::NotSlider(empty)
         };
 
-        let index_bytes = &text[pos..];
-        let index_start = span.start() + pos;
-        let index_end = span.end();
-        let index_span = Span::new(index_start, index_end);
+        let index_str = &text[pos..];
+        let index_span = Span::new(span.start() + pos, span.end());
 
-        let index_str = std::str::from_utf8(index_bytes).unwrap_or("");
         match index_str.parse::<i32>() {
             Ok(idx) => {
                 let needle = Needle::new(
@@ -562,9 +554,8 @@ impl<'src> LowerCtx<'src> {
         }
     }
 
-    fn parse_big_decimal(&mut self, text: &[u8], span: Span) -> MyBigDecimal<Parsed> {
-        let s = std::str::from_utf8(text).unwrap_or("");
-        match BigDecimal::from_str(s) {
+    fn parse_big_decimal(&mut self, text: &str, span: Span) -> MyBigDecimal<Parsed> {
+        match BigDecimal::from_str(text) {
             Ok(bd) => MyBigDecimal::new(Either::Left(bd), span),
             Err(_) => {
                 self.errors.push(ParseError::BadBigDecimal(span));
@@ -573,9 +564,8 @@ impl<'src> LowerCtx<'src> {
         }
     }
 
-    fn parse_u32(&mut self, text: &[u8], span: Span) -> MyU32<Parsed> {
-        let s = std::str::from_utf8(text).unwrap_or("");
-        match s.parse::<u32>() {
+    fn parse_u32(&mut self, text: &str, span: Span) -> MyU32<Parsed> {
+        match text.parse::<u32>() {
             Ok(n) => MyU32::new(Either::Left(n), span),
             Err(_) => {
                 self.errors.push(ParseError::BadU32(span));
@@ -584,20 +574,18 @@ impl<'src> LowerCtx<'src> {
         }
     }
 
-    fn parse_my_string(&self, text: &[u8], span: Span) -> MyString<Parsed> {
-        let s = std::str::from_utf8(text).unwrap_or("").to_owned();
-        MyString::new(Either::Left(s), span)
+    fn parse_my_string(&self, text: &str, span: Span) -> MyString<Parsed> {
+        MyString::new(Either::Left(text.to_owned()), span)
     }
 
-    fn parse_carrier(&mut self, text: &[u8], span: Span) -> knitout_ast::Carrier<Parsed> {
-        let name = std::str::from_utf8(text).unwrap_or("").trim();
-        self.make_carrier(name, span)
+    fn parse_carrier(&mut self, text: &str, span: Span) -> knitout_ast::Carrier<Parsed> {
+        self.make_carrier(text.trim(), span)
     }
 
     /// Consume `args[at]` as a direction.  If absent, emits `MissingArgument` and returns Other.
     fn take_direction(
         &mut self,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
         at: usize,
         opcode_span: Span,
     ) -> Direction<Parsed> {
@@ -613,7 +601,7 @@ impl<'src> LowerCtx<'src> {
     /// Consume `args[at]` as a needle.  If absent, emits `MissingArgument` and returns Right.
     fn take_needle(
         &mut self,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
         at: usize,
         opcode_span: Span,
     ) -> Either<Needle<Parsed>, Span> {
@@ -629,7 +617,7 @@ impl<'src> LowerCtx<'src> {
     /// Consume `args[at]` as a BigDecimal.  If absent, emits `MissingArgument`.
     fn take_big_decimal(
         &mut self,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
         at: usize,
         opcode_span: Span,
     ) -> MyBigDecimal<Parsed> {
@@ -643,7 +631,7 @@ impl<'src> LowerCtx<'src> {
     }
 
     /// Consume `args[at]` as a u32.  If absent, emits `MissingArgument`.
-    fn take_u32(&mut self, args: &[(Span, &[u8])], at: usize, opcode_span: Span) -> MyU32<Parsed> {
+    fn take_u32(&mut self, args: &[(Span, &str)], at: usize, opcode_span: Span) -> MyU32<Parsed> {
         match args.get(at) {
             Some(&(span, text)) => self.parse_u32(text, span),
             None => {
@@ -656,7 +644,7 @@ impl<'src> LowerCtx<'src> {
     /// Consume `args[at]` as a string.  If absent, emits `MissingArgument`.
     fn take_string(
         &mut self,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
         at: usize,
         opcode_span: Span,
     ) -> MyString<Parsed> {
@@ -672,7 +660,7 @@ impl<'src> LowerCtx<'src> {
     /// All args from `from` onwards as carriers.
     fn take_carriers(
         &mut self,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
         from: usize,
     ) -> Vec<knitout_ast::Carrier<Parsed>> {
         args[from.min(args.len())..]
@@ -681,7 +669,7 @@ impl<'src> LowerCtx<'src> {
             .collect()
     }
 
-    fn warn_extra_args(&mut self, args: &[(Span, &[u8])], from: usize) {
+    fn warn_extra_args(&mut self, args: &[(Span, &str)], from: usize) {
         for &(span, _) in &args[from.min(args.len())..] {
             self.errors.push(ParseError::TooManyArguments(span));
         }
@@ -691,12 +679,11 @@ impl<'src> LowerCtx<'src> {
 
     fn parse_operation(
         &mut self,
-        opcode: &[u8],
+        opcode: &str,
         opcode_span: Span,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
     ) -> Operation<Parsed> {
-        let opcode_str = std::str::from_utf8(opcode).unwrap_or("");
-        match opcode_str {
+        match opcode {
             // ── carrier-list operations ───────────────────────────────────────
             "in" => Operation::BaseOperation(BaseOperation::In {
                 carriers: self.take_carriers(args, 0),
@@ -815,7 +802,7 @@ impl<'src> LowerCtx<'src> {
         &mut self,
         opcode_str: &str,
         opcode_span: Span,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
     ) -> Operation<Parsed> {
         let ext = match opcode_str {
             "x-stitch-number" => {
@@ -913,7 +900,7 @@ impl<'src> LowerCtx<'src> {
             }
             _ => {
                 // Unknown x- extension — store name + all args as strings.
-                let name = self.parse_my_string(opcode_str.as_bytes(), opcode_span);
+                let name = self.parse_my_string(opcode_str, opcode_span);
                 let arguments = args
                     .iter()
                     .map(|&(span, text)| self.parse_my_string(text, span))
@@ -926,14 +913,14 @@ impl<'src> LowerCtx<'src> {
 
     fn parse_presser_mode_arg(
         &mut self,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
         opcode_span: Span,
     ) -> PresserMode<Parsed> {
         match args.first() {
             Some(&(span, text)) => match text {
-                b"off" => PresserMode::Off(span),
-                b"auto" => PresserMode::Auto(span),
-                b"on" => PresserMode::On(span),
+                "off" => PresserMode::Off(span),
+                "auto" => PresserMode::Auto(span),
+                "on" => PresserMode::On(span),
                 _ => {
                     self.errors.push(ParseError::BadPresserMode(span));
                     PresserMode::Other(span, span)
@@ -948,13 +935,13 @@ impl<'src> LowerCtx<'src> {
 
     fn parse_xfer_style_arg(
         &mut self,
-        args: &[(Span, &[u8])],
+        args: &[(Span, &str)],
         opcode_span: Span,
     ) -> XferStyle<Parsed> {
         match args.first() {
             Some(&(span, text)) => match text {
-                b"four-pass" => XferStyle::FourPass(span),
-                b"two-pass" => XferStyle::TwoPass(span),
+                "four-pass" => XferStyle::FourPass(span),
+                "two-pass" => XferStyle::TwoPass(span),
                 _ => {
                     self.errors.push(ParseError::BadXferStyle(span));
                     XferStyle::Other(span, span)
