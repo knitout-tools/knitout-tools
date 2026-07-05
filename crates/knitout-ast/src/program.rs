@@ -34,12 +34,13 @@ impl<P: Phase> Program<P> {
     pub fn new(
         version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
         headers: Headers<P>,
+        operations: Vec<Annotated<Operation<P>, P::Operation>>,
         carriers_table: CarrierTable,
     ) -> Self {
         Self {
             version,
             headers,
-            operations: Vec::new(),
+            operations,
             carrier_table: carriers_table,
         }
     }
@@ -226,8 +227,12 @@ mod tests {
             ]),
             (),
         ))));
-        let mut program =
-            Program::<Validated>::new(Either::Left(Annotated::unit(18u32)), headers, carrier_table);
+        let mut program = Program::<Validated>::new(
+            Either::Left(Annotated::unit(18u32)),
+            headers,
+            Vec::new(),
+            carrier_table,
+        );
 
         let carrier_c: Carrier<Validated> = program.carrier_table_mut().make_carrier("C", ());
         assert_eq!(program.carrier_table().carrier_name(&carrier_c), "C");
@@ -275,8 +280,12 @@ mod tests {
             ]),
             (),
         ))));
-        let mut program =
-            Program::<Validated>::new(Either::Left(Annotated::unit(18u32)), headers, carrier_table);
+        let mut program = Program::<Validated>::new(
+            Either::Left(Annotated::unit(18u32)),
+            headers,
+            Vec::new(),
+            carrier_table,
+        );
         program
             .headers_mut()
             .set_position(Annotated::unit(PositionHeaderValue::Left(())));

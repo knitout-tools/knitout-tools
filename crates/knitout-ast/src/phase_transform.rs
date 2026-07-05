@@ -54,8 +54,8 @@ pub trait PhaseTransform<A: Phase, B: Phase> {
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-fn t_carrier<A: Phase, B: Phase, T: PhaseTransform<A, B>>(c: &Carrier<A>) -> Carrier<B> {
-    c.map_annotation(T::transform_carrier(c.annotation().clone()))
+fn t_carrier<A: Phase, B: Phase, T: PhaseTransform<A, B>>(c: Carrier<A>) -> Carrier<B> {
+    Carrier::new(c.id, T::transform_carrier(c.annotation), c.table_id)
 }
 
 fn t_direction<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
@@ -88,41 +88,41 @@ fn t_my_big_decimal<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     v: MyBigDecimal<A>,
 ) -> Option<MyBigDecimal<B>> {
     Some(MyBigDecimal::new(
-        match v.value() {
-            Either::Left(bd) => Either::Left(bd.clone()),
+        match v.value {
+            Either::Left(bd) => Either::Left(bd),
             Either::Right(_) => return None,
         },
-        T::transform_my_big_decimal(v.annotation().clone()),
+        T::transform_my_big_decimal(v.annotation),
     ))
 }
 
 fn t_my_u32<A: Phase, B: Phase, T: PhaseTransform<A, B>>(v: MyU32<A>) -> Option<MyU32<B>> {
     Some(MyU32::new(
-        match v.value() {
-            Either::Left(n) => Either::Left(*n),
+        match v.value {
+            Either::Left(n) => Either::Left(n),
             Either::Right(_) => return None,
         },
-        T::transform_my_u32(v.annotation().clone()),
+        T::transform_my_u32(v.annotation),
     ))
 }
 
 fn t_my_i32<A: Phase, B: Phase, T: PhaseTransform<A, B>>(v: MyI32<A>) -> Option<MyI32<B>> {
     Some(MyI32::new(
-        match v.value() {
-            Either::Left(n) => Either::Left(*n),
+        match v.value {
+            Either::Left(n) => Either::Left(n),
             Either::Right(_) => return None,
         },
-        T::transform_my_i32(v.annotation().clone()),
+        T::transform_my_i32(v.annotation),
     ))
 }
 
 fn t_my_string<A: Phase, B: Phase, T: PhaseTransform<A, B>>(v: MyString<A>) -> Option<MyString<B>> {
     Some(MyString::new(
-        match v.value() {
-            Either::Left(s) => Either::Left(s.clone()),
+        match v.value {
+            Either::Left(s) => Either::Left(s),
             Either::Right(_) => return None,
         },
-        T::transform_my_string(v.annotation().clone()),
+        T::transform_my_string(v.annotation),
     ))
 }
 
@@ -187,8 +187,15 @@ fn t_position_header_value<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 fn t_rail_side<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     rs: RailSide<A>,
 ) -> Option<RailSide<B>> {
-    let carriers_b: Vec<_> = rs.carriers.iter().map(|c| t_carrier::<A, B, T>(c)).collect();
-    Some(RailSide::new(carriers_b, T::transform_rail_side(rs.annotation)))
+    let carriers_b: Vec<_> = rs
+        .carriers
+        .into_iter()
+        .map(|c| t_carrier::<A, B, T>(c))
+        .collect();
+    Some(RailSide::new(
+        carriers_b,
+        T::transform_rail_side(rs.annotation),
+    ))
 }
 
 fn t_rail<A: Phase, B: Phase, T: PhaseTransform<A, B>>(r: Rail<A>) -> Option<Rail<B>> {
@@ -207,7 +214,7 @@ fn t_carrier_or_rail<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     cor: CarrierOrRail<A>,
 ) -> Option<CarrierOrRail<B>> {
     Some(match cor {
-        CarrierOrRail::Carrier(c) => CarrierOrRail::Carrier(t_carrier::<A, B, T>(&c)),
+        CarrierOrRail::Carrier(c) => CarrierOrRail::Carrier(t_carrier::<A, B, T>(c)),
         CarrierOrRail::Rail(r) => CarrierOrRail::Rail(t_rail::<A, B, T>(r)?),
         CarrierOrRail::Other(_) => return None,
     })
@@ -235,7 +242,10 @@ fn t_carriers_header_value<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 fn t_carriers<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     carriers: Vec<Carrier<A>>,
 ) -> Vec<Carrier<B>> {
-    carriers.iter().map(|c| t_carrier::<A, B, T>(c)).collect()
+    carriers
+        .into_iter()
+        .map(|c| t_carrier::<A, B, T>(c))
+        .collect()
 }
 
 fn t_base_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
@@ -429,7 +439,7 @@ fn t_headers<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     let mut headers_b = Headers::new(carriers_b);
 
     for (carrier, color_ann) in headers.yarn {
-        let carrier_b = t_carrier::<A, B, T>(&carrier);
+        let carrier_b = t_carrier::<A, B, T>(carrier);
         let color_b = t_my_string::<A, B, T>(color_ann.value)?;
         headers_b.add_yarn(
             carrier_b,
@@ -496,7 +506,7 @@ where
 
     let headers_b = t_headers::<A, B, T>(prog.headers)?;
 
-    let mut prog_b = Program::new(version_b, headers_b, prog.carrier_table);
+    let mut prog_b = Program::new(version_b, headers_b, Vec::new(), prog.carrier_table);
 
     for op_ann in prog.operations {
         let op_b = t_operation::<A, B, T>(op_ann.value)?;

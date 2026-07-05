@@ -214,8 +214,17 @@ mod tests {
     }
 
     fn carriers_items(prog: &Program<Parsed>) -> Vec<CarrierOrRail<Parsed>> {
-        let ann = prog.headers().carriers().as_ref().left().expect("expected carriers");
-        ann.value.carriers_and_rails().left().expect("expected items list").to_vec()
+        let ann = prog
+            .headers()
+            .carriers()
+            .as_ref()
+            .left()
+            .expect("expected carriers");
+        ann.value
+            .carriers_and_rails()
+            .left()
+            .expect("expected items list")
+            .to_vec()
     }
 
     #[test]
@@ -286,7 +295,15 @@ mod tests {
     #[test]
     fn width_header_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Width: 250\n");
-        let val = prog.headers().width().as_ref().unwrap().value.value().left().expect("expected u32");
+        let val = prog
+            .headers()
+            .width()
+            .as_ref()
+            .unwrap()
+            .value
+            .value()
+            .left()
+            .expect("expected u32");
         assert_eq!(val, 250);
     }
 
@@ -341,7 +358,12 @@ mod tests {
     fn machine_header_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Machine: SWG091N2\n");
         let machine = prog.headers().machine().as_ref().unwrap();
-        let s = machine.value.value().as_ref().left().expect("expected string");
+        let s = machine
+            .value
+            .value()
+            .as_ref()
+            .left()
+            .expect("expected string");
         assert_eq!(s, "SWG091N2");
     }
 
@@ -1346,7 +1368,11 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A\n;;Gauge: 15\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let gauge_ann = prog.headers().gauge().as_ref().expect("expected gauge header");
+        let gauge_ann = prog
+            .headers()
+            .gauge()
+            .as_ref()
+            .expect("expected gauge header");
         let name_span = gauge_ann.annotation; // P::Header = Span
         assert_eq!(
             &src[name_span.start() as usize..name_span.end() as usize],
@@ -1376,7 +1402,11 @@ mod tests {
         // three spaces → trim_offset=3, trim_start=37
         // value_end = 28 + len("Gauge:   15") = 28 + 11 = 39
         let (prog, _, _) = parse(source);
-        let gauge_ann = prog.headers().gauge().as_ref().expect("expected gauge header");
+        let gauge_ann = prog
+            .headers()
+            .gauge()
+            .as_ref()
+            .expect("expected gauge header");
         let value_span = gauge_ann.value.annotation();
         assert_eq!(
             &src[value_span.start() as usize..value_span.end() as usize],

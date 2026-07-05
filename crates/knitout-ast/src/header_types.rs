@@ -188,6 +188,13 @@ impl<P: Phase> Headers<P> {
         &self.position
     }
 
+    pub fn set_carriers(
+        &mut self,
+        carriers: Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>,
+    ) {
+        self.carriers = carriers;
+    }
+
     pub fn add_yarn(
         &mut self,
         carrier: Carrier<P>,

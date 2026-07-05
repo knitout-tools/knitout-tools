@@ -14,9 +14,9 @@ use crate::{
 /// so. One table, one program, many carriers.
 #[derive(Copy, Clone, Debug)]
 pub struct Carrier<P: Phase> {
-    id: u32,
-    annotation: P::Carrier,
-    table_id: u32,
+    pub(crate) id: u32,
+    pub(crate) annotation: P::Carrier,
+    pub(crate) table_id: u32,
 }
 
 impl<P: Phase> Carrier<P> {
@@ -178,8 +178,8 @@ impl Display for Needle<Validated> {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyBigDecimal<P: Phase> {
-    value: Either<BigDecimal, P::Other>,
-    annotation: P::MyBigDecimal,
+    pub(crate) value: Either<BigDecimal, P::Other>,
+    pub(crate) annotation: P::MyBigDecimal,
 }
 
 impl<P: Phase> MyBigDecimal<P> {
@@ -205,8 +205,8 @@ impl Display for MyBigDecimal<Validated> {
 }
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyU32<P: Phase> {
-    value: Either<u32, P::Other>,
-    annotation: P::MyU32,
+    pub(crate) value: Either<u32, P::Other>,
+    pub(crate) annotation: P::MyU32,
 }
 impl<P: Phase> MyU32<P> {
     pub fn new(value: Either<u32, P::Other>, annotation: P::MyU32) -> Self {
@@ -232,8 +232,8 @@ impl Display for MyU32<Validated> {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyI32<P: Phase> {
-    value: Either<i32, P::Other>,
-    annotation: P::MyI32,
+    pub(crate) value: Either<i32, P::Other>,
+    pub(crate) annotation: P::MyI32,
 }
 impl<P: Phase> MyI32<P> {
     pub fn new(value: Either<i32, P::Other>, annotation: P::MyI32) -> Self {
@@ -259,8 +259,8 @@ impl Display for MyI32<Validated> {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyString<P: Phase> {
-    value: Either<String, P::Other>,
-    annotation: P::MyString,
+    pub(crate) value: Either<String, P::Other>,
+    pub(crate) annotation: P::MyString,
 }
 impl<P: Phase> MyString<P> {
     pub fn new(value: Either<String, P::Other>, annotation: P::MyString) -> Self {
@@ -288,7 +288,7 @@ impl Display for MyString<Validated> {
 mod tests {
     use super::*;
 
-    use crate::phase::{Annotated, Validated};
+    use crate::phase::Validated;
 
     #[test]
     fn test_needle_getters() {
