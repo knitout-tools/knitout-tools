@@ -1,12 +1,16 @@
 //! Golden tests over the `examples/` corpus.
 //!
-//! For *every* example file this test asserts that the tree-sitter → `Program<Parsed>` →
-//! `Program<Validated>` pipeline runs with no parse warnings or errors and yields `Some`.
+//! For every example file this test:
+//!   1. runs the tree-sitter → `Program<Parsed>` → `Program<Validated>` pipeline, asserting no
+//!      parse warnings or errors and that validation yields `Some`;
+//!   2. serializes the `Program<Validated>` to JSON and compares it to a committed golden;
+//!   3. deserializes the golden back into a `Program<Validated>` and re-serializes it, confirming
+//!      `Program` is fully (de)serializable and stable.
 //!
-//! For a curated subset of small examples (see `GOLDEN_SET`) it additionally checks the serialized
-//! `Program<Validated>` against a committed golden JSON file, and round-trips that golden back
-//! through `serde` to confirm `Program` is fully (de)serializable. Golden files for the whole
-//! corpus would be gigabytes, so only the small ones are committed; regenerate them with
+//! Goldens are stored as zstd-compressed JSON (`<name>.json.zst`) — the uncompressed corpus would
+//! be gigabytes. Decompression is cheap, so it happens on every test run; compression only happens
+//! during regeneration, and `REGEN_GOLDEN` first decompresses the existing golden and skips the
+//! (slow) re-compression when the JSON is unchanged. Regenerate with
 //! `REGEN_GOLDEN=1 cargo test -p knitout-weak-ast --test examples_golden`.
 
 use std::path::{Path, PathBuf};
@@ -14,25 +18,15 @@ use std::path::{Path, PathBuf};
 use knitout_ast::{Program, Validated};
 use knitout_weak_ast::{cst_to_program, parsed_to_valid};
 
-/// Example files (by file name) for which a golden JSON is committed and compared.
-const GOLDEN_SET: &[&str] = &[
-    "used-to-crash.k",
-    "xfer-kick.k",
-    "twist1x1.k",
-    "small_square_jersey.k",
-    "small_square_rib.k",
-    "k.k",
-    "small_square_jersey_bindoff.k",
-    "small_square_stockinette.k",
-    "rib2x2.k",
-];
+/// zstd level used when (re-)writing goldens. Only affects committed file size and regeneration
+/// time, never the comparison (which decompresses first). Kept low so regeneration stays fast; the
+/// corpus is repetitive enough that even a low level compresses it dramatically.
+const ZSTD_LEVEL: i32 = 3;
 
 fn golden_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden")
 }
 
-/// Runs the full pipeline for one example and, if it is in `GOLDEN_SET`, compares against / round
-/// trips its committed golden.
 fn golden_test(path: &Path) -> datatest_stable::Result<()> {
     let source = std::fs::read(path)?;
 
@@ -51,27 +45,32 @@ fn golden_test(path: &Path) -> datatest_stable::Result<()> {
     }
 
     let validated = parsed_to_valid(program).ok_or("program did not validate to Some")?;
+    let json = serde_json::to_vec(&validated)?;
 
     let file_name = path
         .file_name()
         .and_then(|n| n.to_str())
         .ok_or("example path has no file name")?;
-    if !GOLDEN_SET.contains(&file_name) {
-        // Pipeline-only coverage for the (many, large) non-curated examples.
-        return Ok(());
-    }
+    let golden_path = golden_dir().join(format!("{file_name}.json.zst"));
 
-    let json = format!("{}\n", serde_json::to_string_pretty(&validated)?);
-    let golden_path = golden_dir().join(format!("{file_name}.json"));
+    // The current golden's decompressed JSON, if the golden exists.
+    let existing = match std::fs::read(&golden_path) {
+        Ok(compressed) => Some(zstd::decode_all(&compressed[..])?),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => return Err(e.into()),
+    };
 
     if std::env::var_os("REGEN_GOLDEN").is_some() {
-        std::fs::create_dir_all(golden_dir())?;
-        std::fs::write(&golden_path, &json)?;
+        // Only pay for (slow) compression when the JSON actually changed.
+        if existing.as_deref() != Some(json.as_slice()) {
+            std::fs::create_dir_all(golden_dir())?;
+            std::fs::write(&golden_path, zstd::encode_all(&json[..], ZSTD_LEVEL)?)?;
+        }
         return Ok(());
     }
 
-    let golden = std::fs::read_to_string(&golden_path).map_err(|e| {
-        format!("could not read golden {golden_path:?} ({e}); run with REGEN_GOLDEN=1 to create it")
+    let golden = existing.ok_or_else(|| {
+        format!("missing golden {golden_path:?}; run with REGEN_GOLDEN=1 to create it")
     })?;
 
     if json != golden {
@@ -82,8 +81,8 @@ fn golden_test(path: &Path) -> datatest_stable::Result<()> {
     }
 
     // Confirm the golden deserializes back into a `Program<Validated>` and re-serializes identically.
-    let restored: Program<Validated> = serde_json::from_str(&golden)?;
-    if format!("{}\n", serde_json::to_string_pretty(&restored)?) != golden {
+    let restored: Program<Validated> = serde_json::from_slice(&golden)?;
+    if serde_json::to_vec(&restored)? != golden {
         return Err(format!(
             "golden for {file_name} is not stable under a (de)serialize round-trip"
         )

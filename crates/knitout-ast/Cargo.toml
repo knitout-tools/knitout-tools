@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bigdecimal = { version = "0.4.10", features = ["serde"] }
+bigdecimal = "0.4.10"
 either = { version = "1.16.0", features = ["serde"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }

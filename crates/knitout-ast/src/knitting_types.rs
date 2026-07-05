@@ -189,6 +189,7 @@ impl Display for Needle<Validated> {
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
 pub struct MyBigDecimal<P: Phase> {
+    #[serde(with = "crate::serde_helpers::bigdec_either")]
     pub(crate) value: Either<BigDecimal, P::Other>,
     pub(crate) annotation: P::MyBigDecimal,
 }

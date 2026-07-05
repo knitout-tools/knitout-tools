@@ -28,3 +28,38 @@ pub(crate) mod indexmap_seq {
         Ok(pairs.into_iter().collect())
     }
 }
+
+/// Serialize/deserialize an `Either<BigDecimal, R>` with the `BigDecimal` rendered as a string.
+/// `bigdecimal`'s own serde impl relies on `deserialize_any`, which non-self-describing formats
+/// like postcard cannot support; going through a `String` keeps the value format-agnostic.
+pub(crate) mod bigdec_either {
+    use std::str::FromStr;
+
+    use bigdecimal::BigDecimal;
+    use either::Either;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<R, S>(value: &Either<BigDecimal, R>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        R: Serialize,
+        S: Serializer,
+    {
+        match value {
+            Either::Left(bd) => Either::<String, &R>::Left(bd.to_string()).serialize(serializer),
+            Either::Right(r) => Either::<String, &R>::Right(r).serialize(serializer),
+        }
+    }
+
+    pub fn deserialize<'de, R, D>(deserializer: D) -> Result<Either<BigDecimal, R>, D::Error>
+    where
+        R: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        Ok(match Either::<String, R>::deserialize(deserializer)? {
+            Either::Left(s) => {
+                Either::Left(BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?)
+            }
+            Either::Right(r) => Either::Right(r),
+        })
+    }
+}
