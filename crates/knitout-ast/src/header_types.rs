@@ -310,10 +310,22 @@ mod tests {
 
     #[test]
     fn test_position_header_value_display() {
-        assert_eq!(PositionHeaderValue::<Validated>::Left(()).to_string(), "Left");
-        assert_eq!(PositionHeaderValue::<Validated>::Center(()).to_string(), "Center");
-        assert_eq!(PositionHeaderValue::<Validated>::Right(()).to_string(), "Right");
-        assert_eq!(PositionHeaderValue::<Validated>::Keep(()).to_string(), "Keep");
+        assert_eq!(
+            PositionHeaderValue::<Validated>::Left(()).to_string(),
+            "Left"
+        );
+        assert_eq!(
+            PositionHeaderValue::<Validated>::Center(()).to_string(),
+            "Center"
+        );
+        assert_eq!(
+            PositionHeaderValue::<Validated>::Right(()).to_string(),
+            "Right"
+        );
+        assert_eq!(
+            PositionHeaderValue::<Validated>::Keep(()).to_string(),
+            "Keep"
+        );
     }
 
     #[test]

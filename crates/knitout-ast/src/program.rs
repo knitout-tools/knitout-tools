@@ -185,7 +185,7 @@ mod tests {
     use either::Either;
 
     use crate::{
-        Bed, BaseOperation, CarrierOrRail, Direction, ExtensionOperation, IsSlider, Needle,
+        BaseOperation, Bed, CarrierOrRail, Direction, ExtensionOperation, IsSlider, Needle,
         PositionHeaderValue, Provenance, Span, Validated,
         header_types::CarriersHeaderValue,
         knitting_types::{MyString, MyU32},
@@ -227,11 +227,8 @@ mod tests {
             ]),
             (),
         )));
-        let mut program = Program::<Validated>::new(
-            Either::Left(Annotated::unit(18u32)),
-            headers,
-            carrier_table,
-        );
+        let mut program =
+            Program::<Validated>::new(Either::Left(Annotated::unit(18u32)), headers, carrier_table);
 
         let carrier_c: Carrier<Validated> = program.carrier_table_mut().make_carrier("C", ());
         assert_eq!(program.carrier_table().carrier_name(&carrier_c), "C");
@@ -239,7 +236,12 @@ mod tests {
         assert_eq!(valid(program.version()).value, 18u32);
         let carriers_val = valid(program.headers().carriers());
         assert_eq!(
-            carriers_val.value.carriers_and_rails().left().unwrap().len(),
+            carriers_val
+                .value
+                .carriers_and_rails()
+                .left()
+                .unwrap()
+                .len(),
             2
         );
         assert_eq!(program.operations().len(), 0);
@@ -274,11 +276,8 @@ mod tests {
             ]),
             (),
         )));
-        let mut program = Program::<Validated>::new(
-            Either::Left(Annotated::unit(18u32)),
-            headers,
-            carrier_table,
-        );
+        let mut program =
+            Program::<Validated>::new(Either::Left(Annotated::unit(18u32)), headers, carrier_table);
         program
             .headers_mut()
             .set_position(Annotated::unit(PositionHeaderValue::Left(())));
