@@ -1374,10 +1374,7 @@ mod tests {
             .expect("expected gauge header");
         // P::Header annotation is now the whole header span (starting at ";;")
         let header_span = gauge_ann.annotation;
-        assert_eq!(
-            &src[header_span.start()..header_span.end()],
-            b";;Gauge: 15"
-        );
+        assert_eq!(&src[header_span.start()..header_span.end()], b";;Gauge: 15");
         assert_eq!(header_span.start(), 26);
         assert_eq!(header_span.end(), 37);
         // value span still covers exactly "15"

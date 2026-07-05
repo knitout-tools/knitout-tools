@@ -149,7 +149,9 @@ impl<'src> LowerCtx<'src> {
         };
 
         match inner.kind() {
-            "tag_comment" => { self.lower_top_tag_comment(inner, *line_index); }
+            "tag_comment" => {
+                self.lower_top_tag_comment(inner, *line_index);
+            }
             "header" => self.lower_header(inner),
             "comment" => {} // plain unassociated comment, nothing to do
             "op_line" => {
@@ -254,7 +256,9 @@ impl<'src> LowerCtx<'src> {
             "Carriers" => {
                 self.lower_carriers_header(header_span, value_trimmed.as_bytes(), value_span)
             }
-            "Machine" => self.lower_string_header("Machine", header_span, value_trimmed, value_span),
+            "Machine" => {
+                self.lower_string_header("Machine", header_span, value_trimmed, value_span)
+            }
             "Gauge" => self.lower_u32_header("Gauge", header_span, value_trimmed, value_span),
             "Width" => self.lower_u32_header("Width", header_span, value_trimmed, value_span),
             "Position" => self.lower_position_header(header_span, value_trimmed, value_span),
@@ -264,8 +268,11 @@ impl<'src> LowerCtx<'src> {
             s if s.len() >= 2 && s[..2].eq_ignore_ascii_case("X-") => {
                 self.warnings
                     .push(ParseWarning::UnrecognizedExtensionHeader(header_span));
-                self.headers_partial
-                    .add_unknown(s.to_owned(), value_trimmed.trim().to_owned(), header_span);
+                self.headers_partial.add_unknown(
+                    s.to_owned(),
+                    value_trimmed.trim().to_owned(),
+                    header_span,
+                );
             }
             _ => {
                 self.headers_partial.add_unknown(
@@ -286,13 +293,7 @@ impl<'src> LowerCtx<'src> {
             .set_carriers(Either::Left(Annotated::new(chv, header_span)));
     }
 
-    fn lower_string_header(
-        &mut self,
-        key: &str,
-        header_span: Span,
-        value: &str,
-        value_span: Span,
-    ) {
+    fn lower_string_header(&mut self, key: &str, header_span: Span, value: &str, value_span: Span) {
         if self.header_already_defined(key, header_span) {
             return;
         }
@@ -352,7 +353,8 @@ impl<'src> LowerCtx<'src> {
         let carrier_name = &name_str["Yarn-".len()..];
         let carrier = self.carrier_table.make_carrier(carrier_name, header_span);
         let my_string = MyString::new(Either::Left(value.trim().to_owned()), value_span);
-        self.headers_partial.add_yarn(carrier, my_string, header_span);
+        self.headers_partial
+            .add_yarn(carrier, my_string, header_span);
     }
 
     // ── carriers header value parsing ─────────────────────────────────────────
@@ -386,10 +388,8 @@ impl<'src> LowerCtx<'src> {
                 // Rail: "left;right"
                 let left_bytes = &token[..semi_pos];
                 let right_bytes = &token[semi_pos + 1..];
-                let left_span =
-                    Span::new(token_span.start(), token_span.start() + semi_pos);
-                let right_span =
-                    Span::new(token_span.start() + semi_pos + 1, token_span.end());
+                let left_span = Span::new(token_span.start(), token_span.start() + semi_pos);
+                let right_span = Span::new(token_span.start() + semi_pos + 1, token_span.end());
 
                 let left_side = self.parse_rail_side(left_bytes, left_span);
                 let right_side = self.parse_rail_side(right_bytes, right_span);
@@ -470,7 +470,10 @@ impl<'src> LowerCtx<'src> {
         let mut args: Vec<(Span, &[u8])> = Vec::new();
         let mut cursor = op_node.walk();
         for arg in op_node.children_by_field_name("argument", &mut cursor) {
-            args.push((node_span(arg), &self.source[arg.start_byte()..arg.end_byte()]));
+            args.push((
+                node_span(arg),
+                &self.source[arg.start_byte()..arg.end_byte()],
+            ));
         }
 
         let op = self.parse_operation(opcode_text, opcode_span, &args);
