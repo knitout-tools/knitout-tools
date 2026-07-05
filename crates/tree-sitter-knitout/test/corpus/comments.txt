@@ -7,14 +7,15 @@ plain-comment
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    comment: (comment
-      text: (comment_text)))
+    (tag_comment
+      value: (line_content)))
   (line
-    comment: (comment
-      text: (comment_text))))
+    (comment
+      text: (line_content)))
+  (line
+    (comment
+      text: (line_content))))
 
 ================================================================================
 empty-comment
@@ -25,18 +26,18 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    comment: (comment))
+    (tag_comment
+      value: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))))
+    (comment))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 comment-with-special-characters
@@ -47,21 +48,21 @@ knit + f3 1;trailing: comment; text
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    comment: (comment
-      text: (comment_text)))
+    (tag_comment
+      value: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
-    comment: (comment
-      text: (comment_text))))
+    (comment
+      text: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))
+      comment: (comment
+        text: (line_content)))))
 
 ================================================================================
 source-comment-requires-exact-prefix
@@ -69,42 +70,40 @@ source-comment-requires-exact-prefix
 ;!knitout-2
 knit + f3 1;!source: test.js:1
 knit + f3 1;!sourceXYZ not a source comment
-knit + f3 1;!source:missing space
+knit + f3 1;!source:missing space, but we accept this
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
-    source_comment: (source_comment
-      source: (comment_text)))
+    (tag_comment
+      value: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
-    comment: (comment
-      text: (comment_text)))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))
+      tag_comment: (tag_comment
+        value: (line_content))))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
-    comment: (comment
-      text: (comment_text))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))
+      tag_comment: (tag_comment
+        value: (line_content))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))
+      tag_comment: (tag_comment
+        value: (line_content)))))
 
 ================================================================================
 standalone-source-comment-like-line-without-operation
@@ -115,19 +114,19 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    comment: (comment
-      text: (comment_text)))
+    (tag_comment
+      value: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))))
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 comments-interspersed-with-headers-and-operations
@@ -142,38 +141,34 @@ tuck - b3 2;!source: main.js:20
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier)
-        (carrier)
-        (carrier))))
   (line
-    comment: (comment
-      text: (comment_text)))
+    (tag_comment
+      value: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (header
+      content: (line_content)))
   (line
-    comment: (comment
-      text: (comment_text)))
+    (comment
+      text: (line_content)))
   (line
-    operation: (tuck
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
-    source_comment: (source_comment
-      source: (comment_text)))
-  (header
-    (machine_header
-      value: (header_value))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (comment
+      text: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))
+      tag_comment: (tag_comment
+        value: (line_content))))
+  (line
+    (header
+      content: (line_content))))

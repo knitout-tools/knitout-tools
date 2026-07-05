@@ -1,180 +1,164 @@
 ; highlights.scm — knitout (.k)
 ;
-; Node-shape reminder for this grammar:
-;   - Rules whose ENTIRE body is a bare terminal (e.g., pause) become
-;     leaf NAMED nodes — match them with (rule_name), not a string literal.
-;   - Rules that wrap a keyword in seq(...) alongside fields (e.g., in)
-;     keep the keyword as an ANONYMOUS child
-;     token — match those with a quoted string literal.
-
-; types:
-; @attribute
+; The grammar is structural (every operation is opcode + argument*).
+; Semantic colours are recovered with positional anchors (.) and string
+; predicates (#eq? / #any-of? / #match?) on the flat node tree.
 ;
-; @comment
+; Priority rule: among patterns whose first capture falls at the same byte
+; offset, the pattern with the HIGHER index (later in this file) wins.
+; A pattern whose first capture starts at a LATER byte beats all patterns
+; whose first capture starts earlier, regardless of pattern index.
 ;
-; @constant
-; @constant.builtin
-;
-; @constructor
-;
-; @embedded
-;
-; @function
-; @function.builtin
-;
-; @keyword
-;
-; @module
-;
-; @number
-;
-; @operator
-;
-; @property
-;
-; @punctuation.bracket
-; @punctuation.delimiter
-;
-; @string
-; @string.special
-;
-; @tag
-;
-; @type
-; @type.builtin
-;
-; @variable.builtin
-; @variable.parameter
+; Consequence: "(operation (argument) @variable)" has its first capture at
+; the argument's byte offset (later than the operation start), so it beats
+; operation-context Gumber/type patterns whose first capture is the opcode
+; at byte 0.  The fix is to avoid catch-all argument patterns entirely and
+; enumerate carrier positions explicitly per opcode, always including the
+; opcode capture (". (opcode) @_name") so the match's first capture is
+; anchored at byte 0 of the operation.
 
 ; ---------------------------------------------------------------------------
-; Magic line: ;!knitout-N
-; ---------------------------------------------------------------------------
-(magic ";" @comment)
-(magic "!knitout-" @keyword)
-(version) @number
-
-
-; ---------------------------------------------------------------------------
-; Header lines: ;;Name: value
+; Opcode — fallback (overridden by later patterns)
 ; ---------------------------------------------------------------------------
 
-";;" @comment
-(extension_header
-  name: (extension_header_name) @property
-  ": " @punctuation.delimiter
-  value: (header_value) @string)
+; headers
 
-; ---------------------------------------------------------------------------
-; Specific headers
-; ---------------------------------------------------------------------------
-(yarn_header
-  "Yarn-" @property
-  ":" @punctuation.delimiter
-  value: (header_value) @constant)
+(header
+  ";;" @comment)
+(header
+  (line_content) @attribute)
 
-(machine_header
-  "Machine" @property
-  ":" @punctuation.delimiter
-  value: (header_value) @constant)
 
-(gauge_header
-  "Gauge" @property
-  ":" @punctuation.delimiter)
-
-(width_header
-  "Width" @property
-  ":" @punctuation.delimiter)
-
-(position_header
-  "Position" @property
-  ":" @punctuation.delimiter)
-(position_value) @constant.builtin
-
-(carriers_header
-  "Carriers" @property
-  ":" @punctuation.delimiter)
-
-(rail_definition
-  left: (rail_side)
-  ";" @punctuation.delimiter
-  right: (rail_side))
-
-(rail_side
-  "," @punctuation.delimiter)
-
-(carrier) @variable
-
-; ---------------------------------------------------------------------------
-; Comments
-; ---------------------------------------------------------------------------
 (comment) @comment
-(source_comment ";" @comment)
-(source_comment "!source: " @keyword)
-(comment_text) @comment
 
-; ---------------------------------------------------------------------------
-; Operation keywords (anonymous tokens inside their operation node)
-; ---------------------------------------------------------------------------
-[
-  "in"
-  "inhook"
-  "releasehook"
-  "out"
-  "outhook"
-  "stitch"
-  "rack"
-  "knit"
-  "tuck"
-  "split"
-  "drop"
-  "amiss"
-  "xfer"
-  "miss"
-] @function.builtin
+(tag_comment
+  ";!" @comment)
+(tag_comment
+  (line_content) @tag)
 
-; pause / direction / bed / slider are bare-terminal leaf nodes, not
-; anonymous children — match them directly.
-(pause) @function.builtin
-(direction) @operator
-(bed) @type
-(slider) @type
+(opcode) @function
 
-; ---------------------------------------------------------------------------
-; Needles, indices, carriers, numbers
-; ---------------------------------------------------------------------------
-(needle_index) @number
-(rational) @number
-(carrier) @variable
+; IN/OUT/INHOOK/OUTHOOK/RELEASEHOOK
 
-; ---------------------------------------------------------------------------
-; Extensions (x-whatever ...)
-; ---------------------------------------------------------------------------
-[
- "x-stitch-number"
- "x-speed-number"
- "x-sub-roller-number"
- "x-presser-mode"
- "x-xfer-stitch-number"
- "x-vis-color"
- "x-loop-in"
- "x-yarn-in"
- "x-yarn-out"
- "x-roller-advance"
- "x-add-roller-advance"
- "x-carrier-spacing"
- "x-carrier-stopping-distance"
- "x-xfer-style"
-] @function.macro
-(nonneg_integer) @number
-(nonneg_half_integer) @number
+((operation
+   opcode: (opcode) @function
+   (argument)* @variable)
+  (#any-of? @function "in" "out" "inhook" "outhook" "releasehook"))
 
-(x_end_pass) @function.macro
-(x_end) @function.macro
+; STITCH
 
-(color) @constant
-(presser_mode) @constant.builtin
-(xfer_style) @constant.builtin
+((operation
+   opcode: (opcode) @function
+   (argument) @number)
+  (#any-of? @function "stitch"))
 
-(extension_name) @function.macro
-(extension_argument) @string
+((operation
+   opcode: (opcode) @function
+   (argument) @number
+   (argument) @number)
+  (#any-of? @function "stitch"))
+
+; 1 NUMBER
+
+((operation
+   opcode: (opcode) @function
+   (argument) @number)
+  (#any-of? @function "rack" "x-stitch-number" "x-speed-number" "x-sub-roller-number" "x-xfer-stitch-number" "x-roller-advance" "x-add-roller-advance" "x-carrier-spacing" "x-carrier-stopping-distance" "x-loop-start" "x-loop-end"))
+
+; DIR, NEEDLE, CARRIERS
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator)
+  (#any-of? @function "knit" "tuck" "miss" "x-loop-in" "x-yarn-in" "x-yarn-out"))
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator
+   .
+   (argument) @type
+   .
+   (argument)* @variable)
+  (#any-of? @function "knit" "tuck" "miss" "x-loop-in" "x-yarn-in" "x-yarn-out"))
+
+; SPLIT
+
+((operation opcode: (opcode) @function)
+  (#any-of? @function "split"))
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator)
+  (#any-of? @function "split"))
+
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator
+   .
+   (argument) @type
+   .
+   (argument) @type)
+  (#any-of? @function "split"))
+
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @operator
+   .
+   (argument) @type
+   .
+   (argument) @type
+   .
+   (argument)* @variable)
+  (#any-of? @function "split"))
+
+; DROP/AMISS
+
+((operation
+   opcode: (opcode) @function
+   (argument) @type)
+  (#any-of? @function "drop" "amiss"))
+
+; XFER
+
+((operation
+   opcode: (opcode) @function
+   (argument) @type)
+  (#any-of? @function "xfer"))
+
+((operation
+   opcode: (opcode) @function
+   (argument) @type
+   (argument) @type)
+  (#any-of? @function "xfer"))
+
+; KEYWORD
+
+((operation
+   opcode: (opcode) @function
+   (argument) @constant.builtin)
+  (#any-of? @function "x-presser-mode" "x-xfer-style"))
+
+; STRING, CARRIERS*
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @string)
+  (#any-of? @function "x-vis-color"))
+
+((operation
+   opcode: (opcode) @function
+   .
+   (argument) @string
+   .
+   (argument)* @variable)
+  (#any-of? @function "x-vis-color"))
+
 
