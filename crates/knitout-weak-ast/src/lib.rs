@@ -1363,6 +1363,69 @@ mod tests {
         );
     }
 
+    #[test]
+    fn non_x_unknown_header_does_not_emit_extension_warning() {
+        // ";;FooBar: baz" is not an X- header. The extension-header arm guard
+        // (s.len() >= 2 && s[..2].eq_ignore_ascii_case("X-")) must NOT match it.
+        let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\n;;FooBar: baz\n");
+        assert!(
+            !warnings.iter().any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
+            "non-X- header should not emit UnrecognizedExtensionHeader: {warnings:?}"
+        );
+    }
+
+    // ─── carriers trailing-space loop-bound test ──────────────────────────────
+
+    #[test]
+    fn carriers_with_trailing_space_parses_correctly() {
+        // ";;Carriers: A B \n" — trailing space in value.
+        // Only leading whitespace is trimmed, so parse_carriers_header_value
+        // receives b"A B " (trailing space). The loop must correctly handle
+        // ending on a space without accessing text[text.len()].
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A B \n");
+        let (_, headers, _, _) = prog.into_components();
+        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
+        let ann = carriers_field.left().unwrap();
+        let (items_either, _) = ann.value.into_inner();
+        let items = items_either.left().unwrap();
+        assert_eq!(items.len(), 2, "expected 2 carriers, got {}", items.len());
+    }
+
+    #[test]
+    fn carriers_with_multiple_trailing_spaces() {
+        // Extra trailing whitespace must not cause any panic or extra carriers.
+        let prog = parse_ok(";!knitout-2\n;;Carriers: 1 2 3   \n");
+        let (_, headers, _, _) = prog.into_components();
+        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
+        let ann = carriers_field.left().unwrap();
+        let (items_either, _) = ann.value.into_inner();
+        let items = items_either.left().unwrap();
+        assert_eq!(items.len(), 3, "expected 3 carriers, got {}", items.len());
+    }
+
+    // ─── bare bed-letter needle ───────────────────────────────────────────────
+
+    #[test]
+    fn bare_bed_letter_needle_emits_error() {
+        // "drop f" — needle text is b"f", len=1. After consuming the bed byte,
+        // pos=1 == text.len(). The is_slider check must NOT access text[1].
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\ndrop f\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadNeedleIndex(_) | ParseError::BadNeedle(_))),
+            "expected error for bare bed-letter needle, got {errors:?}"
+        );
+    }
+
+    #[test]
+    fn bare_back_bed_letter_needle_emits_error() {
+        // Same as above but for 'b' to ensure both bed chars are covered.
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\ndrop b\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadNeedleIndex(_) | ParseError::BadNeedle(_))),
+            "expected error for bare back-bed-letter needle, got {errors:?}"
+        );
+    }
+
     // ─── missing x-op tests ───────────────────────────────────────────────────
 
     #[test]
