@@ -17,9 +17,13 @@ pub struct ParsedToValidated;
 
 impl PhaseTransform<Parsed, Validated> for ParsedToValidated {
     fn transform_magic_version(_: (Span, Span)) {}
-    fn transform_operation(_: (Span, CommentInfo)) -> Provenance {
-        // TODO this is wrong! Should use both the span AND the ;!source comment
-        Provenance::default()
+    fn transform_operation((span, comment): (Span, CommentInfo)) -> Provenance {
+        // The operation's provenance is its source span plus, if present, the `;!source:` tag text.
+        let source = match comment {
+            CommentInfo::SourceTag { source, .. } => Some(source),
+            CommentInfo::NoComment | CommentInfo::Comment(_) | CommentInfo::UnknownTag(_) => None,
+        };
+        Provenance::new(Some(span), source)
     }
     fn transform_header(_: Span) {}
     fn transform_unknown_header(_: Span) {}

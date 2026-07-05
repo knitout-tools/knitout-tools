@@ -12,14 +12,15 @@ pub use knitout_ast::{Phase, Provenance, Span};
 // ─── CommentInfo ─────────────────────────────────────────────────────────────
 
 /// Information about a trailing comment on an operation line.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum CommentInfo {
     /// No trailing comment.
     NoComment,
     /// An ordinary `; text` comment. The span covers the full comment including `;`.
     Comment(Span),
-    /// A `;!source: …` tag. The span covers the whole tag.
-    SourceTag(Span),
+    /// A `;!source: …` tag. `span` covers the whole tag; `source` is the text after `source: `,
+    /// which becomes the operation's provenance when the program is validated.
+    SourceTag { span: Span, source: String },
     /// A `;!foo` tag that is not a recognised knitout tag. The span covers the whole tag.
     UnknownTag(Span),
 }
@@ -1003,15 +1004,15 @@ mod tests {
     fn no_comment_info() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause\n");
         let ops = prog.operations();
-        let (_, comment) = ops[0].annotation;
-        assert_eq!(comment, CommentInfo::NoComment);
+        let (_, comment) = &ops[0].annotation;
+        assert_eq!(*comment, CommentInfo::NoComment);
     }
 
     #[test]
     fn plain_comment_info() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ; hello\n");
         let ops = prog.operations();
-        let (_, comment) = ops[0].annotation;
+        let (_, comment) = &ops[0].annotation;
         assert!(matches!(comment, CommentInfo::Comment(_)));
     }
 
@@ -1019,15 +1020,18 @@ mod tests {
     fn source_tag_info() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ;!source: myfile.js:5\n");
         let ops = prog.operations();
-        let (_, comment) = ops[0].annotation;
-        assert!(matches!(comment, CommentInfo::SourceTag(_)));
+        let (_, comment) = &ops[0].annotation;
+        assert!(
+            matches!(comment, CommentInfo::SourceTag { source, .. } if source == "myfile.js:5"),
+            "expected SourceTag carrying the source text, got {comment:?}"
+        );
     }
 
     #[test]
     fn unknown_tag_info() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ;!foo\n");
         let ops = prog.operations();
-        let (_, comment) = ops[0].annotation;
+        let (_, comment) = &ops[0].annotation;
         assert!(matches!(comment, CommentInfo::UnknownTag(_)));
     }
 
@@ -1904,17 +1908,33 @@ mod tests {
     // ─── validated operation provenance ──────────────────────────────────────
 
     #[test]
-    fn validated_operation_provenance_is_default() {
-        // transform_operation maps (Span, CommentInfo) → Provenance::default().
-        // Verified: the annotation has no span and no source.
+    fn validated_operation_provenance_carries_span() {
+        // transform_operation carries the operation's source span into its Provenance.
         let source = ";!knitout-2\n;;Carriers: A\npause\n";
         let (prog, _, errors) = parse(source);
         assert!(errors.is_empty(), "{errors:?}");
         let v = parsed_to_valid(prog).unwrap();
         let ops = v.operations();
         assert_eq!(ops.len(), 1);
-        assert_eq!(ops[0].annotation.span(), None);
+        // "pause" starts at byte 26 in the source above.
+        let span = ops[0]
+            .annotation
+            .span()
+            .expect("expected a provenance span");
+        assert_eq!(&source[span.start()..span.end()], "pause");
         assert_eq!(ops[0].annotation.source(), None);
+    }
+
+    #[test]
+    fn validated_operation_provenance_carries_source_tag() {
+        // A `;!source:` tag becomes the operation's provenance source string.
+        let source = ";!knitout-2\n;;Carriers: A\npause ;!source: myfile.js:5\n";
+        let (prog, _, errors) = parse(source);
+        assert!(errors.is_empty(), "{errors:?}");
+        let v = parsed_to_valid(prog).unwrap();
+        let ops = v.operations();
+        assert_eq!(ops[0].annotation.source(), Some("myfile.js:5"));
+        assert!(ops[0].annotation.span().is_some());
     }
 
     #[test]
@@ -1924,7 +1944,7 @@ mod tests {
         assert!(errors.is_empty(), "{errors:?}");
         let v = parsed_to_valid(prog).unwrap();
         for op in v.operations() {
-            assert_eq!(op.annotation.span(), None);
+            assert!(op.annotation.span().is_some());
             assert_eq!(op.annotation.source(), None);
         }
     }

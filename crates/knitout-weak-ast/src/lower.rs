@@ -501,16 +501,18 @@ impl<'src> LowerCtx<'src> {
         // Trailing comment
         let comment_info = if let Some(tag) = node.child_by_field_name("tag_comment") {
             let tag_span = node_span(tag);
-            let is_source_tag = if let Some(v) = tag.child_by_field_name("value") {
-                self.text_of(node_span(v))
-                    .is_some_and(|t| t.starts_with("source: "))
-            } else {
-                false
-            };
-            if is_source_tag {
-                CommentInfo::SourceTag(tag_span)
-            } else {
-                CommentInfo::UnknownTag(tag_span)
+            const SOURCE_PREFIX: &str = "source: ";
+            let source = tag
+                .child_by_field_name("value")
+                .and_then(|v| self.text_of(node_span(v)))
+                .and_then(|t| t.strip_prefix(SOURCE_PREFIX))
+                .map(str::to_owned);
+            match source {
+                Some(source) => CommentInfo::SourceTag {
+                    span: tag_span,
+                    source,
+                },
+                None => CommentInfo::UnknownTag(tag_span),
             }
         } else if let Some(comment) = node.child_by_field_name("comment") {
             CommentInfo::Comment(node_span(comment))
