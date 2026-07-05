@@ -11,8 +11,12 @@ use either::Either;
 use crate::{
     base_operations::BaseOperation,
     extension_operations::{ExtensionOperation, PresserMode, XferStyle},
-    header_types::{CarrierOrRail, CarriersHeaderValue, Headers, PositionHeaderValue, Rail, RailSide},
-    knitting_types::{Bed, Carrier, Direction, IsSlider, MyBigDecimal, MyI32, MyString, MyU32, Needle},
+    header_types::{
+        CarrierOrRail, CarriersHeaderValue, Headers, PositionHeaderValue, Rail, RailSide,
+    },
+    knitting_types::{
+        Bed, Carrier, Direction, IsSlider, MyBigDecimal, MyI32, MyString, MyU32, Needle,
+    },
     phase::{Annotated, Phase},
     program::{Operation, Program},
 };

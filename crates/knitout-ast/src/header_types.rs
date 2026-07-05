@@ -408,16 +408,10 @@ mod tests {
         ));
         assert!(header.machine().is_some());
 
-        header.set_gauge(Annotated::new(
-            MyU32::new(Either::Left(10u32), ()),
-            (),
-        ));
+        header.set_gauge(Annotated::new(MyU32::new(Either::Left(10u32), ()), ()));
         assert!(header.gauge().is_some());
 
-        header.set_width(Annotated::new(
-            MyU32::new(Either::Left(20u32), ()),
-            (),
-        ));
+        header.set_width(Annotated::new(MyU32::new(Either::Left(20u32), ()), ()));
         assert!(header.width().is_some());
 
         header.set_position(Annotated::unit(PositionHeaderValue::Center(())));

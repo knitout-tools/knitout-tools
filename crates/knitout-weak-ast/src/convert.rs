@@ -16,29 +16,29 @@ use crate::{CommentInfo, Parsed};
 pub struct ParsedToValidated;
 
 impl PhaseTransform<Parsed, Validated> for ParsedToValidated {
-    fn transform_magic_version(_: (Span, Span)) -> () {}
+    fn transform_magic_version(_: (Span, Span)) {}
     fn transform_operation(_: (Span, CommentInfo)) -> Provenance {
         // TODO this is wrong! Should use both the span AND the ;!source comment
         Provenance::default()
     }
-    fn transform_header(_: Span) -> () {}
-    fn transform_unknown_header(_: Span) -> () {}
-    fn transform_position_header_value(_: Span) -> () {}
-    fn transform_carriers_header_value(_: Span) -> () {}
-    fn transform_rail(_: Span) -> () {}
-    fn transform_rail_side(_: Span) -> () {}
-    fn transform_carrier(_: Span) -> () {}
-    fn transform_direction(_: Span) -> () {}
-    fn transform_bed(_: Span) -> () {}
-    fn transform_is_slider(_: Span) -> () {}
-    fn transform_index(_: Span) -> () {}
-    fn transform_needle(_: Span) -> () {}
-    fn transform_my_big_decimal(_: Span) -> () {}
-    fn transform_my_u32(_: Span) -> () {}
-    fn transform_my_i32(_: Span) -> () {}
-    fn transform_my_string(_: Span) -> () {}
-    fn transform_presser_mode(_: Span) -> () {}
-    fn transform_xfer_style(_: Span) -> () {}
+    fn transform_header(_: Span) {}
+    fn transform_unknown_header(_: Span) {}
+    fn transform_position_header_value(_: Span) {}
+    fn transform_carriers_header_value(_: Span) {}
+    fn transform_rail(_: Span) {}
+    fn transform_rail_side(_: Span) {}
+    fn transform_carrier(_: Span) {}
+    fn transform_direction(_: Span) {}
+    fn transform_bed(_: Span) {}
+    fn transform_is_slider(_: Span) {}
+    fn transform_index(_: Span) {}
+    fn transform_needle(_: Span) {}
+    fn transform_my_big_decimal(_: Span) {}
+    fn transform_my_u32(_: Span) {}
+    fn transform_my_i32(_: Span) {}
+    fn transform_my_string(_: Span) {}
+    fn transform_presser_mode(_: Span) {}
+    fn transform_xfer_style(_: Span) {}
 }
 
 /// Convert a `Program<Parsed>` to `Option<Program<Validated>>`.

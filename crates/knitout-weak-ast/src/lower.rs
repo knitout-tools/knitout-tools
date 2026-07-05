@@ -191,7 +191,7 @@ impl<'src> LowerCtx<'src> {
         let value_text = value_node.map(|n| text_of(n, self.source));
 
         // Is this the magic line?
-        let is_magic = value_text.map_or(false, |t| t.starts_with(b"knitout-"));
+        let is_magic = value_text.is_some_and(|t| t.starts_with(b"knitout-"));
         if is_magic {
             let value_node = value_node.unwrap();
             let vstart = value_node.start_byte() as u32;
@@ -227,7 +227,6 @@ impl<'src> LowerCtx<'src> {
                     self.magic = Some((0, (prefix_span, ver_span)));
                 }
             }
-            return;
         }
 
         // Source tag at the top level — unusual but we just ignore it (not an error).
@@ -516,7 +515,7 @@ impl<'src> LowerCtx<'src> {
             let value_text = tag
                 .child_by_field_name("value")
                 .map(|v| text_of(v, self.source));
-            if value_text.map_or(false, |t| t.starts_with(b"source: ")) {
+            if value_text.is_some_and(|t| t.starts_with(b"source: ")) {
                 CommentInfo::SourceTag(tag_span)
             } else {
                 CommentInfo::UnknownTag(tag_span)
@@ -612,7 +611,12 @@ impl<'src> LowerCtx<'src> {
             Err(_) => {
                 self.errors.push(ParseError::BadNeedleIndex(index_span));
                 // Return a needle with Other index, keeping bed/slider for partial info.
-                let needle = Needle::new(bed, is_slider, MyI32::new(Either::Right(index_span), index_span), span);
+                let needle = Needle::new(
+                    bed,
+                    is_slider,
+                    MyI32::new(Either::Right(index_span), index_span),
+                    span,
+                );
                 Either::Left(needle)
             }
         }
@@ -985,7 +989,7 @@ impl<'src> LowerCtx<'src> {
         args: &[(Span, &[u8])],
         opcode_span: Span,
     ) -> PresserMode<Parsed> {
-        match args.get(0) {
+        match args.first() {
             Some(&(span, text)) => match text {
                 b"off" => PresserMode::Off(span),
                 b"auto" => PresserMode::Auto(span),
@@ -1007,7 +1011,7 @@ impl<'src> LowerCtx<'src> {
         args: &[(Span, &[u8])],
         opcode_span: Span,
     ) -> XferStyle<Parsed> {
-        match args.get(0) {
+        match args.first() {
             Some(&(span, text)) => match text {
                 b"four-pass" => XferStyle::FourPass(span),
                 b"two-pass" => XferStyle::TwoPass(span),

@@ -5,7 +5,7 @@ use bigdecimal::BigDecimal;
 use either::Either;
 
 use crate::{
-    phase::{Annotated, Phase, Validated},
+    phase::{Phase, Validated},
     program::{CarrierTable, DisplayCarrierTable},
 };
 

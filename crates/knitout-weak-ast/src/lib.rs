@@ -3,8 +3,8 @@ mod diagnostics;
 mod lower;
 
 pub use convert::{ParsedToValidated, parsed_to_valid};
-pub use knitout_ast::{PhaseTransform, transform_program};
 pub use diagnostics::{ParseError, ParseWarning};
+pub use knitout_ast::{PhaseTransform, transform_program};
 pub use lower::cst_to_program;
 
 pub use knitout_ast::{Phase, Provenance, Span};
