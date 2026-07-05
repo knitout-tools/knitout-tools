@@ -11,7 +11,7 @@
 ;
 ; Consequence: "(operation (argument) @variable)" has its first capture at
 ; the argument's byte offset (later than the operation start), so it beats
-; operation-context number/type patterns whose first capture is the opcode
+; operation-context Gumber/type patterns whose first capture is the opcode
 ; at byte 0.  The fix is to avoid catch-all argument patterns entirely and
 ; enumerate carrier positions explicitly per opcode, always including the
 ; opcode capture (". (opcode) @_name") so the match's first capture is
@@ -63,7 +63,7 @@
 ((operation
    opcode: (opcode) @function
    (argument) @number)
-  (#any-of? @function "rack" "x-stitch-number" "x-speed-number" "x-sub-roller-number" "x-xfer-stitch-number" "x-roller-advance" "x-add-roller-advance" "x-carrier-spacing" "x-carrier-stopping-distance"))
+  (#any-of? @function "rack" "x-stitch-number" "x-speed-number" "x-sub-roller-number" "x-xfer-stitch-number" "x-roller-advance" "x-add-roller-advance" "x-carrier-spacing" "x-carrier-stopping-distance" "x-loop-start" "x-loop-end"))
 
 ; DIR, NEEDLE, CARRIERS
 

@@ -415,6 +415,12 @@ fn t_extension_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
                     .collect::<Option<Vec<_>>>()?,
             }
         }
+        ExtensionOperation::XLoopStart { value } => ExtensionOperation::XLoopStart {
+            value: t_my_u32::<A, B, T>(value)?,
+        },
+        ExtensionOperation::XLoopEnd { value } => ExtensionOperation::XLoopEnd {
+            value: t_my_u32::<A, B, T>(value)?,
+        },
     })
 }
 

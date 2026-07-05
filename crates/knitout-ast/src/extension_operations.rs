@@ -68,6 +68,12 @@ pub enum ExtensionOperation<P: Phase> {
     XXferStyle {
         style: XferStyle<P>,
     },
+    XLoopStart {
+        value: MyU32<P>,
+    },
+    XLoopEnd {
+        value: MyU32<P>,
+    },
     UnknownExtension {
         /// Includes the leading "x-"
         name: MyString<P>,
@@ -175,6 +181,8 @@ impl DisplayCarrierTable for ExtensionOperation<Validated> {
                 }
                 Ok(())
             }
+            ExtensionOperation::XLoopStart { value } => write!(f, "x-loop-start {}", value),
+            ExtensionOperation::XLoopEnd { value } => write!(f, "x-loop-end {}", value),
         }
     }
 }

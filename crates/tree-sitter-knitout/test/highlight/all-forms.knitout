@@ -242,3 +242,10 @@ x-xfer-style four-pass
 x-xfer-style two-pass
 ;^ function
 ;            ^ constant.builtin
+
+x-loop-start 3
+;^ function
+;            ^ number
+x-loop-end 3
+;^ function
+;          ^ number

@@ -980,6 +980,14 @@ impl<'src> LowerCtx<'src> {
                 let style = self.parse_xfer_style_arg(args, opcode_span);
                 (ExtensionOperation::XXferStyle { style }, Some(1))
             }
+            "x-loop-start" => {
+                let value = self.take_u32(args, 0, opcode_span);
+                (ExtensionOperation::XLoopStart { value }, Some(1))
+            }
+            "x-loop-end" => {
+                let value = self.take_u32(args, 0, opcode_span);
+                (ExtensionOperation::XLoopEnd { value }, Some(1))
+            }
             _ => {
                 // Unknown x- extension — store name + all args as strings.
                 let name = self.parse_my_string(opcode_str, opcode_span);
