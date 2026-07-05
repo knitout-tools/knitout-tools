@@ -90,6 +90,7 @@ impl ParseError {
             ParseError::MagicMissing => None,
             ParseError::MissingCarriersHeader => None,
             ParseError::BadMagicVersion(s) => Some(*s),
+            ParseError::ConflictingMagicVersion { span, .. } => Some(*span),
             ParseError::ConflictingHeader { span, .. } => Some(*span),
             ParseError::UnrecognizedOpcode(s) => Some(*s),
             ParseError::MissingArgument(s) => Some(*s),
@@ -103,6 +104,7 @@ impl ParseError {
             ParseError::BadXferStyle(s) => Some(*s),
             ParseError::BadPositionValue(s) => Some(*s),
             ParseError::TooManyArguments(s) => Some(*s),
+            ParseError::BadUtf8(s) => Some(*s),
         }
     }
 }

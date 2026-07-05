@@ -96,7 +96,7 @@ impl<'src> LowerCtx<'src> {
         (prog, self.warnings, self.errors)
     }
 
-    fn text_of(&mut self, span: Span) -> Option<&str> {
+    fn text_of(&mut self, span: Span) -> Option<&'src str> {
         match std::str::from_utf8(&self.source[span.start()..span.end()]) {
             Ok(s) => Some(s),
             Err(_) => {
@@ -149,7 +149,7 @@ impl<'src> LowerCtx<'src> {
         };
 
         match inner.kind() {
-            "tag_comment" => self.lower_top_tag_comment(inner, *line_index),
+            "tag_comment" => { self.lower_top_tag_comment(inner, *line_index); }
             "header" => self.lower_header(inner),
             "comment" => {} // plain unassociated comment, nothing to do
             "op_line" => {
@@ -225,120 +225,87 @@ impl<'src> LowerCtx<'src> {
             None => return, // just ";;" with no content
         };
 
-        let content_text = text_of(content_node, self.source);
-        let content_start = content_node.start_byte() as u32;
+        let content_span = node_span(content_node);
+        let content_text = match self.text_of(content_span) {
+            Some(s) => s,
+            None => return,
+        };
+        let content_start = content_span.start();
 
         // Split at the first ':' to get name and value.
-        let colon_pos = content_text.iter().position(|&b| b == b':');
-        let (name_bytes, value_bytes, value_start) = match colon_pos {
-            Some(p) => {
-                let vstart = content_start + p as u32 + 1;
-                (&content_text[..p], &content_text[p + 1..], vstart)
-            }
-            None => {
-                // No colon — treat as a comment
-                return;
-            }
+        let colon_pos = match content_text.find(':') {
+            Some(p) => p,
+            None => return, // No colon — treat as a comment
         };
 
-        let name_str = trim_from_bytes(name_bytes);
-        // name+colon span (for P::Header annotation)
-        let name_colon_end = content_start
-            + colon_pos.unwrap_or(name_bytes.len()) as u32
-            + colon_pos.map_or(0, |_| 1);
-        let name_colon_span = Span::new(content_start, name_colon_end);
+        let name_str = content_text[..colon_pos].trim();
+        let value_str = &content_text[colon_pos + 1..];
 
         // Trim leading whitespace from value
-        let value_trimmed_offset = value_bytes
-            .iter()
-            .position(|&b| b != b' ' && b != b'\t')
-            .unwrap_or(value_bytes.len());
-        let value_trim_start = value_start + value_trimmed_offset as u32;
-        let value_end = content_start + content_text.len() as u32;
-        let trimmed_value = &value_bytes[value_trimmed_offset..];
+        let value_trimmed = value_str.trim_start_matches(|c| c == ' ' || c == '\t');
+        let value_trimmed_offset = value_str.len() - value_trimmed.len();
+        let value_trim_start = content_start + colon_pos + 1 + value_trimmed_offset;
+        let value_end = content_span.end();
         let value_span = Span::new(value_trim_start, value_end);
 
-        self.check_header_after_ops(name_colon_span);
+        self.check_header_after_ops(header_span);
 
         match name_str {
-            "Carriers" => self.lower_carriers_header(
-                name_colon_span,
-                trimmed_value,
-                value_trim_start,
-                value_end,
-            ),
-            "Machine" => self.lower_string_header(
-                "Machine",
-                name_colon_span,
-                trimmed_value,
-                value_trim_start,
-                value_end,
-            ),
-            "Gauge" => self.lower_u32_header("Gauge", name_colon_span, trimmed_value, value_span),
-            "Width" => self.lower_u32_header("Width", name_colon_span, trimmed_value, value_span),
-            "Position" => self.lower_position_header(name_colon_span, trimmed_value, value_span),
-            s if s.starts_with("Yarn-") => self.lower_yarn_header(
-                name_colon_span,
-                s,
-                trimmed_value,
-                value_trim_start,
-                value_end,
-            ),
+            "Carriers" => {
+                self.lower_carriers_header(header_span, value_trimmed.as_bytes(), value_span)
+            }
+            "Machine" => self.lower_string_header("Machine", header_span, value_trimmed, value_span),
+            "Gauge" => self.lower_u32_header("Gauge", header_span, value_trimmed, value_span),
+            "Width" => self.lower_u32_header("Width", header_span, value_trimmed, value_span),
+            "Position" => self.lower_position_header(header_span, value_trimmed, value_span),
+            s if s.starts_with("Yarn-") => {
+                self.lower_yarn_header(header_span, s, value_trimmed, value_span)
+            }
             s if s.len() >= 2 && s[..2].eq_ignore_ascii_case("X-") => {
                 self.warnings
-                    .push(ParseWarning::UnrecognizedExtensionHeader(name_colon_span));
-                // Store as an unknown header.
-                let val_str = std::str::from_utf8(trimmed_value)
-                    .unwrap_or("")
-                    .trim()
-                    .to_owned();
+                    .push(ParseWarning::UnrecognizedExtensionHeader(header_span));
                 self.headers_partial
-                    .add_unknown(s.to_owned(), val_str, name_colon_span);
+                    .add_unknown(s.to_owned(), value_trimmed.trim().to_owned(), header_span);
             }
             _ => {
-                // Completely unknown header — silently store.
-                let val_str = std::str::from_utf8(trimmed_value)
-                    .unwrap_or("")
-                    .trim()
-                    .to_owned();
-                self.headers_partial
-                    .add_unknown(name_str.to_owned(), val_str, name_colon_span);
+                self.headers_partial.add_unknown(
+                    name_str.to_owned(),
+                    value_trimmed.trim().to_owned(),
+                    header_span,
+                );
             }
         }
     }
 
-    fn lower_carriers_header(&mut self, name_span: Span, value: &[u8], value_span: Span) {
-        if self.header_already_defined("Carriers", name_span) {
+    fn lower_carriers_header(&mut self, header_span: Span, value: &[u8], value_span: Span) {
+        if self.header_already_defined("Carriers", header_span) {
             return;
         }
         let chv = self.parse_carriers_header_value(value, value_span);
-        let ann = Annotated::new(chv, name_span);
-        self.carriers = Some((ann, name_span));
+        self.headers_partial
+            .set_carriers(Either::Left(Annotated::new(chv, header_span)));
     }
 
     fn lower_string_header(
         &mut self,
         key: &str,
-        name_span: Span,
-        value: &[u8],
-        value_start: u32,
-        value_end: u32,
+        header_span: Span,
+        value: &str,
+        value_span: Span,
     ) {
-        let val_str = std::str::from_utf8(value).unwrap_or("").trim().to_owned();
-        if self.header_already_defined(key, name_span, &val_str) {
+        if self.header_already_defined(key, header_span) {
             return;
         }
-        let value_span = Span::new(value_start, value_end);
-        let my_string = MyString::new(Either::Left(val_str), value_span);
+        let my_string = MyString::new(Either::Left(value.trim().to_owned()), value_span);
         self.headers_partial
-            .set_machine(Annotated::new(my_string, name_span));
+            .set_machine(Annotated::new(my_string, header_span));
     }
 
-    fn lower_u32_header(&mut self, key: &str, name_span: Span, value: &[u8], value_span: Span) {
-        let val_str = std::str::from_utf8(value).unwrap_or("").trim();
-        if self.header_already_defined(key, name_span, val_str) {
+    fn lower_u32_header(&mut self, key: &str, header_span: Span, value: &str, value_span: Span) {
+        if self.header_already_defined(key, header_span) {
             return;
         }
+        let val_str = value.trim();
         let my_u32 = match val_str.parse::<u32>() {
             Ok(n) => MyU32::new(Either::Left(n), value_span),
             Err(_) => {
@@ -348,18 +315,18 @@ impl<'src> LowerCtx<'src> {
         };
         if key == "Gauge" {
             self.headers_partial
-                .set_gauge(Annotated::new(my_u32, name_span));
+                .set_gauge(Annotated::new(my_u32, header_span));
         } else {
             self.headers_partial
-                .set_width(Annotated::new(my_u32, name_span));
+                .set_width(Annotated::new(my_u32, header_span));
         }
     }
 
-    fn lower_position_header(&mut self, name_span: Span, value: &[u8], value_span: Span) {
-        let val_str = std::str::from_utf8(value).unwrap_or("").trim();
-        if self.header_already_defined("Position", name_span, val_str) {
+    fn lower_position_header(&mut self, header_span: Span, value: &str, value_span: Span) {
+        if self.header_already_defined("Position", header_span) {
             return;
         }
+        let val_str = value.trim();
         let pos = match val_str {
             "Left" => PositionHeaderValue::Left(value_span),
             "Center" => PositionHeaderValue::Center(value_span),
@@ -371,24 +338,21 @@ impl<'src> LowerCtx<'src> {
             }
         };
         self.headers_partial
-            .set_position(Annotated::new(pos, name_span));
+            .set_position(Annotated::new(pos, header_span));
     }
 
     fn lower_yarn_header(
         &mut self,
-        name_span: Span,
+        header_span: Span,
         name_str: &str,
-        value: &[u8],
-        value_start: u32,
-        value_end: u32,
+        value: &str,
+        value_span: Span,
     ) {
         // "Yarn-A" → carrier name is "A"
         let carrier_name = &name_str["Yarn-".len()..];
-        let carrier = self.carrier_table.make_carrier(carrier_name, name_span);
-        let val_str = std::str::from_utf8(value).unwrap_or("").trim().to_owned();
-        let value_span = Span::new(value_start, value_end);
-        let my_string = MyString::new(Either::Left(val_str), value_span);
-        self.headers_partial.add_yarn(carrier, my_string, name_span);
+        let carrier = self.carrier_table.make_carrier(carrier_name, header_span);
+        let my_string = MyString::new(Either::Left(value.trim().to_owned()), value_span);
+        self.headers_partial.add_yarn(carrier, my_string, header_span);
     }
 
     // ── carriers header value parsing ─────────────────────────────────────────
@@ -396,10 +360,9 @@ impl<'src> LowerCtx<'src> {
     fn parse_carriers_header_value(
         &mut self,
         text: &[u8],
-        text_start: u32,
-        text_end: u32,
+        span: Span,
     ) -> CarriersHeaderValue<Parsed> {
-        let annotation_span = Span::new(text_start, text_end);
+        let abs_start = span.start();
         let mut items: Vec<CarrierOrRail<Parsed>> = Vec::new();
 
         let mut i = 0usize;
@@ -417,21 +380,19 @@ impl<'src> LowerCtx<'src> {
                 i += 1;
             }
             let token = &text[token_start..i];
-            let abs_start = text_start + token_start as u32;
-            let abs_end = text_start + i as u32;
-            let token_span = Span::new(abs_start, abs_end);
+            let token_span = Span::new(abs_start + token_start, abs_start + i);
 
             if let Some(semi_pos) = token.iter().position(|&b| b == b';') {
                 // Rail: "left;right"
                 let left_bytes = &token[..semi_pos];
                 let right_bytes = &token[semi_pos + 1..];
-                let left_start = abs_start;
-                let left_end = abs_start + semi_pos as u32;
-                let right_start = abs_start + semi_pos as u32 + 1;
-                let right_end = abs_end;
+                let left_span =
+                    Span::new(token_span.start(), token_span.start() + semi_pos);
+                let right_span =
+                    Span::new(token_span.start() + semi_pos + 1, token_span.end());
 
-                let left_side = self.parse_rail_side(left_bytes, left_start, left_end);
-                let right_side = self.parse_rail_side(right_bytes, right_start, right_end);
+                let left_side = self.parse_rail_side(left_bytes, left_span);
+                let right_side = self.parse_rail_side(right_bytes, right_span);
 
                 items.push(CarrierOrRail::Rail(Rail::new(
                     Either::Left(left_side),
@@ -448,17 +409,16 @@ impl<'src> LowerCtx<'src> {
             }
         }
 
-        CarriersHeaderValue::new(Either::Left(items), annotation_span)
+        CarriersHeaderValue::new(Either::Left(items), span)
     }
 
-    fn parse_rail_side(&mut self, text: &[u8], text_start: u32, text_end: u32) -> RailSide<Parsed> {
-        let side_span = Span::new(text_start, text_end);
+    fn parse_rail_side(&mut self, text: &[u8], span: Span) -> RailSide<Parsed> {
         let mut carriers = Vec::new();
-        let mut pos = 0u32;
+        let mut pos = 0usize;
 
         for part in text.split(|&b| b == b',') {
-            let part_start = text_start + pos;
-            let part_len = part.len() as u32;
+            let part_start = span.start() + pos;
+            let part_len = part.len();
             let part_span = Span::new(part_start, part_start + part_len);
             pos += part_len + 1; // +1 for ','
 
@@ -469,7 +429,7 @@ impl<'src> LowerCtx<'src> {
             }
         }
 
-        RailSide::new(carriers, side_span)
+        RailSide::new(carriers, span)
     }
 
     // ── operation line ────────────────────────────────────────────────────────
@@ -485,7 +445,7 @@ impl<'src> LowerCtx<'src> {
             let tag_span = node_span(tag);
             let value_text = tag
                 .child_by_field_name("value")
-                .map(|v| text_of(v, self.source));
+                .map(|v| &self.source[v.start_byte()..v.end_byte()]);
             if value_text.is_some_and(|t| t.starts_with(b"source: ")) {
                 CommentInfo::SourceTag(tag_span)
             } else {
@@ -503,14 +463,14 @@ impl<'src> LowerCtx<'src> {
             Some(n) => n,
             None => return,
         };
-        let opcode_text = text_of(opcode_node, self.source);
+        let opcode_text = &self.source[opcode_node.start_byte()..opcode_node.end_byte()];
         let opcode_span = node_span(opcode_node);
 
         // Collect argument nodes
         let mut args: Vec<(Span, &[u8])> = Vec::new();
         let mut cursor = op_node.walk();
         for arg in op_node.children_by_field_name("argument", &mut cursor) {
-            args.push((node_span(arg), text_of(arg, self.source)));
+            args.push((node_span(arg), &self.source[arg.start_byte()..arg.end_byte()]));
         }
 
         let op = self.parse_operation(opcode_text, opcode_span, &args);
@@ -564,7 +524,7 @@ impl<'src> LowerCtx<'src> {
         };
 
         let index_bytes = &text[pos..];
-        let index_start = span.start() + pos as u32;
+        let index_start = span.start() + pos;
         let index_end = span.end();
         let index_span = Span::new(index_start, index_end);
 

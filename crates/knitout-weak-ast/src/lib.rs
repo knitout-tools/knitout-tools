@@ -272,13 +272,14 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_carriers_header_emits_error() {
-        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Carriers: B\n");
+    fn duplicate_carriers_header_emits_warning() {
+        // Any second occurrence of a header → DuplicateHeader warning (regardless of value).
+        let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\n;;Carriers: B\n");
         assert!(
-            errors
+            warnings
                 .iter()
-                .any(|e| matches!(e, ParseError::ConflictingHeader { .. })),
-            "expected ConflictingHeader, got {errors:?}"
+                .any(|w| matches!(w, ParseWarning::DuplicateHeader { .. })),
+            "expected DuplicateHeader warning, got {warnings:?}"
         );
     }
 
@@ -1359,12 +1360,10 @@ mod tests {
         // Byte layout:
         //   0-11:  ";!knitout-2\n"
         //   12-25: ";;Carriers: A\n"
-        //   26-37: ";;Gauge: 15\n"
+        //   26-36: ";;Gauge: 15"  (header node, excludes the trailing \n)
         //     26=;, 27=;, 28=G, 29=a, 30=u, 31=g, 32=e, 33=:, 34= , 35=1, 36=5, 37=\n
-        // content starts at 28, colon at relative pos 5 (abs 33)
-        // name_colon_span = Span::new(28, 34) → "Gauge:"
-        // value " 15": value_start=34, trim_start=35, value_end=37
-        // value_span = Span::new(35, 37) → "15"
+        // header_span = Span::new(26, 37) → ";;Gauge: 15"
+        // value span: trim_start=35, end=37 → "15"
         let source = ";!knitout-2\n;;Carriers: A\n;;Gauge: 15\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
@@ -1373,19 +1372,17 @@ mod tests {
             .gauge()
             .as_ref()
             .expect("expected gauge header");
-        let name_span = gauge_ann.annotation; // P::Header = Span
+        // P::Header annotation is now the whole header span (starting at ";;")
+        let header_span = gauge_ann.annotation;
         assert_eq!(
-            &src[name_span.start() as usize..name_span.end() as usize],
-            b"Gauge:"
+            &src[header_span.start()..header_span.end()],
+            b";;Gauge: 15"
         );
-        assert_eq!(name_span.start(), 28);
-        assert_eq!(name_span.end(), 34);
-        // value span covers "15"
+        assert_eq!(header_span.start(), 26);
+        assert_eq!(header_span.end(), 37);
+        // value span still covers exactly "15"
         let value_span = gauge_ann.value.annotation();
-        assert_eq!(
-            &src[value_span.start() as usize..value_span.end() as usize],
-            b"15"
-        );
+        assert_eq!(&src[value_span.start()..value_span.end()], b"15");
         assert_eq!(value_span.start(), 35);
         assert_eq!(value_span.end(), 37);
     }
@@ -1679,31 +1676,20 @@ mod tests {
     // ─── header without colon ────────────────────────────────────────────────
 
     #[test]
-    fn gauge_header_without_colon_emits_bad_u32_with_correct_span() {
-        // ";;Gauge" — no colon, so the whole content is the name and value is empty.
-        // Byte layout for ";!knitout-2\n;;Carriers: A\n;;Gauge\n":
-        //   0-11:  ";!knitout-2\n"
-        //   12-25: ";;Carriers: A\n"
-        //   26-33: ";;Gauge\n"
-        //     26=;, 27=;, 28=G, 29=a, 30=u, 31=g, 32=e, 33=\n
-        // content_start=28, content_text.len()=5
-        // No colon → value_start = content_start + len = 28 + 5 = 33
-        // Empty value → value_span = Span::new(33, 33)
-        // BadU32 should reference that zero-length span at the end of the header.
+    fn gauge_header_without_colon_is_silently_ignored() {
+        // ";;Gauge" has no colon, so there is no name:value split possible.
+        // lower_header returns early without emitting any error.
+        // The program is still valid (Gauge header simply absent).
         let source = ";!knitout-2\n;;Carriers: A\n;;Gauge\n";
-        let (_, _, errors) = parse(source);
-        let bad_u32 = errors
-            .iter()
-            .find(|e| matches!(e, ParseError::BadU32(_)))
-            .expect("expected BadU32 error for headerless Gauge");
-        if let ParseError::BadU32(span) = bad_u32 {
-            assert_eq!(
-                span.start(),
-                33,
-                "value span start should be at end of 'Gauge'"
-            );
-            assert_eq!(span.end(), 33, "value span end should be at end of 'Gauge'");
-        }
+        let (prog, _, errors) = parse(source);
+        assert!(
+            !errors.iter().any(|e| matches!(e, ParseError::BadU32(_))),
+            "should not emit BadU32 for a header with no colon"
+        );
+        assert!(
+            prog.headers().gauge().is_none(),
+            "Gauge header should be absent when content has no colon"
+        );
     }
 
     // ─── validated operation provenance ──────────────────────────────────────
