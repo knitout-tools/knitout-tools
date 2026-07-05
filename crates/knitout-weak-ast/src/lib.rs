@@ -751,7 +751,7 @@ mod tests {
     fn x_roller_advance() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-roller-advance 1.5\n") {
             ExtensionOperation::XRollerAdvance { value } => {
-                assert!(value.value().clone().left().is_some());
+                assert!(value.value().as_ref().left().is_some());
             }
             other => panic!("{other:?}"),
         }
@@ -781,11 +781,11 @@ mod tests {
     fn unknown_extension_op() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-my-custom arg1 arg2\n") {
             ExtensionOperation::UnknownExtension { name, arguments } => {
-                let n = name.value().clone().left().unwrap();
+                let n = name.value().as_ref().left().unwrap();
                 assert_eq!(n, "x-my-custom");
                 assert_eq!(arguments.len(), 2);
-                let a0 = arguments[0].value().clone().left().unwrap();
-                let a1 = arguments[1].value().clone().left().unwrap();
+                let a0 = arguments[0].value().as_ref().left().unwrap();
+                let a1 = arguments[1].value().as_ref().left().unwrap();
                 assert_eq!(a0, "arg1");
                 assert_eq!(a1, "arg2");
             }
@@ -1683,7 +1683,7 @@ mod tests {
     fn x_carrier_stopping_distance() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-carrier-stopping-distance 10\n") {
             ExtensionOperation::XCarrierStoppingDistance { value } => {
-                assert_eq!(value.value().clone().left().unwrap(), 10);
+                assert_eq!(value.value().left().unwrap(), 10);
             }
             other => panic!("{other:?}"),
         }
