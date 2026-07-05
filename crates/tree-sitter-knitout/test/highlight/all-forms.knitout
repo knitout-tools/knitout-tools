@@ -108,7 +108,7 @@ split - f0 f100 3 4 9 ;!source: this is source comment
 ;                      ^ comment
 ;                       ^ tag
 ;                        ^ tag
-;                               ^ comment
+;                               ^ tag
 
  ;;X-Header-In-The-Middle: value
 ;^ comment

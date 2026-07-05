@@ -149,7 +149,7 @@ pub enum Operation<P: Phase> {
 /// Errors out when the program's carrier table is missing entries
 impl Display for Program<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, ";!knitout-{}", valid(&self.version).value)?;
+        writeln!(f, ";!knitout-{}", valid(&self.version).value)?;
         // writes a newline at the end of headers:
         self.headers.fmt_table(f, &self.carrier_table)?;
         for op in &self.operations {
@@ -182,9 +182,14 @@ impl DisplayCarrierTable for Operation<Validated> {
 
 #[cfg(test)]
 mod tests {
+    use either::Either;
+
     use crate::{
-        Bed, CarrierOrRail, Direction, IsSlider, Needle, PositionHeaderValue, Span,
+        BaseOperation, Bed, CarrierOrRail, Direction, ExtensionOperation, IsSlider, Needle,
+        PositionHeaderValue, Provenance, Span, Validated,
         header_types::CarriersHeaderValue,
+        knitting_types::{MyString, MyU32},
+        phase::{Annotated, valid},
     };
 
     use super::*;
@@ -194,16 +199,16 @@ mod tests {
         let mut table1 = CarrierTable::new();
         let mut table2 = CarrierTable::new();
 
-        table1.make_carrier("A");
-        table1.make_carrier("B");
+        table1.make_carrier::<Validated>("A", ());
+        table1.make_carrier::<Validated>("B", ());
 
-        table2.make_carrier("A");
-        table2.make_carrier("B");
+        table2.make_carrier::<Validated>("A", ());
+        table2.make_carrier::<Validated>("B", ());
 
         assert_eq!(table1, table2);
 
         // Add a new carrier to table1
-        table1.make_carrier("C");
+        table1.make_carrier::<Validated>("C", ());
 
         // Now the tables should not be equal
         assert_ne!(table1, table2);
@@ -212,30 +217,48 @@ mod tests {
     #[test]
     fn test_program_getters() {
         let mut carrier_table = CarrierTable::new();
-        let carrier_a = carrier_table.make_carrier("A");
-        let carrier_b = carrier_table.make_carrier("B");
+        let carrier_a = carrier_table.make_carrier("A", ());
+        let carrier_b = carrier_table.make_carrier("B", ());
 
-        let headers = Headers::new(CarriersHeaderValue::new(vec![
-            CarrierOrRail::Carrier(carrier_a),
-            CarrierOrRail::Carrier(carrier_b),
-        ]));
-        let mut program = Program::new(18, headers, carrier_table);
+        let headers = Headers::new(Annotated::unit(CarriersHeaderValue::new(
+            Either::Left(vec![
+                CarrierOrRail::Carrier(carrier_a),
+                CarrierOrRail::Carrier(carrier_b),
+            ]),
+            (),
+        )));
+        let mut program =
+            Program::<Validated>::new(Either::Left(Annotated::unit(18u32)), headers, carrier_table);
 
-        let carrier_c = program.carrier_table_mut().make_carrier("C");
-        assert_eq!(program.carrier_table().carrier_name(carrier_c), "C");
+        let carrier_c: Carrier<Validated> = program.carrier_table_mut().make_carrier("C", ());
+        assert_eq!(program.carrier_table().carrier_name(&carrier_c), "C");
 
-        assert_eq!(program.version(), 18);
-        assert_eq!(program.headers().carriers().carriers_and_rails().len(), 2);
+        assert_eq!(valid(program.version()).value, 18u32);
+        let carriers_val = valid(program.headers().carriers());
+        assert_eq!(
+            carriers_val
+                .value
+                .carriers_and_rails()
+                .left()
+                .unwrap()
+                .len(),
+            2
+        );
         assert_eq!(program.operations().len(), 0);
 
-        program.push_operation(
+        program.push_operation(Annotated::new(
             Operation::BaseOperation(BaseOperation::Tuck {
-                direction: Direction::Right,
-                needle: Needle::new(Bed::Front, IsSlider::NotSlider, 5),
+                direction: Direction::Right(()),
+                needle: Either::Left(Needle::new(
+                    Bed::Front(()),
+                    IsSlider::NotSlider(()),
+                    Annotated::unit(5i32),
+                    (),
+                )),
                 carriers: vec![carrier_a],
             }),
             Provenance::default(),
-        );
+        ));
 
         assert_eq!(program.operations().len(), 1);
     }
@@ -243,34 +266,49 @@ mod tests {
     #[test]
     fn test_program_display() {
         let mut carrier_table = CarrierTable::new();
-        let carrier_a = carrier_table.make_carrier("A");
-        let carrier_b = carrier_table.make_carrier("B");
+        let carrier_a = carrier_table.make_carrier("A", ());
+        let carrier_b = carrier_table.make_carrier("B", ());
 
-        let headers = Headers::new(CarriersHeaderValue::new(vec![
-            CarrierOrRail::Carrier(carrier_a),
-            CarrierOrRail::Carrier(carrier_b),
-        ]));
-        let mut program = Program::new(18, headers, carrier_table);
+        let headers = Headers::new(Annotated::unit(CarriersHeaderValue::new(
+            Either::Left(vec![
+                CarrierOrRail::Carrier(carrier_a),
+                CarrierOrRail::Carrier(carrier_b),
+            ]),
+            (),
+        )));
+        let mut program =
+            Program::<Validated>::new(Either::Left(Annotated::unit(18u32)), headers, carrier_table);
         program
             .headers_mut()
-            .set_position(PositionHeaderValue::Left);
-        program.headers_mut().set_gauge(1500);
+            .set_position(Annotated::unit(PositionHeaderValue::Left(())));
+        program.headers_mut().set_gauge(Annotated::new(
+            MyU32::new(Either::Left(Annotated::unit(1500u32))),
+            (),
+        ));
 
-        program.push_operation(
+        program.push_operation(Annotated::new(
             Operation::BaseOperation(BaseOperation::Tuck {
-                direction: Direction::Right,
-                needle: Needle::new(Bed::Front, IsSlider::NotSlider, 5),
+                direction: Direction::Right(()),
+                needle: Either::Left(Needle::new(
+                    Bed::Front(()),
+                    IsSlider::NotSlider(()),
+                    Annotated::unit(5i32),
+                    (),
+                )),
                 carriers: vec![carrier_a],
             }),
             Provenance::new(Some(Span::new(1, 1)), None),
-        );
-        program.push_operation(
+        ));
+        program.push_operation(Annotated::new(
             Operation::ExtensionOperation(ExtensionOperation::UnknownExtension {
-                name: "x-custom".to_string(),
-                arguments: vec!["arg1".to_string(), "arg2".to_string()],
+                name: MyString::new(Either::Left(Annotated::unit("x-custom".to_string()))),
+                arguments: vec![
+                    MyString::new(Either::Left(Annotated::unit("arg1".to_string()))),
+                    MyString::new(Either::Left(Annotated::unit("arg2".to_string()))),
+                ],
             }),
             Provenance::new(None, Some("test_source".to_string())),
-        );
+        ));
 
         let expected_output = ";!knitout-18
 ;;Carriers: A B

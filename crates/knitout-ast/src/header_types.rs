@@ -179,12 +179,16 @@ impl<P: Phase> Headers<P> {
         &self.unknown
     }
 
+    pub fn position(&self) -> &Option<Annotated<PositionHeaderValue<P>, P::Header>> {
+        &self.position
+    }
+
     pub fn add_yarn(
         &mut self,
         carrier: Carrier<P>,
-        color: String,
+        color: MyString<P>,
         annotation: P::Header,
-    ) -> Option<Annotated<String, P::Header>> {
+    ) -> Option<Annotated<MyString<P>, P::Header>> {
         self.yarn.insert(carrier, Annotated::new(color, annotation))
     }
 
@@ -301,62 +305,97 @@ mod tests {
     use super::*;
     use std::fmt;
 
+    use crate::knitting_types::{MyString, MyU32};
+    use crate::phase::{Annotated, Validated};
+
     #[test]
     fn test_position_header_value_display() {
-        assert_eq!(PositionHeaderValue::Left.to_string(), "Left");
-        assert_eq!(PositionHeaderValue::Center.to_string(), "Center");
-        assert_eq!(PositionHeaderValue::Right.to_string(), "Right");
-        assert_eq!(PositionHeaderValue::Keep.to_string(), "Keep");
+        assert_eq!(
+            PositionHeaderValue::<Validated>::Left(()).to_string(),
+            "Left"
+        );
+        assert_eq!(
+            PositionHeaderValue::<Validated>::Center(()).to_string(),
+            "Center"
+        );
+        assert_eq!(
+            PositionHeaderValue::<Validated>::Right(()).to_string(),
+            "Right"
+        );
+        assert_eq!(
+            PositionHeaderValue::<Validated>::Keep(()).to_string(),
+            "Keep"
+        );
     }
 
     #[test]
     fn test_header_get_set() {
         let mut table = CarrierTable::new();
-        let carriers = Annotated::unit(CarriersHeaderValue {
-            carriers_and_rails: vec![
-                CarrierOrRail::Carrier(table.make_carrier("A")),
-                CarrierOrRail::Carrier(table.make_carrier("B")),
-            ],
-        });
+        let carrier_a = table.make_carrier("A", ());
+        let carrier_b = table.make_carrier("B", ());
+        let carriers = Annotated::unit(CarriersHeaderValue::new(
+            Either::Left(vec![
+                CarrierOrRail::Carrier(carrier_a),
+                CarrierOrRail::Carrier(carrier_b),
+            ]),
+            (),
+        ));
         let mut header = Headers::<Validated>::new(carriers.clone());
         assert_eq!(header.carriers().as_ref(), Either::Left(&carriers));
 
-        header.add_yarn(table.make_carrier("A"), "Red".to_string());
+        let color = MyString::new(Either::Left(Annotated::unit("Red".to_string())));
+        header.add_yarn(carrier_a, color.clone(), ());
         assert_eq!(
-            header.yarn().get(&table.make_carrier("A")),
-            Some(&"Red".to_string())
+            header.yarn().get(&carrier_a),
+            Some(&Annotated::new(color, ()))
         );
 
-        header.set_machine("MyMachine".to_string());
-        assert_eq!(header.machine(), Some("MyMachine"));
+        header.set_machine(Annotated::new(
+            MyString::new(Either::Left(Annotated::unit("MyMachine".to_string()))),
+            (),
+        ));
+        assert!(header.machine().is_some());
 
-        header.set_gauge(10);
-        assert_eq!(header.gauge(), Some(10));
+        header.set_gauge(Annotated::new(
+            MyU32::new(Either::Left(Annotated::unit(10u32))),
+            (),
+        ));
+        assert!(header.gauge().is_some());
 
-        header.set_width(20);
-        assert_eq!(header.width(), Some(20));
+        header.set_width(Annotated::new(
+            MyU32::new(Either::Left(Annotated::unit(20u32))),
+            (),
+        ));
+        assert!(header.width().is_some());
 
-        header.set_position(PositionHeaderValue::Center);
-        assert_eq!(header.position(), Some(PositionHeaderValue::Center));
+        header.set_position(Annotated::unit(PositionHeaderValue::Center(())));
+        assert_eq!(
+            header.position().as_ref().map(|a| a.value),
+            Some(PositionHeaderValue::Center(()))
+        );
 
-        header.add_unknown("X-Custom".to_string(), "Value".to_string());
-        assert_eq!(header.unknown().get("X-Custom"), Some(&"Value".to_string()));
+        header.add_unknown("X-Custom".to_string(), "Value".to_string(), ());
+        assert_eq!(
+            header.unknown().get("X-Custom"),
+            Some(&Annotated::new("Value".to_string(), ()))
+        );
     }
 
     #[test]
     fn test_rail_side_getters() {
         let mut table = CarrierTable::new();
-        let carrier1 = table.make_carrier("A");
-        let carrier2 = table.make_carrier("B");
+        let carrier1: Carrier<Validated> = table.make_carrier("A", ());
+        let carrier2: Carrier<Validated> = table.make_carrier("B", ());
         let rail_side = RailSide {
             carriers: vec![carrier1, carrier2],
+            annotation: (),
         };
         assert_eq!(rail_side.carriers(), &[carrier1, carrier2]);
     }
 
     // A throwaway wrapper so we can drive a real Formatter through the standard machinery.
     struct RailSideHarness<'a> {
-        rail_side: &'a RailSide,
+        rail_side: &'a RailSide<Validated>,
         table: &'a CarrierTable,
     }
 
@@ -366,7 +405,7 @@ mod tests {
         }
     }
 
-    fn render_rail_side(rail_side: RailSide, table: &CarrierTable) -> String {
+    fn render_rail_side(rail_side: RailSide<Validated>, table: &CarrierTable) -> String {
         RailSideHarness {
             rail_side: &rail_side,
             table,
@@ -377,17 +416,18 @@ mod tests {
     #[test]
     fn test_rail_side_display() {
         let mut table = CarrierTable::new();
-        let carrier1 = table.make_carrier("A");
-        let carrier2 = table.make_carrier("B");
+        let carrier1 = table.make_carrier("A", ());
+        let carrier2 = table.make_carrier("B", ());
         let rail_side = RailSide {
             carriers: vec![carrier1, carrier2],
+            annotation: (),
         };
         assert_eq!(render_rail_side(rail_side, &table), "A,B");
     }
 
     // A throwaway wrapper so we can drive a real Formatter through the standard machinery.
     struct CarriersHeaderValueHarness<'a> {
-        carriers_header_value: &'a CarriersHeaderValue,
+        carriers_header_value: &'a CarriersHeaderValue<Validated>,
         table: &'a CarrierTable,
     }
 
@@ -398,7 +438,7 @@ mod tests {
     }
 
     fn render_carriers_header_value(
-        carriers_header_value: CarriersHeaderValue,
+        carriers_header_value: CarriersHeaderValue<Validated>,
         table: &CarrierTable,
     ) -> String {
         CarriersHeaderValueHarness {
@@ -411,25 +451,29 @@ mod tests {
     #[test]
     fn test_carriers_header_value_display() {
         let mut table = CarrierTable::new();
-        let carrier1 = table.make_carrier("A");
-        let carrier2 = table.make_carrier("B");
+        let carrier1 = table.make_carrier("A", ());
+        let carrier2 = table.make_carrier("B", ());
         let rail_side_left = RailSide {
             carriers: vec![carrier1],
+            annotation: (),
         };
         let rail_side_right = RailSide {
             carriers: vec![carrier2],
+            annotation: (),
         };
         let rail = Rail {
-            left: rail_side_left,
-            right: rail_side_right,
+            left: Either::Left(rail_side_left),
+            right: Either::Left(rail_side_right),
+            annotation: (),
         };
-        let carriers_header_value = CarriersHeaderValue {
-            carriers_and_rails: vec![
+        let carriers_header_value = CarriersHeaderValue::new(
+            Either::Left(vec![
                 CarrierOrRail::Carrier(carrier1),
                 CarrierOrRail::Rail(rail),
                 CarrierOrRail::Carrier(carrier2),
-            ],
-        };
+            ]),
+            (),
+        );
         assert_eq!(
             render_carriers_header_value(carriers_header_value, &table),
             " A A;B B"
