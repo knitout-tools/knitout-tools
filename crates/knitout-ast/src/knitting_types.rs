@@ -132,10 +132,10 @@ impl Display for IsSlider<Validated> {
 /// A needle struct: a triple of a bed, whether it's a slider, and an index into the bed.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Needle<P: Phase> {
-    bed: Bed<P>,
-    is_slider: IsSlider<P>,
-    index: MyI32<P>,
-    annotation: P::Needle,
+    pub(crate) bed: Bed<P>,
+    pub(crate) is_slider: IsSlider<P>,
+    pub(crate) index: MyI32<P>,
+    pub(crate) annotation: P::Needle,
 }
 
 impl<P: Phase> Needle<P> {

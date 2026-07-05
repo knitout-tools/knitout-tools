@@ -97,27 +97,26 @@ impl<'src> LowerCtx<'src> {
                 }
             };
 
-        let headers = self.headers_partial;
+        let headers = &self.headers_partial;
         // Patch the carriers field — we built headers_partial with a dummy Right, now replace.
-        // We accomplish this by rebuilding: consume the partial headers, reconstruct with carriers.
-        let (_, yarn, machine, gauge, width, position, unknown) = headers.into_components();
+        // We accomplish this by rebuilding: clone the other fields from partial, reconstruct with carriers.
         let mut final_headers: Headers<Parsed> = Headers::new(carriers_either);
-        for (carrier, color_ann) in yarn {
+        for (carrier, color_ann) in headers.yarn().clone() {
             final_headers.add_yarn(carrier, color_ann.value, color_ann.annotation);
         }
-        if let Some(m) = machine {
+        if let Some(m) = headers.machine().clone() {
             final_headers.set_machine(m);
         }
-        if let Some(g) = gauge {
+        if let Some(g) = headers.gauge().clone() {
             final_headers.set_gauge(g);
         }
-        if let Some(w) = width {
+        if let Some(w) = headers.width().clone() {
             final_headers.set_width(w);
         }
-        if let Some(p) = position {
+        if let Some(p) = headers.position().clone() {
             final_headers.set_position(p);
         }
-        for (key, val) in unknown {
+        for (key, val) in headers.unknown().clone() {
             final_headers.add_unknown(key, val.value, val.annotation);
         }
 

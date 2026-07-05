@@ -146,8 +146,7 @@ mod tests {
     #[test]
     fn magic_version_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n");
-        let (version, _headers, _ops, _ct) = prog.into_components();
-        match version {
+        match prog.version() {
             Either::Left(ann) => assert_eq!(ann.value, 2),
             Either::Right(_) => panic!("expected version, got Other"),
         }
@@ -156,8 +155,7 @@ mod tests {
     #[test]
     fn magic_version_18() {
         let prog = parse_ok(";!knitout-18\n;;Carriers: A\n");
-        let (version, _, _, _) = prog.into_components();
-        assert_eq!(version.left().unwrap().value, 18);
+        assert_eq!(prog.version().as_ref().left().unwrap().value, 18);
     }
 
     #[test]
@@ -195,8 +193,7 @@ mod tests {
     fn magic_version_span_within_source() {
         let source = ";!knitout-2\n;;Carriers: A\n";
         let (prog, _, _) = parse(source);
-        let (version, _, _, _) = prog.into_components();
-        if let Either::Left(ann) = version {
+        if let Either::Left(ann) = prog.version() {
             let (prefix_span, ver_span) = ann.annotation;
             assert!(span_within(prefix_span, source));
             assert!(span_within(ver_span, source));
@@ -216,36 +213,32 @@ mod tests {
         );
     }
 
-    fn carriers_items(prog: Program<Parsed>) -> Vec<CarrierOrRail<Parsed>> {
-        let (_, headers, _, _) = prog.into_components();
-        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
-        let ann = carriers_field.left().expect("expected carriers");
-        let (items_either, _) = ann.value.into_inner();
-        items_either.left().expect("expected items list")
+    fn carriers_items(prog: &Program<Parsed>) -> Vec<CarrierOrRail<Parsed>> {
+        let ann = prog.headers().carriers().as_ref().left().expect("expected carriers");
+        ann.value.carriers_and_rails().left().expect("expected items list").to_vec()
     }
 
     #[test]
     fn single_carrier_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n");
-        assert_eq!(carriers_items(prog).len(), 1);
+        assert_eq!(carriers_items(&prog).len(), 1);
     }
 
     #[test]
     fn multiple_carriers_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: 1 2 3\n");
-        assert_eq!(carriers_items(prog).len(), 3);
+        assert_eq!(carriers_items(&prog).len(), 3);
     }
 
     #[test]
     fn rail_carrier_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A;B\n");
-        let items = carriers_items(prog);
+        let items = carriers_items(&prog);
         assert_eq!(items.len(), 1);
-        match items.into_iter().next().unwrap() {
+        match &items[0] {
             CarrierOrRail::Rail(rail) => {
-                let (left, right, _) = rail.into_parts();
-                let (left_carriers, _) = left.left().unwrap().into_parts();
-                let (right_carriers, _) = right.left().unwrap().into_parts();
+                let left_carriers = rail.left().as_ref().left().unwrap().carriers();
+                let right_carriers = rail.right().as_ref().left().unwrap().carriers();
                 assert_eq!(left_carriers.len(), 1);
                 assert_eq!(right_carriers.len(), 1);
             }
@@ -256,13 +249,12 @@ mod tests {
     #[test]
     fn multi_carrier_rail_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A,C;B,D\n");
-        let items = carriers_items(prog);
+        let items = carriers_items(&prog);
         assert_eq!(items.len(), 1);
-        match items.into_iter().next().unwrap() {
+        match &items[0] {
             CarrierOrRail::Rail(rail) => {
-                let (left, right, _) = rail.into_parts();
-                let (lc, _) = left.left().unwrap().into_parts();
-                let (rc, _) = right.left().unwrap().into_parts();
+                let lc = rail.left().as_ref().left().unwrap().carriers();
+                let rc = rail.right().as_ref().left().unwrap().carriers();
                 assert_eq!(lc.len(), 2);
                 assert_eq!(rc.len(), 2);
             }
@@ -286,9 +278,7 @@ mod tests {
     #[test]
     fn gauge_header_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Gauge: 15\n");
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, _, gauge, _, _, _) = headers.into_components();
-        let gauge_ann = gauge.expect("expected gauge");
+        let gauge_ann = prog.headers().gauge().as_ref().expect("expected gauge");
         let val = gauge_ann.value.value().left().expect("expected u32");
         assert_eq!(val, 15);
     }
@@ -296,19 +286,15 @@ mod tests {
     #[test]
     fn width_header_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Width: 250\n");
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, _, _, width, _, _) = headers.into_components();
-        let val = width.unwrap().value.value().left().expect("expected u32");
+        let val = prog.headers().width().as_ref().unwrap().value.value().left().expect("expected u32");
         assert_eq!(val, 250);
     }
 
     #[test]
     fn position_left_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Left\n");
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, _, _, _, position, _) = headers.into_components();
         assert!(matches!(
-            position.unwrap().value,
+            prog.headers().position().as_ref().unwrap().value,
             PositionHeaderValue::Left(_)
         ));
     }
@@ -316,10 +302,8 @@ mod tests {
     #[test]
     fn position_center_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Center\n");
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, _, _, _, position, _) = headers.into_components();
         assert!(matches!(
-            position.unwrap().value,
+            prog.headers().position().as_ref().unwrap().value,
             PositionHeaderValue::Center(_)
         ));
     }
@@ -327,10 +311,8 @@ mod tests {
     #[test]
     fn position_right_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Right\n");
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, _, _, _, position, _) = headers.into_components();
         assert!(matches!(
-            position.unwrap().value,
+            prog.headers().position().as_ref().unwrap().value,
             PositionHeaderValue::Right(_)
         ));
     }
@@ -338,10 +320,8 @@ mod tests {
     #[test]
     fn position_keep_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Keep\n");
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, _, _, _, position, _) = headers.into_components();
         assert!(matches!(
-            position.unwrap().value,
+            prog.headers().position().as_ref().unwrap().value,
             PositionHeaderValue::Keep(_)
         ));
     }
@@ -360,15 +340,8 @@ mod tests {
     #[test]
     fn machine_header_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Machine: SWG091N2\n");
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, machine, _, _, _, _) = headers.into_components();
-        let machine = machine.unwrap();
-        let s = machine
-            .value
-            .value()
-            .as_ref()
-            .left()
-            .expect("expected string");
+        let machine = prog.headers().machine().as_ref().unwrap();
+        let s = machine.value.value().as_ref().left().expect("expected string");
         assert_eq!(s, "SWG091N2");
     }
 
@@ -407,8 +380,7 @@ mod tests {
 
     fn get_ops(source: &str) -> Vec<Annotated<Operation<Parsed>, (Span, CommentInfo)>> {
         let prog = parse_ok(source);
-        let (_, _, ops, _) = prog.into_components();
-        ops
+        prog.operations().to_vec()
     }
 
     #[test]
@@ -813,7 +785,7 @@ mod tests {
     #[test]
     fn unrecognized_opcode_produces_other_node() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\nfoobar\n");
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         assert_eq!(ops.len(), 1);
         assert!(matches!(ops[0].value, Operation::Other(_)));
     }
@@ -858,7 +830,7 @@ mod tests {
         // A bad needle index should produce a Needle with Other index, but the
         // enclosing operation should NOT become Other.
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\ndrop fxyz\n");
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         assert_eq!(ops.len(), 1);
         // The op is Drop (not Other), even though the needle index is bad.
         assert!(matches!(
@@ -894,7 +866,7 @@ mod tests {
     #[test]
     fn no_comment_info() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause\n");
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         let (_, comment) = ops[0].annotation;
         assert_eq!(comment, CommentInfo::NoComment);
     }
@@ -902,7 +874,7 @@ mod tests {
     #[test]
     fn plain_comment_info() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ; hello\n");
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         let (_, comment) = ops[0].annotation;
         assert!(matches!(comment, CommentInfo::Comment(_)));
     }
@@ -910,7 +882,7 @@ mod tests {
     #[test]
     fn source_tag_info() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ;!source: myfile.js:5\n");
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         let (_, comment) = ops[0].annotation;
         assert!(matches!(comment, CommentInfo::SourceTag(_)));
     }
@@ -918,7 +890,7 @@ mod tests {
     #[test]
     fn unknown_tag_info() {
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ;!foo\n");
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         let (_, comment) = ops[0].annotation;
         assert!(matches!(comment, CommentInfo::UnknownTag(_)));
     }
@@ -929,7 +901,7 @@ mod tests {
     fn op_span_within_source() {
         let source = ";!knitout-2\n;;Carriers: A\nknit + f5 A\n";
         let (prog, _, _) = parse(source);
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         let (op_span, _) = ops[0].annotation;
         assert!(span_within(op_span, source));
     }
@@ -1074,7 +1046,7 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A\ndrop f5\n";
         let source_bytes = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         match &ops[0].value {
             Operation::BaseOperation(BaseOperation::Drop { needle }) => {
                 let n = needle.as_ref().left().unwrap();
@@ -1096,7 +1068,7 @@ mod tests {
                 .iter()
                 .any(|e| matches!(e, ParseError::BadNeedleIndex(_)))
         );
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         match &ops[0].value {
             Operation::BaseOperation(BaseOperation::Drop { needle }) => {
                 let n = needle.as_ref().left().unwrap();
@@ -1115,7 +1087,7 @@ mod tests {
     fn multiple_ops_in_order() {
         let source = ";!knitout-2\n;;Carriers: A\nin A\nknit + f1 A\nout A\n";
         let prog = parse_ok(source);
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         assert_eq!(ops.len(), 3);
         assert!(matches!(
             ops[0].value,
@@ -1134,7 +1106,7 @@ mod tests {
     #[test]
     fn empty_program_with_only_headers() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Gauge: 7\n");
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         assert!(ops.is_empty());
     }
 
@@ -1143,8 +1115,7 @@ mod tests {
     #[test]
     fn yarn_header_stored() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Yarn-A: 50/50 Wool/Nylon Natural\n");
-        let (_, headers, _, _) = prog.into_components();
-        assert_eq!(headers.yarn().len(), 1);
+        assert_eq!(prog.headers().yarn().len(), 1);
     }
 
     // ─── exact span byte-offset tests ────────────────────────────────────────
@@ -1158,8 +1129,7 @@ mod tests {
         // ver_span    = Span::new(10, 11)                            → "2"
         let source = ";!knitout-2\n;;Carriers: A\n";
         let (prog, _, _) = parse(source);
-        let (version, _, _, _) = prog.into_components();
-        let ann = version.left().unwrap().annotation;
+        let ann = prog.version().as_ref().left().unwrap().annotation;
         let (prefix_span, ver_span) = ann;
         let src = source.as_bytes();
         assert_eq!(
@@ -1181,8 +1151,7 @@ mod tests {
         // ";!knitout-18\n..." — ver is "18" at bytes 10-11
         let source = ";!knitout-18\n;;Carriers: A\n";
         let (prog, _, _) = parse(source);
-        let (version, _, _, _) = prog.into_components();
-        let (prefix_span, ver_span) = version.left().unwrap().annotation;
+        let (prefix_span, ver_span) = prog.version().as_ref().left().unwrap().annotation;
         let src = source.as_bytes();
         assert_eq!(
             &src[prefix_span.start() as usize..prefix_span.end() as usize],
@@ -1215,7 +1184,7 @@ mod tests {
     fn comment_only_line_does_not_produce_operations() {
         // A bare comment line must not produce any operation nodes.
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\n; just a comment\n");
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         assert!(
             ops.is_empty(),
             "comment line should produce no operations, got {ops:?}"
@@ -1235,7 +1204,7 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A\ndrop f5\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         match &ops[0].value {
             Operation::BaseOperation(BaseOperation::Drop { needle }) => {
                 let n = needle.as_ref().left().unwrap();
@@ -1280,7 +1249,7 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A\ndrop fs5\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         match &ops[0].value {
             Operation::BaseOperation(BaseOperation::Drop { needle }) => {
                 let n = needle.as_ref().left().unwrap();
@@ -1320,7 +1289,7 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A\nknit - bs-3 A\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let (_, _, ops, _) = prog.into_components();
+        let ops = prog.operations();
         match &ops[0].value {
             Operation::BaseOperation(BaseOperation::Knit { needle, .. }) => {
                 let n = needle.as_ref().left().unwrap();
@@ -1377,9 +1346,7 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A\n;;Gauge: 15\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, _, gauge, _, _, _) = headers.into_components();
-        let gauge_ann = gauge.expect("expected gauge header");
+        let gauge_ann = prog.headers().gauge().as_ref().expect("expected gauge header");
         let name_span = gauge_ann.annotation; // P::Header = Span
         assert_eq!(
             &src[name_span.start() as usize..name_span.end() as usize],
@@ -1409,9 +1376,7 @@ mod tests {
         // three spaces → trim_offset=3, trim_start=37
         // value_end = 28 + len("Gauge:   15") = 28 + 11 = 39
         let (prog, _, _) = parse(source);
-        let (_, headers, _, _) = prog.into_components();
-        let (_, _, _, gauge, _, _, _) = headers.into_components();
-        let gauge_ann = gauge.expect("expected gauge header");
+        let gauge_ann = prog.headers().gauge().as_ref().expect("expected gauge header");
         let value_span = gauge_ann.value.annotation();
         assert_eq!(
             &src[value_span.start() as usize..value_span.end() as usize],
@@ -1439,11 +1404,8 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A B\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let (_, headers, _, _) = prog.into_components();
-        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
-        let ann = carriers_field.left().unwrap();
-        let (items_either, _) = ann.value.into_inner();
-        let items = items_either.left().unwrap();
+        let ann = prog.headers().carriers().as_ref().left().unwrap();
+        let items = ann.value.carriers_and_rails().left().unwrap();
         assert_eq!(items.len(), 2);
         match &items[0] {
             CarrierOrRail::Carrier(c) => {
@@ -1483,15 +1445,12 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A,C;B,D\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let (_, headers, _, _) = prog.into_components();
-        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
-        let ann = carriers_field.left().unwrap();
-        let (items_either, _) = ann.value.into_inner();
-        let items = items_either.left().unwrap();
+        let ann = prog.headers().carriers().as_ref().left().unwrap();
+        let items = ann.value.carriers_and_rails().left().unwrap();
         assert_eq!(items.len(), 1);
-        match items.into_iter().next().unwrap() {
+        match &items[0] {
             CarrierOrRail::Rail(rail) => {
-                let (left, right, rail_span) = rail.into_parts();
+                let rail_span = *rail.annotation();
                 assert_eq!(
                     &src[rail_span.start() as usize..rail_span.end() as usize],
                     b"A,C;B,D"
@@ -1499,7 +1458,9 @@ mod tests {
                 assert_eq!(rail_span.start(), 24);
                 assert_eq!(rail_span.end(), 31);
 
-                let (left_carriers, left_span) = left.left().unwrap().into_parts();
+                let left_side = rail.left().as_ref().left().unwrap();
+                let left_span = *left_side.annotation();
+                let left_carriers = left_side.carriers();
                 assert_eq!(
                     &src[left_span.start() as usize..left_span.end() as usize],
                     b"A,C"
@@ -1521,7 +1482,9 @@ mod tests {
                 assert_eq!(left_carriers[1].annotation().start(), 26);
                 assert_eq!(left_carriers[1].annotation().end(), 27);
 
-                let (right_carriers, right_span) = right.left().unwrap().into_parts();
+                let right_side = rail.right().as_ref().left().unwrap();
+                let right_span = *right_side.annotation();
+                let right_carriers = right_side.carriers();
                 assert_eq!(
                     &src[right_span.start() as usize..right_span.end() as usize],
                     b"B,D"
@@ -1584,11 +1547,7 @@ mod tests {
         // receives b"A B " (trailing space). The loop must correctly handle
         // ending on a space without accessing text[text.len()].
         let prog = parse_ok(";!knitout-2\n;;Carriers: A B \n");
-        let (_, headers, _, _) = prog.into_components();
-        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
-        let ann = carriers_field.left().unwrap();
-        let (items_either, _) = ann.value.into_inner();
-        let items = items_either.left().unwrap();
+        let items = carriers_items(&prog);
         assert_eq!(items.len(), 2, "expected 2 carriers, got {}", items.len());
     }
 
@@ -1596,11 +1555,7 @@ mod tests {
     fn carriers_with_multiple_trailing_spaces() {
         // Extra trailing whitespace must not cause any panic or extra carriers.
         let prog = parse_ok(";!knitout-2\n;;Carriers: 1 2 3   \n");
-        let (_, headers, _, _) = prog.into_components();
-        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
-        let ann = carriers_field.left().unwrap();
-        let (items_either, _) = ann.value.into_inner();
-        let items = items_either.left().unwrap();
+        let items = carriers_items(&prog);
         assert_eq!(items.len(), 3, "expected 3 carriers, got {}", items.len());
     }
 

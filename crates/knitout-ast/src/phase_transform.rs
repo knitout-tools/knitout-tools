@@ -127,13 +127,10 @@ fn t_my_string<A: Phase, B: Phase, T: PhaseTransform<A, B>>(v: MyString<A>) -> O
 }
 
 fn t_needle<A: Phase, B: Phase, T: PhaseTransform<A, B>>(n: Needle<A>) -> Option<Needle<B>> {
-    // Use into_parts() to consume by value — avoids the spurious `A: Clone` bound
-    // that Bed<A>'s derived Clone impl would require.
-    let (bed, is_slider, index, annotation) = n.into_parts();
-    let bed = t_bed::<A, B, T>(bed)?;
-    let is_slider = t_is_slider::<A, B, T>(is_slider)?;
-    let index = t_my_i32::<A, B, T>(index)?;
-    let annotation = T::transform_needle(annotation);
+    let bed = t_bed::<A, B, T>(n.bed)?;
+    let is_slider = t_is_slider::<A, B, T>(n.is_slider)?;
+    let index = t_my_i32::<A, B, T>(n.index)?;
+    let annotation = T::transform_needle(n.annotation);
     Some(Needle::new(bed, is_slider, index, annotation))
 }
 
@@ -190,28 +187,20 @@ fn t_position_header_value<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 fn t_rail_side<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     rs: RailSide<A>,
 ) -> Option<RailSide<B>> {
-    let (carriers, annotation) = rs.into_parts();
-    let carriers_b: Option<Vec<_>> = carriers
-        .into_iter()
-        .map(|c| Some(t_carrier::<A, B, T>(&c)))
-        .collect();
-    Some(RailSide::new(
-        carriers_b?,
-        T::transform_rail_side(annotation),
-    ))
+    let carriers_b: Vec<_> = rs.carriers.iter().map(|c| t_carrier::<A, B, T>(c)).collect();
+    Some(RailSide::new(carriers_b, T::transform_rail_side(rs.annotation)))
 }
 
 fn t_rail<A: Phase, B: Phase, T: PhaseTransform<A, B>>(r: Rail<A>) -> Option<Rail<B>> {
-    let (left, right, annotation) = r.into_parts();
-    let left_b = match left {
+    let left_b = match r.left {
         Either::Left(rs) => Either::Left(t_rail_side::<A, B, T>(rs)?),
         Either::Right(_) => return None,
     };
-    let right_b = match right {
+    let right_b = match r.right {
         Either::Left(rs) => Either::Left(t_rail_side::<A, B, T>(rs)?),
         Either::Right(_) => return None,
     };
-    Some(Rail::new(left_b, right_b, T::transform_rail(annotation)))
+    Some(Rail::new(left_b, right_b, T::transform_rail(r.annotation)))
 }
 
 fn t_carrier_or_rail<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
@@ -227,20 +216,19 @@ fn t_carrier_or_rail<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 fn t_carriers_header_value<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     v: CarriersHeaderValue<A>,
 ) -> Option<CarriersHeaderValue<B>> {
-    let (inner, annotation) = v.into_inner();
-    let items_b = match inner {
+    let items_b = match v.carriers_and_rails {
         Either::Left(items) => {
-            let v: Option<Vec<_>> = items
+            let mapped: Option<Vec<_>> = items
                 .into_iter()
                 .map(|cor| t_carrier_or_rail::<A, B, T>(cor))
                 .collect();
-            Either::Left(v?)
+            Either::Left(mapped?)
         }
         Either::Right(_) => return None,
     };
     Some(CarriersHeaderValue::new(
         items_b,
-        T::transform_carriers_header_value(annotation),
+        T::transform_carriers_header_value(v.annotation),
     ))
 }
 
@@ -430,9 +418,7 @@ fn t_operation<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 fn t_headers<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     headers: Headers<A>,
 ) -> Option<Headers<B>> {
-    let (carriers, yarn, machine, gauge, width, position, unknown) = headers.into_components();
-
-    let carriers_b = match carriers {
+    let carriers_b = match headers.carriers {
         Either::Left(ann) => Either::Left(Annotated::new(
             t_carriers_header_value::<A, B, T>(ann.value)?,
             T::transform_header(ann.annotation),
@@ -442,7 +428,7 @@ fn t_headers<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 
     let mut headers_b = Headers::new(carriers_b);
 
-    for (carrier, color_ann) in yarn {
+    for (carrier, color_ann) in headers.yarn {
         let carrier_b = t_carrier::<A, B, T>(&carrier);
         let color_b = t_my_string::<A, B, T>(color_ann.value)?;
         headers_b.add_yarn(
@@ -452,35 +438,35 @@ fn t_headers<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         );
     }
 
-    if let Some(machine_ann) = machine {
+    if let Some(machine_ann) = headers.machine {
         let machine_b = t_my_string::<A, B, T>(machine_ann.value)?;
         headers_b.set_machine(Annotated::new(
             machine_b,
             T::transform_header(machine_ann.annotation),
         ));
     }
-    if let Some(gauge_ann) = gauge {
+    if let Some(gauge_ann) = headers.gauge {
         let gauge_b = t_my_u32::<A, B, T>(gauge_ann.value)?;
         headers_b.set_gauge(Annotated::new(
             gauge_b,
             T::transform_header(gauge_ann.annotation),
         ));
     }
-    if let Some(width_ann) = width {
+    if let Some(width_ann) = headers.width {
         let width_b = t_my_u32::<A, B, T>(width_ann.value)?;
         headers_b.set_width(Annotated::new(
             width_b,
             T::transform_header(width_ann.annotation),
         ));
     }
-    if let Some(pos_ann) = position {
+    if let Some(pos_ann) = headers.position {
         let pos_b = t_position_header_value::<A, B, T>(pos_ann.value)?;
         headers_b.set_position(Annotated::new(
             pos_b,
             T::transform_header(pos_ann.annotation),
         ));
     }
-    for (key, value_ann) in unknown {
+    for (key, value_ann) in headers.unknown {
         headers_b.add_unknown(
             key,
             value_ann.value,
@@ -500,9 +486,7 @@ where
     B: Phase,
     T: PhaseTransform<A, B>,
 {
-    let (version, headers, operations, carrier_table) = prog.into_components();
-
-    let version_b = match version {
+    let version_b = match prog.version {
         Either::Left(ann) => Either::Left(Annotated::new(
             ann.value,
             T::transform_magic_version(ann.annotation),
@@ -510,11 +494,11 @@ where
         Either::Right(_) => return None,
     };
 
-    let headers_b = t_headers::<A, B, T>(headers)?;
+    let headers_b = t_headers::<A, B, T>(prog.headers)?;
 
-    let mut prog_b = Program::new(version_b, headers_b, carrier_table);
+    let mut prog_b = Program::new(version_b, headers_b, prog.carrier_table);
 
-    for op_ann in operations {
+    for op_ann in prog.operations {
         let op_b = t_operation::<A, B, T>(op_ann.value)?;
         prog_b.push_operation(Annotated::new(
             op_b,

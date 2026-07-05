@@ -21,14 +21,13 @@ use crate::{
 #[derive(Debug, PartialEq, Eq)]
 pub struct Program<P: Phase> {
     /// The ;!knitout-`version` at the top
-    version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
+    pub(crate) version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
     /// The headers
-    headers: Headers<P>,
+    pub(crate) headers: Headers<P>,
     /// The operations, with attached provenance
-    operations: Vec<Annotated<Operation<P>, P::Operation>>,
-
+    pub(crate) operations: Vec<Annotated<Operation<P>, P::Operation>>,
     /// The carrier naming table
-    carrier_table: CarrierTable,
+    pub(crate) carrier_table: CarrierTable,
 }
 
 impl<P: Phase> Program<P> {

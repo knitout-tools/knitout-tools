@@ -12,8 +12,8 @@ use crate::{
 /// The value of the `Carriers:` header, which is a list of carriers and rails.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct CarriersHeaderValue<P: Phase> {
-    carriers_and_rails: Either<Vec<CarrierOrRail<P>>, P::Other>,
-    annotation: P::CarriersHeaderValue,
+    pub(crate) carriers_and_rails: Either<Vec<CarrierOrRail<P>>, P::Other>,
+    pub(crate) annotation: P::CarriersHeaderValue,
 }
 
 impl<P: Phase> CarriersHeaderValue<P> {
@@ -50,9 +50,9 @@ pub enum CarrierOrRail<P: Phase> {
 /// A rail, which has a left and right side, each of which has a list of carriers.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Rail<P: Phase> {
-    left: Either<RailSide<P>, P::Other>,
-    right: Either<RailSide<P>, P::Other>,
-    annotation: P::Rail,
+    pub(crate) left: Either<RailSide<P>, P::Other>,
+    pub(crate) right: Either<RailSide<P>, P::Other>,
+    pub(crate) annotation: P::Rail,
 }
 
 impl<P: Phase> Rail<P> {
@@ -84,8 +84,8 @@ impl<P: Phase> Rail<P> {
 /// The left or right side of a rail, which has an ordered list of carriers separated by commas.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RailSide<P: Phase> {
-    carriers: Vec<Carrier<P>>,
-    annotation: P::RailSide,
+    pub(crate) carriers: Vec<Carrier<P>>,
+    pub(crate) annotation: P::RailSide,
 }
 
 impl<P: Phase> RailSide<P> {
@@ -131,19 +131,19 @@ impl Display for PositionHeaderValue<Validated> {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Headers<P: Phase> {
     /// Carriers: value
-    carriers: Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>,
+    pub(crate) carriers: Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>,
     /// Yarn-C: header values, stored as a key-value vector
-    yarn: IndexMap<Carrier<P>, Annotated<MyString<P>, P::Header>>,
+    pub(crate) yarn: IndexMap<Carrier<P>, Annotated<MyString<P>, P::Header>>,
     /// Machine: value
-    machine: Option<Annotated<MyString<P>, P::Header>>,
+    pub(crate) machine: Option<Annotated<MyString<P>, P::Header>>,
     /// Gauge: value
-    gauge: Option<Annotated<MyU32<P>, P::Header>>,
+    pub(crate) gauge: Option<Annotated<MyU32<P>, P::Header>>,
     /// Width: value
-    width: Option<Annotated<MyU32<P>, P::Header>>,
+    pub(crate) width: Option<Annotated<MyU32<P>, P::Header>>,
     /// Position: value
-    position: Option<Annotated<PositionHeaderValue<P>, P::Header>>,
+    pub(crate) position: Option<Annotated<PositionHeaderValue<P>, P::Header>>,
     /// Unknown extension headers. The leading "X-" is included in the key.
-    unknown: IndexMap<String, Annotated<String, P::UnknownHeader>>,
+    pub(crate) unknown: IndexMap<String, Annotated<String, P::UnknownHeader>>,
 }
 
 impl<P: Phase> Headers<P> {
