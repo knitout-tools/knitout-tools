@@ -1474,6 +1474,32 @@ mod tests {
         }
     }
 
+    // ─── header without colon ────────────────────────────────────────────────
+
+    #[test]
+    fn gauge_header_without_colon_emits_bad_u32_with_correct_span() {
+        // ";;Gauge" — no colon, so the whole content is the name and value is empty.
+        // Byte layout for ";!knitout-2\n;;Carriers: A\n;;Gauge\n":
+        //   0-11:  ";!knitout-2\n"
+        //   12-25: ";;Carriers: A\n"
+        //   26-33: ";;Gauge\n"
+        //     26=;, 27=;, 28=G, 29=a, 30=u, 31=g, 32=e, 33=\n
+        // content_start=28, content_text.len()=5
+        // No colon → value_start = content_start + len = 28 + 5 = 33
+        // Empty value → value_span = Span::new(33, 33)
+        // BadU32 should reference that zero-length span at the end of the header.
+        let source = ";!knitout-2\n;;Carriers: A\n;;Gauge\n";
+        let (_, _, errors) = parse(source);
+        let bad_u32 = errors
+            .iter()
+            .find(|e| matches!(e, ParseError::BadU32(_)))
+            .expect("expected BadU32 error for headerless Gauge");
+        if let ParseError::BadU32(span) = bad_u32 {
+            assert_eq!(span.start(), 33, "value span start should be at end of 'Gauge'");
+            assert_eq!(span.end(), 33, "value span end should be at end of 'Gauge'");
+        }
+    }
+
     // ─── validated operation provenance ──────────────────────────────────────
 
     #[test]
