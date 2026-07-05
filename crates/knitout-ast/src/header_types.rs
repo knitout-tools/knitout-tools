@@ -136,7 +136,7 @@ pub enum PositionHeaderValue<P: Phase> {
     Center(P::PositionHeaderValue),
     Right(P::PositionHeaderValue),
     Keep(P::PositionHeaderValue),
-    Other(P::Other),
+    Other(P::PositionHeaderValue, P::Other),
 }
 
 impl Display for PositionHeaderValue<Validated> {
@@ -146,7 +146,7 @@ impl Display for PositionHeaderValue<Validated> {
             PositionHeaderValue::Center(_) => write!(f, "Center"),
             PositionHeaderValue::Right(_) => write!(f, "Right"),
             PositionHeaderValue::Keep(_) => write!(f, "Keep"),
-            PositionHeaderValue::Other(x) => match *x {},
+            PositionHeaderValue::Other(_, x) => match *x {},
         }
     }
 }
@@ -395,7 +395,7 @@ mod tests {
         let mut header = Headers::<Validated>::new(Either::Left(carriers.clone()));
         assert_eq!(header.carriers().as_ref(), Either::Left(&carriers));
 
-        let color = MyString::new(Either::Left(Annotated::unit("Red".to_string())));
+        let color = MyString::new(Either::Left("Red".to_string()), ());
         header.add_yarn(carrier_a, color.clone(), ());
         assert_eq!(
             header.yarn().get(&carrier_a),
@@ -403,19 +403,19 @@ mod tests {
         );
 
         header.set_machine(Annotated::new(
-            MyString::new(Either::Left(Annotated::unit("MyMachine".to_string()))),
+            MyString::new(Either::Left("MyMachine".to_string()), ()),
             (),
         ));
         assert!(header.machine().is_some());
 
         header.set_gauge(Annotated::new(
-            MyU32::new(Either::Left(Annotated::unit(10u32))),
+            MyU32::new(Either::Left(10u32), ()),
             (),
         ));
         assert!(header.gauge().is_some());
 
         header.set_width(Annotated::new(
-            MyU32::new(Either::Left(Annotated::unit(20u32))),
+            MyU32::new(Either::Left(20u32), ()),
             (),
         ));
         assert!(header.width().is_some());

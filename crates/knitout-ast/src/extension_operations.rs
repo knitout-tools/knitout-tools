@@ -79,7 +79,7 @@ pub enum PresserMode<P: Phase> {
     Off(P::PresserMode),
     Auto(P::PresserMode),
     On(P::PresserMode),
-    Other(P::Other),
+    Other(P::PresserMode, P::Other),
 }
 
 impl Display for PresserMode<Validated> {
@@ -88,7 +88,7 @@ impl Display for PresserMode<Validated> {
             PresserMode::Off(_) => write!(f, "Off"),
             PresserMode::Auto(_) => write!(f, "Auto"),
             PresserMode::On(_) => write!(f, "On"),
-            PresserMode::Other(x) => match *x {},
+            PresserMode::Other(_, x) => match *x {},
         }
     }
 }
@@ -98,7 +98,7 @@ impl Display for PresserMode<Validated> {
 pub enum XferStyle<P: Phase> {
     FourPass(P::XferStyle),
     TwoPass(P::XferStyle),
-    Other(P::Other),
+    Other(P::PresserMode, P::Other),
 }
 
 impl Display for XferStyle<Validated> {
@@ -106,7 +106,7 @@ impl Display for XferStyle<Validated> {
         match self {
             XferStyle::FourPass(_) => write!(f, "FourPass"),
             XferStyle::TwoPass(_) => write!(f, "TwoPass"),
-            XferStyle::Other(x) => match *x {},
+            XferStyle::Other(_, x) => match *x {},
         }
     }
 }
