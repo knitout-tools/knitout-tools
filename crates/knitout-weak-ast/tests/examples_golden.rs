@@ -21,7 +21,7 @@ use knitout_weak_ast::{cst_to_program, parsed_to_valid};
 /// zstd level used when (re-)writing goldens. Only affects committed file size and regeneration
 /// time, never the comparison (which decompresses first). Kept low so regeneration stays fast; the
 /// corpus is repetitive enough that even a low level compresses it dramatically.
-const ZSTD_LEVEL: i32 = 3;
+const ZSTD_LEVEL: i32 = 1;
 
 fn golden_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden")
