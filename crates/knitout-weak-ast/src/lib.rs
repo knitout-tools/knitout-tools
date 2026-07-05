@@ -1009,6 +1009,27 @@ mod tests {
     }
 
     #[test]
+    fn bad_carrier_name_becomes_other_and_blocks_validation() {
+        // An empty carrier name in a Yarn header is illegal; it must surface as an `Other`
+        // node (not a bogus Carrier) and therefore block conversion to Validated.
+        let (prog, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Yarn-: red\n");
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadCarrierName(_))),
+            "expected BadCarrierName, got {errors:?}"
+        );
+        assert!(
+            prog.headers().yarn().keys().any(|k| k.is_right()),
+            "expected the yarn key to be an Other node"
+        );
+        assert!(
+            parsed_to_valid(prog).is_none(),
+            "a bad carrier name must block validation"
+        );
+    }
+
+    #[test]
     fn missing_magic_program_does_not_convert() {
         let (prog, _, _) = parse(";;Carriers: A\n");
         let validated = parsed_to_valid(prog);
@@ -1439,19 +1460,51 @@ mod tests {
                 assert_eq!(left_span.start(), 24);
                 assert_eq!(left_span.end(), 27);
                 assert_eq!(
-                    &src[left_carriers[0].annotation().start()
-                        ..left_carriers[0].annotation().end()],
+                    &src[left_carriers[0]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .start()
+                        ..left_carriers[0].as_ref().left().unwrap().annotation().end()],
                     b"A"
                 );
-                assert_eq!(left_carriers[0].annotation().start(), 24);
-                assert_eq!(left_carriers[0].annotation().end(), 25);
                 assert_eq!(
-                    &src[left_carriers[1].annotation().start()
-                        ..left_carriers[1].annotation().end()],
+                    left_carriers[0]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .start(),
+                    24
+                );
+                assert_eq!(
+                    left_carriers[0].as_ref().left().unwrap().annotation().end(),
+                    25
+                );
+                assert_eq!(
+                    &src[left_carriers[1]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .start()
+                        ..left_carriers[1].as_ref().left().unwrap().annotation().end()],
                     b"C"
                 );
-                assert_eq!(left_carriers[1].annotation().start(), 26);
-                assert_eq!(left_carriers[1].annotation().end(), 27);
+                assert_eq!(
+                    left_carriers[1]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .start(),
+                    26
+                );
+                assert_eq!(
+                    left_carriers[1].as_ref().left().unwrap().annotation().end(),
+                    27
+                );
 
                 let right_side = rail.right().as_ref().left().unwrap();
                 let right_span = *right_side.annotation();
@@ -1460,19 +1513,71 @@ mod tests {
                 assert_eq!(right_span.start(), 28);
                 assert_eq!(right_span.end(), 31);
                 assert_eq!(
-                    &src[right_carriers[0].annotation().start()
-                        ..right_carriers[0].annotation().end()],
+                    &src[right_carriers[0]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .start()
+                        ..right_carriers[0]
+                            .as_ref()
+                            .left()
+                            .unwrap()
+                            .annotation()
+                            .end()],
                     b"B"
                 );
-                assert_eq!(right_carriers[0].annotation().start(), 28);
-                assert_eq!(right_carriers[0].annotation().end(), 29);
                 assert_eq!(
-                    &src[right_carriers[1].annotation().start()
-                        ..right_carriers[1].annotation().end()],
+                    right_carriers[0]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .start(),
+                    28
+                );
+                assert_eq!(
+                    right_carriers[0]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .end(),
+                    29
+                );
+                assert_eq!(
+                    &src[right_carriers[1]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .start()
+                        ..right_carriers[1]
+                            .as_ref()
+                            .left()
+                            .unwrap()
+                            .annotation()
+                            .end()],
                     b"D"
                 );
-                assert_eq!(right_carriers[1].annotation().start(), 30);
-                assert_eq!(right_carriers[1].annotation().end(), 31);
+                assert_eq!(
+                    right_carriers[1]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .start(),
+                    30
+                );
+                assert_eq!(
+                    right_carriers[1]
+                        .as_ref()
+                        .left()
+                        .unwrap()
+                        .annotation()
+                        .end(),
+                    31
+                );
             }
             other => panic!("expected Rail, got {other:?}"),
         }

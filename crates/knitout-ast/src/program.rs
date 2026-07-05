@@ -259,7 +259,7 @@ mod tests {
                     MyI32::new(Either::Left(5i32), ()),
                     (),
                 )),
-                carriers: vec![carrier_a],
+                carriers: vec![Either::Left(carrier_a)],
             }),
             Provenance::default(),
         ));
@@ -302,7 +302,7 @@ mod tests {
                     MyI32::new(Either::Left(5i32), ()),
                     (),
                 )),
-                carriers: vec![carrier_a],
+                carriers: vec![Either::Left(carrier_a)],
             }),
             Provenance::new(Some(Span::new(1, 1)), None),
         ));

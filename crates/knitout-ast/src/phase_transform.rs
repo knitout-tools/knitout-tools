@@ -58,6 +58,15 @@ fn t_carrier<A: Phase, B: Phase, T: PhaseTransform<A, B>>(c: Carrier<A>) -> Carr
     Carrier::new(c.id, T::transform_carrier(c.annotation), c.table_id)
 }
 
+fn t_carrier_either<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
+    c: Either<Carrier<A>, A::Other>,
+) -> Option<Either<Carrier<B>, B::Other>> {
+    match c {
+        Either::Left(carrier) => Some(Either::Left(t_carrier::<A, B, T>(carrier))),
+        Either::Right(_) => None,
+    }
+}
+
 fn t_direction<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     d: Direction<A>,
 ) -> Option<Direction<B>> {
@@ -187,11 +196,7 @@ fn t_position_header_value<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 fn t_rail_side<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     rs: RailSide<A>,
 ) -> Option<RailSide<B>> {
-    let carriers_b: Vec<_> = rs
-        .carriers
-        .into_iter()
-        .map(|c| t_carrier::<A, B, T>(c))
-        .collect();
+    let carriers_b = t_carriers::<A, B, T>(rs.carriers)?;
     Some(RailSide::new(
         carriers_b,
         T::transform_rail_side(rs.annotation),
@@ -240,11 +245,11 @@ fn t_carriers_header_value<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 }
 
 fn t_carriers<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
-    carriers: Vec<Carrier<A>>,
-) -> Vec<Carrier<B>> {
+    carriers: Vec<Either<Carrier<A>, A::Other>>,
+) -> Option<Vec<Either<Carrier<B>, B::Other>>> {
     carriers
         .into_iter()
-        .map(|c| t_carrier::<A, B, T>(c))
+        .map(|c| t_carrier_either::<A, B, T>(c))
         .collect()
 }
 
@@ -253,19 +258,19 @@ fn t_base_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 ) -> Option<BaseOperation<B>> {
     Some(match op {
         BaseOperation::In { carriers } => BaseOperation::In {
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Inhook { carriers } => BaseOperation::Inhook {
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Releasehook { carriers } => BaseOperation::Releasehook {
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Out { carriers } => BaseOperation::Out {
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Outhook { carriers } => BaseOperation::Outhook {
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Stitch {
             before_pull,
@@ -284,7 +289,7 @@ fn t_base_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         } => BaseOperation::Knit {
             direction: t_direction::<A, B, T>(direction)?,
             needle: t_needle_either::<A, B, T>(needle)?,
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Tuck {
             direction,
@@ -293,7 +298,7 @@ fn t_base_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         } => BaseOperation::Tuck {
             direction: t_direction::<A, B, T>(direction)?,
             needle: t_needle_either::<A, B, T>(needle)?,
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Miss {
             direction,
@@ -302,7 +307,7 @@ fn t_base_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         } => BaseOperation::Miss {
             direction: t_direction::<A, B, T>(direction)?,
             needle: t_needle_either::<A, B, T>(needle)?,
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Split {
             direction,
@@ -313,7 +318,7 @@ fn t_base_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
             direction: t_direction::<A, B, T>(direction)?,
             source: t_needle_either::<A, B, T>(source)?,
             destination: t_needle_either::<A, B, T>(destination)?,
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         BaseOperation::Pause => BaseOperation::Pause,
         BaseOperation::Drop { needle } => BaseOperation::Drop {
@@ -354,7 +359,7 @@ fn t_extension_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         ExtensionOperation::XEndPass => ExtensionOperation::XEndPass,
         ExtensionOperation::XVisColor { color, carriers } => ExtensionOperation::XVisColor {
             color: t_my_string::<A, B, T>(color)?,
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         ExtensionOperation::XLoopIn {
             direction,
@@ -363,7 +368,7 @@ fn t_extension_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         } => ExtensionOperation::XLoopIn {
             direction: t_direction::<A, B, T>(direction)?,
             needle: t_needle_either::<A, B, T>(needle)?,
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         ExtensionOperation::XYarnIn {
             direction,
@@ -372,7 +377,7 @@ fn t_extension_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         } => ExtensionOperation::XYarnIn {
             direction: t_direction::<A, B, T>(direction)?,
             needle: t_needle_either::<A, B, T>(needle)?,
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         ExtensionOperation::XYarnOut {
             direction,
@@ -381,7 +386,7 @@ fn t_extension_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         } => ExtensionOperation::XYarnOut {
             direction: t_direction::<A, B, T>(direction)?,
             needle: t_needle_either::<A, B, T>(needle)?,
-            carriers: t_carriers::<A, B, T>(carriers),
+            carriers: t_carriers::<A, B, T>(carriers)?,
         },
         ExtensionOperation::XEnd => ExtensionOperation::XEnd,
         ExtensionOperation::XRollerAdvance { value } => ExtensionOperation::XRollerAdvance {
@@ -439,7 +444,7 @@ fn t_headers<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     let mut headers_b = Headers::new(carriers_b);
 
     for (carrier, color_ann) in headers.yarn {
-        let carrier_b = t_carrier::<A, B, T>(carrier);
+        let carrier_b = t_carrier_either::<A, B, T>(carrier)?;
         let color_b = t_my_string::<A, B, T>(color_ann.value)?;
         headers_b.add_yarn(
             carrier_b,

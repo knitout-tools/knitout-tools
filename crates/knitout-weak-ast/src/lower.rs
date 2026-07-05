@@ -109,17 +109,23 @@ impl<'src> LowerCtx<'src> {
         }
     }
 
-    fn make_carrier(&mut self, name: &str, span: Span) -> knitout_ast::Carrier<Parsed> {
-        if name.is_empty() {
-            self.errors.push(ParseError::BadCarrierName(span));
-        }
-        if name
-            .chars()
-            .any(|c| c.is_whitespace() || c == ';' || c == ',')
+    /// Creates a carrier from a name token. If the name is illegal (empty, or containing
+    /// whitespace, `;`, or `,`), pushes a `BadCarrierName` error and returns `Either::Right(span)`
+    /// so the carrier surfaces as an `Other` node rather than a bogus `Carrier`.
+    fn make_carrier(
+        &mut self,
+        name: &str,
+        span: Span,
+    ) -> Either<knitout_ast::Carrier<Parsed>, Span> {
+        if name.is_empty()
+            || name
+                .chars()
+                .any(|c| c.is_whitespace() || c == ';' || c == ',')
         {
             self.errors.push(ParseError::BadCarrierName(span));
+            return Either::Right(span);
         }
-        self.carrier_table.make_carrier(name, span)
+        Either::Left(self.carrier_table.make_carrier(name, span))
     }
 
     // ── header helpers ────────────────────────────────────────────────────────
@@ -412,8 +418,12 @@ impl<'src> LowerCtx<'src> {
                             )));
                         } else {
                             // Single carrier. We're sure the token is nonempty
-                            let carrier = self.make_carrier(token, token_span);
-                            items.push(CarrierOrRail::Carrier(carrier));
+                            match self.make_carrier(token, token_span) {
+                                Either::Left(carrier) => {
+                                    items.push(CarrierOrRail::Carrier(carrier))
+                                }
+                                Either::Right(span) => items.push(CarrierOrRail::Other(span)),
+                            }
                         }
                     }
                 }
@@ -438,8 +448,7 @@ impl<'src> LowerCtx<'src> {
             pos += part_len + 1; // +1 for ','
 
             if !part.is_empty() {
-                let carrier = self.make_carrier(part, part_span);
-                carriers.push(carrier);
+                carriers.push(self.make_carrier(part, part_span));
             }
         }
 
@@ -588,7 +597,11 @@ impl<'src> LowerCtx<'src> {
         MyString::new(Either::Left(text.to_owned()), span)
     }
 
-    fn parse_carrier(&mut self, text: &str, span: Span) -> knitout_ast::Carrier<Parsed> {
+    fn parse_carrier(
+        &mut self,
+        text: &str,
+        span: Span,
+    ) -> Either<knitout_ast::Carrier<Parsed>, Span> {
         self.make_carrier(text.trim(), span)
     }
 
@@ -672,7 +685,7 @@ impl<'src> LowerCtx<'src> {
         &mut self,
         args: &[(Span, &str)],
         from: usize,
-    ) -> Vec<knitout_ast::Carrier<Parsed>> {
+    ) -> Vec<Either<knitout_ast::Carrier<Parsed>, Span>> {
         args[from.min(args.len())..]
             .iter()
             .map(|&(span, text)| self.parse_carrier(text, span))

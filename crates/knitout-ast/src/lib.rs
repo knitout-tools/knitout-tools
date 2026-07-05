@@ -10,7 +10,8 @@ mod provenance;
 pub use base_operations::BaseOperation;
 pub use extension_operations::{ExtensionOperation, PresserMode, XferStyle};
 pub use header_types::{
-    CarrierOrRail, CarriersHeaderValue, Headers, PositionHeaderValue, Rail, RailSide,
+    CarrierOrRail, CarriersHeaderValue, Headers, MaybeCarrier, PositionHeaderValue, Rail, RailSide,
+    YarnMap,
 };
 pub use knitting_types::{
     Bed, Carrier, Direction, IsSlider, MyBigDecimal, MyI32, MyString, MyU32, Needle,

@@ -9,6 +9,12 @@ use crate::{
     program::{CarrierTable, DisplayCarrierTable},
 };
 
+/// A carrier that may instead be an `Other` node (e.g. a token with an illegal carrier name).
+pub type MaybeCarrier<P> = Either<Carrier<P>, <P as Phase>::Other>;
+
+/// The `Yarn-C:` headers, keyed by carrier (which may be `Other` if the name was illegal).
+pub type YarnMap<P> = IndexMap<MaybeCarrier<P>, Annotated<MyString<P>, <P as Phase>::Header>>;
+
 /// The value of the `Carriers:` header, which is a list of carriers and rails.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct CarriersHeaderValue<P: Phase> {
@@ -84,19 +90,19 @@ impl<P: Phase> Rail<P> {
 /// The left or right side of a rail, which has an ordered list of carriers separated by commas.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RailSide<P: Phase> {
-    pub(crate) carriers: Vec<Carrier<P>>,
+    pub(crate) carriers: Vec<MaybeCarrier<P>>,
     pub(crate) annotation: P::RailSide,
 }
 
 impl<P: Phase> RailSide<P> {
-    pub fn new(carriers: Vec<Carrier<P>>, annotation: P::RailSide) -> Self {
+    pub fn new(carriers: Vec<MaybeCarrier<P>>, annotation: P::RailSide) -> Self {
         Self {
             carriers,
             annotation,
         }
     }
 
-    pub fn carriers(&self) -> &[Carrier<P>] {
+    pub fn carriers(&self) -> &[MaybeCarrier<P>] {
         &self.carriers
     }
 
@@ -133,7 +139,7 @@ pub struct Headers<P: Phase> {
     /// Carriers: value
     pub(crate) carriers: Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>,
     /// Yarn-C: header values, stored as a key-value vector
-    pub(crate) yarn: IndexMap<Carrier<P>, Annotated<MyString<P>, P::Header>>,
+    pub(crate) yarn: YarnMap<P>,
     /// Machine: value
     pub(crate) machine: Option<Annotated<MyString<P>, P::Header>>,
     /// Gauge: value
@@ -164,7 +170,7 @@ impl<P: Phase> Headers<P> {
         &self.carriers
     }
 
-    pub fn yarn(&self) -> &IndexMap<Carrier<P>, Annotated<MyString<P>, P::Header>> {
+    pub fn yarn(&self) -> &YarnMap<P> {
         &self.yarn
     }
 
@@ -197,7 +203,7 @@ impl<P: Phase> Headers<P> {
 
     pub fn add_yarn(
         &mut self,
-        carrier: Carrier<P>,
+        carrier: MaybeCarrier<P>,
         color: MyString<P>,
         annotation: P::Header,
     ) -> Option<Annotated<MyString<P>, P::Header>> {
@@ -249,7 +255,7 @@ impl DisplayCarrierTable for Headers<Validated> {
         writeln!(f)?;
         for (carrier, color) in &self.yarn {
             write!(f, ";;Yarn-")?;
-            carrier.fmt_table(f, table)?;
+            valid(carrier).fmt_table(f, table)?;
             writeln!(f, ": {}", color.value)?;
         }
         if let Some(machine) = &self.machine {
@@ -306,7 +312,7 @@ impl DisplayCarrierTable for RailSide<Validated> {
             if i > 0 {
                 write!(f, ",")?;
             }
-            carrier.fmt_table(f, table)?;
+            valid(carrier).fmt_table(f, table)?;
         }
         Ok(())
     }
@@ -356,9 +362,9 @@ mod tests {
         assert_eq!(header.carriers().as_ref(), Either::Left(&carriers));
 
         let color = MyString::new(Either::Left("Red".to_string()), ());
-        header.add_yarn(carrier_a, color.clone(), ());
+        header.add_yarn(Either::Left(carrier_a), color.clone(), ());
         assert_eq!(
-            header.yarn().get(&carrier_a),
+            header.yarn().get(&Either::Left(carrier_a)),
             Some(&Annotated::new(color, ()))
         );
 
@@ -393,10 +399,13 @@ mod tests {
         let carrier1: Carrier<Validated> = table.make_carrier("A", ());
         let carrier2: Carrier<Validated> = table.make_carrier("B", ());
         let rail_side = RailSide {
-            carriers: vec![carrier1, carrier2],
+            carriers: vec![Either::Left(carrier1), Either::Left(carrier2)],
             annotation: (),
         };
-        assert_eq!(rail_side.carriers(), &[carrier1, carrier2]);
+        assert_eq!(
+            rail_side.carriers(),
+            &[Either::Left(carrier1), Either::Left(carrier2)]
+        );
     }
 
     // A throwaway wrapper so we can drive a real Formatter through the standard machinery.
@@ -425,7 +434,7 @@ mod tests {
         let carrier1 = table.make_carrier("A", ());
         let carrier2 = table.make_carrier("B", ());
         let rail_side = RailSide {
-            carriers: vec![carrier1, carrier2],
+            carriers: vec![Either::Left(carrier1), Either::Left(carrier2)],
             annotation: (),
         };
         assert_eq!(render_rail_side(rail_side, &table), "A,B");
@@ -460,11 +469,11 @@ mod tests {
         let carrier1 = table.make_carrier("A", ());
         let carrier2 = table.make_carrier("B", ());
         let rail_side_left = RailSide {
-            carriers: vec![carrier1],
+            carriers: vec![Either::Left(carrier1)],
             annotation: (),
         };
         let rail_side_right = RailSide {
-            carriers: vec![carrier2],
+            carriers: vec![Either::Left(carrier2)],
             annotation: (),
         };
         let rail = Rail {

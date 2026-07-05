@@ -31,22 +31,22 @@ pub enum ExtensionOperation<P: Phase> {
     XEndPass,
     XVisColor {
         color: MyString<P>,
-        carriers: Vec<Carrier<P>>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     XLoopIn {
         direction: Direction<P>,
         needle: Either<Needle<P>, P::Other>,
-        carriers: Vec<Carrier<P>>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     XYarnIn {
         direction: Direction<P>,
         needle: Either<Needle<P>, P::Other>,
-        carriers: Vec<Carrier<P>>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     XYarnOut {
         direction: Direction<P>,
         needle: Either<Needle<P>, P::Other>,
-        carriers: Vec<Carrier<P>>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     XEnd,
     XRollerAdvance {
