@@ -1,19 +1,25 @@
 use std::fmt::{Formatter, Result};
 
 use either::Either;
-use serde::{Deserialize, Serialize};
 
 use crate::phase::Never;
 use crate::{
     knitting_types::{Carrier, Direction, MyBigDecimal, Needle},
-    phase::{Phase, SerdePhase, Validated, valid},
+    phase::{Phase, Validated, valid},
     program::{CarrierTable, DisplayCarrierTable},
 };
 
 /// A basic knitout operation. Excludes extension operations, which are a different enum. Also
 /// excludes syntactic sugar operations; faux constructors are provided.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum BaseOperation<P: Phase> {
     In {
         carriers: Vec<Either<Carrier<P>, P::Other>>,

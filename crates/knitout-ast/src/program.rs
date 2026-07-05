@@ -8,19 +8,25 @@ use std::sync::atomic::{AtomicU32, Ordering};
 static NEXT_CARRIER_TABLE_ID: AtomicU32 = AtomicU32::new(0);
 
 use either::Either;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     Carrier,
     base_operations::BaseOperation,
     extension_operations::ExtensionOperation,
     header_types::Headers,
-    phase::{Annotated, Phase, SerdePhase, Validated, valid},
+    phase::{Annotated, Phase, Validated, valid},
 };
 
 /// A knitout program, complete with headers and magic string
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct Program<P: Phase> {
     /// The ;!knitout-`version` at the top
     pub(crate) version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
@@ -82,15 +88,16 @@ impl<P: Phase> Program<P> {
 /// value. Both are excluded so serialized output is deterministic, and both default to
 /// empty/`0` on deserialization (which keeps a deserialized table's `id` in sync with its
 /// carriers' skipped `table_id`, so name lookups still work).
-#[derive(Eq, Debug, Serialize, Deserialize)]
+#[derive(Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CarrierTable {
     /// The map from carrier u32 IDs to their names in the source
     id_to_name: Vec<String>,
     /// The reverse map, taking a name and returning the carrier ID if it exists
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     name_to_id: HashMap<String, u32>,
     /// A unique ID for this carrier table, passed along to its carriers
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     id: u32,
 }
 
@@ -148,8 +155,15 @@ impl CarrierTable {
 }
 
 /// An operation in a knitout program: either a base operation or an extension operation
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum Operation<P: Phase> {
     BaseOperation(BaseOperation<P>),
     ExtensionOperation(ExtensionOperation<P>),
