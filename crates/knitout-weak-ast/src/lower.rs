@@ -244,7 +244,7 @@ impl<'src> LowerCtx<'src> {
         let value_str = &content_text[colon_pos + 1..];
 
         // Trim leading whitespace from value
-        let value_trimmed = value_str.trim_start_matches(|c| c == ' ' || c == '\t');
+        let value_trimmed = value_str.trim_start_matches([' ', '\t']);
         let value_trimmed_offset = value_str.len() - value_trimmed.len();
         let value_trim_start = content_start + colon_pos + 1 + value_trimmed_offset;
         let value_end = content_span.end();
