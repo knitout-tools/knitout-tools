@@ -134,9 +134,7 @@ impl Display for IsSlider<Validated> {
 pub struct Needle<P: Phase> {
     bed: Bed<P>,
     is_slider: IsSlider<P>,
-    /// The index is wrapped in Either so that a parse error in just the index part does not
-    /// force the whole needle to become Other.
-    index: Either<Annotated<i32, P::Index>, P::Other>,
+    index: MyI32<P>,
     annotation: P::Needle,
 }
 
@@ -144,7 +142,7 @@ impl<P: Phase> Needle<P> {
     pub fn new(
         bed: Bed<P>,
         is_slider: IsSlider<P>,
-        index: Either<Annotated<i32, P::Index>, P::Other>,
+        index: MyI32<P>,
         annotation: P::Needle,
     ) -> Self {
         Self {
@@ -163,40 +161,25 @@ impl<P: Phase> Needle<P> {
         &self.is_slider
     }
 
-    pub fn index(&self) -> &Either<Annotated<i32, P::Index>, P::Other> {
+    pub fn index(&self) -> &MyI32<P> {
         &self.index
     }
 
     pub fn annotation(&self) -> &P::Needle {
         &self.annotation
     }
-
-    /// Destructure into `(bed, is_slider, index, annotation)`.
-    pub fn into_parts(
-        self,
-    ) -> (
-        Bed<P>,
-        IsSlider<P>,
-        Either<Annotated<i32, P::Index>, P::Other>,
-        P::Needle,
-    ) {
-        (self.bed, self.is_slider, self.index, self.annotation)
-    }
 }
 
 impl Display for Needle<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match &self.index {
-            Either::Left(idx) => write!(f, "{}{}{}", self.bed, self.is_slider, idx.value),
-            Either::Right(x) => match *x {},
-        }
+        write!(f, "{}{}{}", self.bed, self.is_slider, self.index)
     }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyBigDecimal<P: Phase> {
     value: Either<BigDecimal, P::Other>,
-    annotation: P::MyBigDecimal
+    annotation: P::MyBigDecimal,
 }
 
 impl<P: Phase> MyBigDecimal<P> {
@@ -211,7 +194,6 @@ impl<P: Phase> MyBigDecimal<P> {
     pub fn annotation(&self) -> &P::MyBigDecimal {
         &self.annotation
     }
-
 }
 impl Display for MyBigDecimal<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -224,7 +206,7 @@ impl Display for MyBigDecimal<Validated> {
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyU32<P: Phase> {
     value: Either<u32, P::Other>,
-    annotation: P::MyU32
+    annotation: P::MyU32,
 }
 impl<P: Phase> MyU32<P> {
     pub fn new(value: Either<u32, P::Other>, annotation: P::MyU32) -> Self {
@@ -238,7 +220,6 @@ impl<P: Phase> MyU32<P> {
     pub fn annotation(&self) -> &P::MyU32 {
         &self.annotation
     }
-
 }
 impl Display for MyU32<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -248,6 +229,34 @@ impl Display for MyU32<Validated> {
         }
     }
 }
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct MyI32<P: Phase> {
+    value: Either<i32, P::Other>,
+    annotation: P::MyI32,
+}
+impl<P: Phase> MyI32<P> {
+    pub fn new(value: Either<i32, P::Other>, annotation: P::MyI32) -> Self {
+        Self { value, annotation }
+    }
+
+    pub fn value(&self) -> &Either<i32, P::Other> {
+        &self.value
+    }
+
+    pub fn annotation(&self) -> &P::MyI32 {
+        &self.annotation
+    }
+}
+impl Display for MyI32<Validated> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match &self.value {
+            Either::Left(v) => write!(f, "{}", v),
+            Either::Right(x) => match *x {},
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyString<P: Phase> {
     value: Either<String, P::Other>,
@@ -265,7 +274,6 @@ impl<P: Phase> MyString<P> {
     pub fn annotation(&self) -> &P::MyString {
         &self.annotation
     }
-
 }
 impl Display for MyString<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -287,12 +295,12 @@ mod tests {
         let needle = Needle::<Validated>::new(
             Bed::Front(()),
             IsSlider::Slider(()),
-            Either::Left(Annotated::unit(5i32)),
+            MyI32::new(Either::Left(5i32), ()),
             (),
         );
         assert_eq!(*needle.bed(), Bed::Front(()));
         assert_eq!(*needle.is_slider(), IsSlider::Slider(()));
-        assert_eq!(*needle.index(), Either::Left(Annotated::unit(5i32)));
+        assert_eq!(*needle.index(), MyI32::new(Either::Left(5i32), ()));
     }
 
     #[test]
@@ -330,8 +338,7 @@ mod tests {
 
     #[test]
     fn test_my_big_decimal_display() {
-        let value =
-            MyBigDecimal::<Validated>::new(Either::Left(BigDecimal::from(42)), ());
+        let value = MyBigDecimal::<Validated>::new(Either::Left(BigDecimal::from(42)), ());
         assert_eq!(value.to_string(), "42");
     }
 
@@ -340,7 +347,7 @@ mod tests {
         let needle = Needle::<Validated>::new(
             Bed::Front(()),
             IsSlider::Slider(()),
-            Either::Left(Annotated::unit(5i32)),
+            MyI32::new(Either::Left(5i32), ()),
             (),
         );
         assert_eq!(needle.to_string(), "fs5");

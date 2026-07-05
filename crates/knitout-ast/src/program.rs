@@ -205,7 +205,7 @@ mod tests {
         BaseOperation, Bed, CarrierOrRail, Direction, ExtensionOperation, IsSlider, Needle,
         PositionHeaderValue, Provenance, Span, Validated,
         header_types::CarriersHeaderValue,
-        knitting_types::{MyString, MyU32},
+        knitting_types::{MyI32, MyString, MyU32},
         phase::{Annotated, valid},
     };
 
@@ -269,7 +269,7 @@ mod tests {
                 needle: Either::Left(Needle::new(
                     Bed::Front(()),
                     IsSlider::NotSlider(()),
-                    Either::Left(Annotated::unit(5i32)),
+                    MyI32::new(Either::Left(5i32), ()),
                     (),
                 )),
                 carriers: vec![carrier_a],
@@ -298,10 +298,9 @@ mod tests {
         program
             .headers_mut()
             .set_position(Annotated::unit(PositionHeaderValue::Left(())));
-        program.headers_mut().set_gauge(Annotated::new(
-            MyU32::new(Either::Left(1500u32), ()),
-            (),
-        ));
+        program
+            .headers_mut()
+            .set_gauge(Annotated::new(MyU32::new(Either::Left(1500u32), ()), ()));
 
         program.push_operation(Annotated::new(
             Operation::BaseOperation(BaseOperation::Tuck {
@@ -309,7 +308,7 @@ mod tests {
                 needle: Either::Left(Needle::new(
                     Bed::Front(()),
                     IsSlider::NotSlider(()),
-                    Either::Left(Annotated::unit(5i32)),
+                    MyI32::new(Either::Left(5i32), ()),
                     (),
                 )),
                 carriers: vec![carrier_a],

@@ -13,11 +13,11 @@ use either::Either;
 use knitout_ast::{
     Annotated, BaseOperation, Bed, CarrierOrRail, CarriersHeaderValue, Direction,
     ExtensionOperation, Headers, IsSlider, Needle, Operation, Phase, PositionHeaderValue,
-    PresserMode, Program, Rail, RailSide, Validated, XferStyle,
+    PresserMode, Program, Provenance, Rail, RailSide, Span, Validated, XferStyle,
 };
 use knitout_ast::{MyBigDecimal, MyString, MyU32};
 
-use crate::Parsed;
+use crate::{CommentInfo, Parsed};
 
 /// A mapping between two `Phase` implementations.
 ///
@@ -30,12 +30,10 @@ use crate::Parsed;
 pub trait PhaseTransform<A: Phase, B: Phase> {
     fn transform_magic_version(v: A::MagicVersion) -> B::MagicVersion;
     fn transform_operation(v: A::Operation) -> B::Operation;
-    fn transform_headers(v: A::Headers) -> B::Headers;
     fn transform_header(v: A::Header) -> B::Header;
     fn transform_unknown_header(v: A::UnknownHeader) -> B::UnknownHeader;
     fn transform_position_header_value(v: A::PositionHeaderValue) -> B::PositionHeaderValue;
     fn transform_carriers_header_value(v: A::CarriersHeaderValue) -> B::CarriersHeaderValue;
-    fn transform_carrier_or_rail(v: A::CarrierOrRail) -> B::CarrierOrRail;
     fn transform_rail(v: A::Rail) -> B::Rail;
     fn transform_rail_side(v: A::RailSide) -> B::RailSide;
     fn transform_carrier(v: A::Carrier) -> B::Carrier;
@@ -65,7 +63,7 @@ fn t_direction<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     Some(match d {
         Direction::Left(ann) => Direction::Left(T::transform_direction(ann)),
         Direction::Right(ann) => Direction::Right(T::transform_direction(ann)),
-        Direction::Other(_) => return None,
+        Direction::Other(_, _) => return None,
     })
 }
 
@@ -73,28 +71,27 @@ fn t_bed<A: Phase, B: Phase, T: PhaseTransform<A, B>>(b: Bed<A>) -> Option<Bed<B
     Some(match b {
         Bed::Front(ann) => Bed::Front(T::transform_bed(ann)),
         Bed::Back(ann) => Bed::Back(T::transform_bed(ann)),
-        Bed::Other(_) => return None,
+        Bed::Other(_, _) => return None,
     })
 }
 
-fn t_is_slider<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
-    s: IsSlider<A>,
-) -> Option<IsSlider<B>> {
+fn t_is_slider<A: Phase, B: Phase, T: PhaseTransform<A, B>>(s: IsSlider<A>) -> Option<IsSlider<B>> {
     Some(match s {
         IsSlider::Slider(ann) => IsSlider::Slider(T::transform_is_slider(ann)),
         IsSlider::NotSlider(ann) => IsSlider::NotSlider(T::transform_is_slider(ann)),
-        IsSlider::Other(_) => return None,
+        IsSlider::Other(_, _) => return None,
     })
 }
 
-fn t_needle<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
-    n: Needle<A>,
-) -> Option<Needle<B>> {
+fn t_needle<A: Phase, B: Phase, T: PhaseTransform<A, B>>(n: Needle<A>) -> Option<Needle<B>> {
     let (bed, is_slider, index, annotation) = n.into_parts();
     let bed = t_bed::<A, B, T>(bed)?;
     let is_slider = t_is_slider::<A, B, T>(is_slider)?;
     let index = match index {
-        Either::Left(ann) => Either::Left(Annotated::new(ann.value, T::transform_index(ann.annotation))),
+        Either::Left(ann) => Either::Left(Annotated::new(
+            ann.value,
+            T::transform_index(ann.annotation),
+        )),
         Either::Right(_) => return None,
     };
     let annotation = T::transform_needle(annotation);
@@ -113,28 +110,33 @@ fn t_needle_either<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
 fn t_my_big_decimal<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     v: MyBigDecimal<A>,
 ) -> Option<MyBigDecimal<B>> {
-    Some(MyBigDecimal::new(match v.value().clone() {
-        Either::Left(ann) => Either::Left(Annotated::new(ann.value, T::transform_my_big_decimal(ann.annotation))),
-        Either::Right(_) => return None,
-    }))
+    Some(MyBigDecimal::new(
+        match v.value() {
+            Either::Left(bd) => Either::Left(bd.clone()),
+            Either::Right(_) => return None,
+        },
+        T::transform_my_big_decimal(v.annotation().clone()),
+    ))
 }
 
 fn t_my_u32<A: Phase, B: Phase, T: PhaseTransform<A, B>>(v: MyU32<A>) -> Option<MyU32<B>> {
-    Some(MyU32::new(match v.value().clone() {
-        Either::Left(ann) => Either::Left(Annotated::new(ann.value, T::transform_my_u32(ann.annotation))),
-        Either::Right(_) => return None,
-    }))
+    Some(MyU32::new(
+        match v.value() {
+            Either::Left(i) => Either::Left(*i),
+            Either::Right(_) => return None,
+        },
+        T::transform_my_u32(v.annotation().clone()),
+    ))
 }
 
-fn t_my_string<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
-    v: MyString<A>,
-) -> Option<MyString<B>> {
-    Some(MyString::new(match v.value().clone() {
-        Either::Left(ann) => {
-            Either::Left(Annotated::new(ann.value.clone(), T::transform_my_string(ann.annotation)))
-        }
-        Either::Right(_) => return None,
-    }))
+fn t_my_string<A: Phase, B: Phase, T: PhaseTransform<A, B>>(v: MyString<A>) -> Option<MyString<B>> {
+    Some(MyString::new(
+        match v.value() {
+            Either::Left(s) => Either::Left(s.clone()),
+            Either::Right(_) => return None,
+        },
+        T::transform_my_string(v.annotation().clone()),
+    ))
 }
 
 fn t_presser_mode<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
@@ -144,7 +146,7 @@ fn t_presser_mode<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         PresserMode::Off(ann) => PresserMode::Off(T::transform_presser_mode(ann)),
         PresserMode::Auto(ann) => PresserMode::Auto(T::transform_presser_mode(ann)),
         PresserMode::On(ann) => PresserMode::On(T::transform_presser_mode(ann)),
-        PresserMode::Other(_) => return None,
+        PresserMode::Other(_, _) => return None,
     })
 }
 
@@ -154,7 +156,7 @@ fn t_xfer_style<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     Some(match s {
         XferStyle::FourPass(ann) => XferStyle::FourPass(T::transform_xfer_style(ann)),
         XferStyle::TwoPass(ann) => XferStyle::TwoPass(T::transform_xfer_style(ann)),
-        XferStyle::Other(_) => return None,
+        XferStyle::Other(_, _) => return None,
     })
 }
 
@@ -174,7 +176,7 @@ fn t_position_header_value<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         PositionHeaderValue::Keep(ann) => {
             PositionHeaderValue::Keep(T::transform_position_header_value(ann))
         }
-        PositionHeaderValue::Other(_) => return None,
+        PositionHeaderValue::Other(_, _) => return None,
     })
 }
 
@@ -182,10 +184,14 @@ fn t_rail_side<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     rs: RailSide<A>,
 ) -> Option<RailSide<B>> {
     let (carriers, annotation) = rs.into_parts();
-    let carriers_b: Option<Vec<_>> = carriers.into_iter().map(|c| {
-        Some(t_carrier::<A, B, T>(&c))
-    }).collect();
-    Some(RailSide::new(carriers_b?, T::transform_rail_side(annotation)))
+    let carriers_b: Option<Vec<_>> = carriers
+        .into_iter()
+        .map(|c| Some(t_carrier::<A, B, T>(&c)))
+        .collect();
+    Some(RailSide::new(
+        carriers_b?,
+        T::transform_rail_side(annotation),
+    ))
 }
 
 fn t_rail<A: Phase, B: Phase, T: PhaseTransform<A, B>>(r: Rail<A>) -> Option<Rail<B>> {
@@ -311,7 +317,10 @@ fn t_base_op<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
         BaseOperation::Amiss { needle } => BaseOperation::Amiss {
             needle: t_needle_either::<A, B, T>(needle)?,
         },
-        BaseOperation::Xfer { source, destination } => BaseOperation::Xfer {
+        BaseOperation::Xfer {
+            source,
+            destination,
+        } => BaseOperation::Xfer {
             source: t_needle_either::<A, B, T>(source)?,
             destination: t_needle_either::<A, B, T>(destination)?,
         },
@@ -429,25 +438,40 @@ fn t_headers<A: Phase, B: Phase, T: PhaseTransform<A, B>>(
     for (carrier, color_ann) in yarn {
         let carrier_b = t_carrier::<A, B, T>(&carrier);
         let color_b = t_my_string::<A, B, T>(color_ann.value)?;
-        headers_b.add_yarn(carrier_b, color_b, T::transform_header(color_ann.annotation));
+        headers_b.add_yarn(
+            carrier_b,
+            color_b,
+            T::transform_header(color_ann.annotation),
+        );
     }
 
     if let Some(machine_ann) = machine {
         let machine_b = t_my_string::<A, B, T>(machine_ann.value)?;
-        headers_b.set_machine(Annotated::new(machine_b, T::transform_header(machine_ann.annotation)));
+        headers_b.set_machine(Annotated::new(
+            machine_b,
+            T::transform_header(machine_ann.annotation),
+        ));
     }
     if let Some(gauge_ann) = gauge {
         let gauge_b = t_my_u32::<A, B, T>(gauge_ann.value)?;
-        headers_b.set_gauge(Annotated::new(gauge_b, T::transform_header(gauge_ann.annotation)));
+        headers_b.set_gauge(Annotated::new(
+            gauge_b,
+            T::transform_header(gauge_ann.annotation),
+        ));
     }
     if let Some(width_ann) = width {
         let width_b = t_my_u32::<A, B, T>(width_ann.value)?;
-        headers_b.set_width(Annotated::new(width_b, T::transform_header(width_ann.annotation)));
+        headers_b.set_width(Annotated::new(
+            width_b,
+            T::transform_header(width_ann.annotation),
+        ));
     }
     if let Some(pos_ann) = position {
         let pos_b = t_position_header_value::<A, B, T>(pos_ann.value)?;
-        headers_b
-            .set_position(Annotated::new(pos_b, T::transform_header(pos_ann.annotation)));
+        headers_b.set_position(Annotated::new(
+            pos_b,
+            T::transform_header(pos_ann.annotation),
+        ));
     }
     for (key, value_ann) in unknown {
         headers_b.add_unknown(
@@ -472,9 +496,10 @@ where
     let (version, headers, operations, carrier_table) = prog.into_components();
 
     let version_b = match version {
-        Either::Left(ann) => {
-            Either::Left(Annotated::new(ann.value, T::transform_magic_version(ann.annotation)))
-        }
+        Either::Left(ann) => Either::Left(Annotated::new(
+            ann.value,
+            T::transform_magic_version(ann.annotation),
+        )),
         Either::Right(_) => return None,
     };
 
@@ -484,7 +509,10 @@ where
 
     for op_ann in operations {
         let op_b = t_operation::<A, B, T>(op_ann.value)?;
-        prog_b.push_operation(Annotated::new(op_b, T::transform_operation(op_ann.annotation)));
+        prog_b.push_operation(Annotated::new(
+            op_b,
+            T::transform_operation(op_ann.annotation),
+        ));
     }
 
     Some(prog_b)
@@ -497,29 +525,28 @@ where
 pub struct ParsedToValidated;
 
 impl PhaseTransform<Parsed, Validated> for ParsedToValidated {
-    fn transform_magic_version(_: (knitout_ast::Span, knitout_ast::Span)) -> () {}
-    fn transform_operation(_: (knitout_ast::Span, crate::CommentInfo)) -> knitout_ast::Provenance {
-        knitout_ast::Provenance::default()
+    fn transform_magic_version(_: (Span, Span)) -> () {}
+    fn transform_operation(_: (Span, CommentInfo)) -> Provenance {
+        // TODO this is wrong! Should use both the span AND the ;!source comment
+        Provenance::default()
     }
-    fn transform_headers(_: ()) -> () {}
-    fn transform_header(_: knitout_ast::Span) -> () {}
-    fn transform_unknown_header(_: knitout_ast::Span) -> () {}
-    fn transform_position_header_value(_: knitout_ast::Span) -> () {}
-    fn transform_carriers_header_value(_: knitout_ast::Span) -> () {}
-    fn transform_carrier_or_rail(_: ()) -> () {}
-    fn transform_rail(_: knitout_ast::Span) -> () {}
-    fn transform_rail_side(_: knitout_ast::Span) -> () {}
-    fn transform_carrier(_: knitout_ast::Span) -> () {}
-    fn transform_direction(_: knitout_ast::Span) -> () {}
-    fn transform_bed(_: knitout_ast::Span) -> () {}
-    fn transform_is_slider(_: knitout_ast::Span) -> () {}
-    fn transform_index(_: knitout_ast::Span) -> () {}
-    fn transform_needle(_: knitout_ast::Span) -> () {}
-    fn transform_my_big_decimal(_: knitout_ast::Span) -> () {}
-    fn transform_my_u32(_: knitout_ast::Span) -> () {}
-    fn transform_my_string(_: knitout_ast::Span) -> () {}
-    fn transform_presser_mode(_: knitout_ast::Span) -> () {}
-    fn transform_xfer_style(_: knitout_ast::Span) -> () {}
+    fn transform_header(_: Span) -> () {}
+    fn transform_unknown_header(_: Span) -> () {}
+    fn transform_position_header_value(_: Span) -> () {}
+    fn transform_carriers_header_value(_: Span) -> () {}
+    fn transform_rail(_: Span) -> () {}
+    fn transform_rail_side(_: Span) -> () {}
+    fn transform_carrier(_: Span) -> () {}
+    fn transform_direction(_: Span) -> () {}
+    fn transform_bed(_: Span) -> () {}
+    fn transform_is_slider(_: Span) -> () {}
+    fn transform_index(_: Span) -> () {}
+    fn transform_needle(_: Span) -> () {}
+    fn transform_my_big_decimal(_: Span) -> () {}
+    fn transform_my_u32(_: Span) -> () {}
+    fn transform_my_string(_: Span) -> () {}
+    fn transform_presser_mode(_: Span) -> () {}
+    fn transform_xfer_style(_: Span) -> () {}
 }
 
 /// Convert a `Program<Parsed>` to `Option<Program<Validated>>`.

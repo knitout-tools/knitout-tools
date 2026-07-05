@@ -11,14 +11,14 @@ use bigdecimal::BigDecimal;
 use either::Either;
 use knitout_ast::{
     Annotated, BaseOperation, Bed, CarrierOrRail, CarriersHeaderValue, Direction,
-    ExtensionOperation, Headers, IsSlider, Needle, Operation, PositionHeaderValue,
-    PresserMode, Program, Rail, RailSide, Span, XferStyle,
+    ExtensionOperation, Headers, IsSlider, Needle, Operation, PositionHeaderValue, PresserMode,
+    Program, Rail, RailSide, Span, XferStyle,
 };
 use knitout_ast::{CarrierTable, MyBigDecimal, MyString, MyU32};
 use tree_sitter::{Node, Tree};
 
-use crate::{CommentInfo, Parsed};
 use crate::diagnostics::{ParseError, ParseWarning};
+use crate::{CommentInfo, Parsed};
 
 // ─── span helpers ────────────────────────────────────────────────────────────
 
@@ -153,7 +153,8 @@ impl<'src> LowerCtx<'src> {
 
     fn warn_header_after_ops(&mut self, span: Span) {
         if self.operations_started {
-            self.warnings.push(ParseWarning::HeaderAfterOperations(span));
+            self.warnings
+                .push(ParseWarning::HeaderAfterOperations(span));
         }
     }
 
@@ -255,13 +256,19 @@ impl<'src> LowerCtx<'src> {
             }
             None => {
                 // No colon — treat whole content as name with empty value.
-                (content_text, &b""[..], content_start + content_text.len() as u32)
+                (
+                    content_text,
+                    &b""[..],
+                    content_start + content_text.len() as u32,
+                )
             }
         };
 
         let name_str = std::str::from_utf8(name_bytes).unwrap_or("").trim();
         // name+colon span (for P::Header annotation)
-        let name_colon_end = content_start + colon_pos.unwrap_or(name_bytes.len()) as u32 + colon_pos.map_or(0, |_| 1);
+        let name_colon_end = content_start
+            + colon_pos.unwrap_or(name_bytes.len()) as u32
+            + colon_pos.map_or(0, |_| 1);
         let name_colon_span = Span::new(content_start, name_colon_end);
 
         // Trim leading whitespace from value
@@ -277,24 +284,48 @@ impl<'src> LowerCtx<'src> {
         self.warn_header_after_ops(name_colon_span);
 
         match name_str {
-            "Carriers" => self.lower_carriers_header(name_colon_span, trimmed_value, value_trim_start, value_end),
-            "Machine" => self.lower_string_header("Machine", name_colon_span, trimmed_value, value_trim_start, value_end),
+            "Carriers" => self.lower_carriers_header(
+                name_colon_span,
+                trimmed_value,
+                value_trim_start,
+                value_end,
+            ),
+            "Machine" => self.lower_string_header(
+                "Machine",
+                name_colon_span,
+                trimmed_value,
+                value_trim_start,
+                value_end,
+            ),
             "Gauge" => self.lower_u32_header("Gauge", name_colon_span, trimmed_value, value_span),
             "Width" => self.lower_u32_header("Width", name_colon_span, trimmed_value, value_span),
             "Position" => self.lower_position_header(name_colon_span, trimmed_value, value_span),
-            s if s.starts_with("Yarn-") => {
-                self.lower_yarn_header(name_colon_span, s, trimmed_value, value_trim_start, value_end)
-            }
+            s if s.starts_with("Yarn-") => self.lower_yarn_header(
+                name_colon_span,
+                s,
+                trimmed_value,
+                value_trim_start,
+                value_end,
+            ),
             s if s.len() >= 2 && s[..2].eq_ignore_ascii_case("X-") => {
-                self.warnings.push(ParseWarning::UnrecognizedExtensionHeader(name_colon_span));
+                self.warnings
+                    .push(ParseWarning::UnrecognizedExtensionHeader(name_colon_span));
                 // Store as an unknown header.
-                let val_str = std::str::from_utf8(trimmed_value).unwrap_or("").trim().to_owned();
-                self.headers_partial.add_unknown(s.to_owned(), val_str, name_colon_span);
+                let val_str = std::str::from_utf8(trimmed_value)
+                    .unwrap_or("")
+                    .trim()
+                    .to_owned();
+                self.headers_partial
+                    .add_unknown(s.to_owned(), val_str, name_colon_span);
             }
             _ => {
                 // Completely unknown header — silently store.
-                let val_str = std::str::from_utf8(trimmed_value).unwrap_or("").trim().to_owned();
-                self.headers_partial.add_unknown(name_str.to_owned(), val_str, name_colon_span);
+                let val_str = std::str::from_utf8(trimmed_value)
+                    .unwrap_or("")
+                    .trim()
+                    .to_owned();
+                self.headers_partial
+                    .add_unknown(name_str.to_owned(), val_str, name_colon_span);
             }
         }
     }
@@ -328,8 +359,9 @@ impl<'src> LowerCtx<'src> {
             return;
         }
         let value_span = Span::new(value_start, value_end);
-        let my_string = MyString::new(Either::Left(Annotated::new(val_str, value_span)));
-        self.headers_partial.set_machine(Annotated::new(my_string, name_span));
+        let my_string = MyString::new(Either::Left(val_str), value_span);
+        self.headers_partial
+            .set_machine(Annotated::new(my_string, name_span));
     }
 
     fn lower_u32_header(&mut self, key: &str, name_span: Span, value: &[u8], value_span: Span) {
@@ -345,9 +377,11 @@ impl<'src> LowerCtx<'src> {
             }
         };
         if key == "Gauge" {
-            self.headers_partial.set_gauge(Annotated::new(my_u32, name_span));
+            self.headers_partial
+                .set_gauge(Annotated::new(my_u32, name_span));
         } else {
-            self.headers_partial.set_width(Annotated::new(my_u32, name_span));
+            self.headers_partial
+                .set_width(Annotated::new(my_u32, name_span));
         }
     }
 
@@ -366,7 +400,8 @@ impl<'src> LowerCtx<'src> {
                 PositionHeaderValue::Other(value_span)
             }
         };
-        self.headers_partial.set_position(Annotated::new(pos, name_span));
+        self.headers_partial
+            .set_position(Annotated::new(pos, name_span));
     }
 
     fn lower_yarn_header(
@@ -446,12 +481,7 @@ impl<'src> LowerCtx<'src> {
         CarriersHeaderValue::new(Either::Left(items), annotation_span)
     }
 
-    fn parse_rail_side(
-        &mut self,
-        text: &[u8],
-        text_start: u32,
-        text_end: u32,
-    ) -> RailSide<Parsed> {
+    fn parse_rail_side(&mut self, text: &[u8], text_start: u32, text_end: u32) -> RailSide<Parsed> {
         let side_span = Span::new(text_start, text_end);
         let mut carriers = Vec::new();
         let mut pos = 0u32;
@@ -514,7 +544,8 @@ impl<'src> LowerCtx<'src> {
         }
 
         let op = self.parse_operation(opcode_text, opcode_span, &args);
-        self.operations.push(Annotated::new(op, (op_span, comment_info)));
+        self.operations
+            .push(Annotated::new(op, (op_span, comment_info)));
 
         if !self.operations_started {
             self.operations_started = true;
@@ -668,12 +699,7 @@ impl<'src> LowerCtx<'src> {
     }
 
     /// Consume `args[at]` as a u32.  If absent, emits `MissingArgument`.
-    fn take_u32(
-        &mut self,
-        args: &[(Span, &[u8])],
-        at: usize,
-        opcode_span: Span,
-    ) -> MyU32<Parsed> {
+    fn take_u32(&mut self, args: &[(Span, &[u8])], at: usize, opcode_span: Span) -> MyU32<Parsed> {
         match args.get(at) {
             Some(&(span, text)) => self.parse_u32(text, span),
             None => {
@@ -700,7 +726,11 @@ impl<'src> LowerCtx<'src> {
     }
 
     /// All args from `from` onwards as carriers.
-    fn take_carriers(&mut self, args: &[(Span, &[u8])], from: usize) -> Vec<knitout_ast::Carrier<Parsed>> {
+    fn take_carriers(
+        &mut self,
+        args: &[(Span, &[u8])],
+        from: usize,
+    ) -> Vec<knitout_ast::Carrier<Parsed>> {
         args[from.min(args.len())..]
             .iter()
             .map(|&(span, text)| self.parse_carrier(text, span))
@@ -745,7 +775,10 @@ impl<'src> LowerCtx<'src> {
                 let before_pull = self.take_big_decimal(args, 0, opcode_span);
                 let after_pull = self.take_big_decimal(args, 1, opcode_span);
                 self.warn_extra_args(args, 2);
-                Operation::BaseOperation(BaseOperation::Stitch { before_pull, after_pull })
+                Operation::BaseOperation(BaseOperation::Stitch {
+                    before_pull,
+                    after_pull,
+                })
             }
             "rack" => {
                 let offset = self.take_big_decimal(args, 0, opcode_span);
@@ -758,26 +791,43 @@ impl<'src> LowerCtx<'src> {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                Operation::BaseOperation(BaseOperation::Knit { direction, needle, carriers })
+                Operation::BaseOperation(BaseOperation::Knit {
+                    direction,
+                    needle,
+                    carriers,
+                })
             }
             "tuck" => {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                Operation::BaseOperation(BaseOperation::Tuck { direction, needle, carriers })
+                Operation::BaseOperation(BaseOperation::Tuck {
+                    direction,
+                    needle,
+                    carriers,
+                })
             }
             "miss" => {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                Operation::BaseOperation(BaseOperation::Miss { direction, needle, carriers })
+                Operation::BaseOperation(BaseOperation::Miss {
+                    direction,
+                    needle,
+                    carriers,
+                })
             }
             "split" => {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let source = self.take_needle(args, 1, opcode_span);
                 let destination = self.take_needle(args, 2, opcode_span);
                 let carriers = self.take_carriers(args, 3);
-                Operation::BaseOperation(BaseOperation::Split { direction, source, destination, carriers })
+                Operation::BaseOperation(BaseOperation::Split {
+                    direction,
+                    source,
+                    destination,
+                    carriers,
+                })
             }
 
             // ── no-arg / single-needle ────────────────────────────────────────
@@ -799,7 +849,10 @@ impl<'src> LowerCtx<'src> {
                 let source = self.take_needle(args, 0, opcode_span);
                 let destination = self.take_needle(args, 1, opcode_span);
                 self.warn_extra_args(args, 2);
-                Operation::BaseOperation(BaseOperation::Xfer { source, destination })
+                Operation::BaseOperation(BaseOperation::Xfer {
+                    source,
+                    destination,
+                })
             }
 
             // ── extension operations ──────────────────────────────────────────
@@ -807,7 +860,8 @@ impl<'src> LowerCtx<'src> {
 
             // ── unknown ───────────────────────────────────────────────────────
             _ => {
-                self.errors.push(ParseError::UnrecognizedOpcode(opcode_span));
+                self.errors
+                    .push(ParseError::UnrecognizedOpcode(opcode_span));
                 Operation::Other(opcode_span)
             }
         }
@@ -858,19 +912,31 @@ impl<'src> LowerCtx<'src> {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                ExtensionOperation::XLoopIn { direction, needle, carriers }
+                ExtensionOperation::XLoopIn {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "x-yarn-in" => {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                ExtensionOperation::XYarnIn { direction, needle, carriers }
+                ExtensionOperation::XYarnIn {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "x-yarn-out" => {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                ExtensionOperation::XYarnOut { direction, needle, carriers }
+                ExtensionOperation::XYarnOut {
+                    direction,
+                    needle,
+                    carriers,
+                }
             }
             "x-end" => {
                 self.warn_extra_args(args, 0);
@@ -914,7 +980,11 @@ impl<'src> LowerCtx<'src> {
         Operation::ExtensionOperation(ext)
     }
 
-    fn parse_presser_mode_arg(&mut self, args: &[(Span, &[u8])], opcode_span: Span) -> PresserMode<Parsed> {
+    fn parse_presser_mode_arg(
+        &mut self,
+        args: &[(Span, &[u8])],
+        opcode_span: Span,
+    ) -> PresserMode<Parsed> {
         match args.get(0) {
             Some(&(span, text)) => match text {
                 b"off" => PresserMode::Off(span),
@@ -932,7 +1002,11 @@ impl<'src> LowerCtx<'src> {
         }
     }
 
-    fn parse_xfer_style_arg(&mut self, args: &[(Span, &[u8])], opcode_span: Span) -> XferStyle<Parsed> {
+    fn parse_xfer_style_arg(
+        &mut self,
+        args: &[(Span, &[u8])],
+        opcode_span: Span,
+    ) -> XferStyle<Parsed> {
         match args.get(0) {
             Some(&(span, text)) => match text {
                 b"four-pass" => XferStyle::FourPass(span),

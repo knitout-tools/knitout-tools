@@ -34,6 +34,7 @@ pub trait Phase {
 
     type MyBigDecimal: PhaseType;
     type MyU32: PhaseType;
+    type MyI32: PhaseType;
     type MyString: PhaseType;
 
     type PresserMode: PhaseType;
@@ -66,6 +67,7 @@ impl Phase for Validated {
 
     type MyBigDecimal = ();
     type MyU32 = ();
+    type MyI32 = ();
     type MyString = ();
 
     type PresserMode = ();

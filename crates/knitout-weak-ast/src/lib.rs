@@ -84,6 +84,9 @@ impl Phase for Parsed {
     /// Span of the unsigned-integer token.
     type MyU32 = Span;
 
+    /// Span of the signed-integer token.
+    type MyI32 = Span;
+
     /// Span of the string token.
     type MyString = Span;
 
@@ -433,7 +436,7 @@ mod tests {
                     needle.is_slider(),
                     knitout_ast::IsSlider::Slider(_)
                 ));
-                assert_eq!(needle.index().as_ref().left().unwrap().value, 5);
+                assert_eq!(needle.index().value().left().unwrap(), 5);
                 assert_eq!(carriers.len(), 1);
             }
             other => panic!("expected Knit, got {other:?}"),
@@ -451,7 +454,7 @@ mod tests {
                 let n = needle.as_ref().left().unwrap();
                 assert!(matches!(n.bed(), knitout_ast::Bed::Back(_)));
                 assert!(matches!(n.is_slider(), knitout_ast::IsSlider::Slider(_)));
-                assert_eq!(n.index().as_ref().left().unwrap().value, -3);
+                assert_eq!(n.index().value().left().unwrap(), -3);
             }
             other => panic!("expected Knit, got {other:?}"),
         }
@@ -1097,7 +1100,7 @@ mod tests {
             Operation::BaseOperation(BaseOperation::Drop { needle }) => {
                 let n = needle.as_ref().left().unwrap();
                 // index should be Other
-                assert!(n.index().as_ref().right().is_some(), "expected Other index");
+                assert!(n.index().value().right().is_some(), "expected Other index");
                 // bed should still be Front
                 assert!(matches!(n.bed(), knitout_ast::Bed::Front(_)));
             }
@@ -1257,8 +1260,7 @@ mod tests {
                 assert_eq!(slider_span.end(), 32); // zero length
 
                 // index span covers "5"
-                let index_ann = n.index().as_ref().left().unwrap();
-                let index_span = index_ann.annotation;
+                let index_span = n.index().annotation();
                 assert_eq!(
                     &src[index_span.start() as usize..index_span.end() as usize],
                     b"5"
@@ -1293,8 +1295,7 @@ mod tests {
                 assert_eq!(slider_span.start(), 32);
                 assert_eq!(slider_span.end(), 33);
 
-                let index_ann = n.index().as_ref().left().unwrap();
-                let index_span = index_ann.annotation;
+                let index_span = n.index().annotation();
                 assert_eq!(
                     &src[index_span.start() as usize..index_span.end() as usize],
                     b"5"
@@ -1344,9 +1345,9 @@ mod tests {
                 assert_eq!(slider_span.start(), 34);
                 assert_eq!(slider_span.end(), 35);
 
-                let index_ann = n.index().as_ref().left().unwrap();
-                assert_eq!(index_ann.value, -3);
-                let index_span = index_ann.annotation;
+                let index_ann = n.index().value().left().unwrap();
+                assert_eq!(index_ann, -3);
+                let index_span = n.index().annotation();
                 assert_eq!(
                     &src[index_span.start() as usize..index_span.end() as usize],
                     b"-3"
