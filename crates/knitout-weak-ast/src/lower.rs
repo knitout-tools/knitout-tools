@@ -41,9 +41,10 @@ struct LowerCtx<'src> {
     /// Span of the first operation, used to anchor missing-header diagnostics.
     first_op_span: Option<Span>,
 
-    /// Tracked previously-seen header spans for duplicate detection. Key = canonical header name,
-    /// value = span of last whole header declaration (name+colon+value).
-    seen_headers: std::collections::HashMap<String, Span>,
+    /// Tracked previously-seen headers for duplicate/conflict detection. Key = canonical header
+    /// name, value = (span of last whole header declaration, trimmed value text of that
+    /// declaration).
+    seen_headers: std::collections::HashMap<String, (Span, String)>,
 
     /// Accumulated operations.
     operations: Vec<Annotated<Operation<Parsed>, (Span, CommentInfo)>>,
@@ -124,17 +125,26 @@ impl<'src> LowerCtx<'src> {
     // ── header helpers ────────────────────────────────────────────────────────
 
     /// Check for duplicate headers. Returns `false` if this is the first occurrence, `true` if it
-    /// is a duplicate (while pushing a warning). Span should be the whole header.
-    fn header_already_defined(&mut self, name: &str, span: Span) -> bool {
-        match self.seen_headers.insert(name.to_owned(), span) {
+    /// is a duplicate. Any re-declaration pushes a `DuplicateHeader` warning; a re-declaration with
+    /// a *different* value additionally pushes a `ConflictingHeader` error. `span` should be the
+    /// whole header; `value` is its trimmed value text.
+    fn header_already_defined(&mut self, name: &str, value: &str, span: Span) -> bool {
+        match self
+            .seen_headers
+            .insert(name.to_owned(), (span, value.to_owned()))
+        {
             None => false,
-            Some(prev_span) => {
-                // We treat any second definition as a conflict (different value → error,
-                // same value → warning).  We record the error here; the caller may refine.
+            Some((prev_span, prev_value)) => {
                 self.warnings.push(ParseWarning::DuplicateHeader {
                     span,
                     previous: prev_span,
                 });
+                if prev_value != value {
+                    self.errors.push(ParseError::ConflictingHeader {
+                        span,
+                        previous: prev_span,
+                    });
+                }
                 true
             }
         }
@@ -285,7 +295,7 @@ impl<'src> LowerCtx<'src> {
     }
 
     fn lower_carriers_header(&mut self, header_span: Span, value: &str, value_span: Span) {
-        if self.header_already_defined("Carriers", header_span) {
+        if self.header_already_defined("Carriers", value, header_span) {
             return;
         }
         let chv = self.parse_carriers_header_value(value, value_span);
@@ -294,7 +304,7 @@ impl<'src> LowerCtx<'src> {
     }
 
     fn lower_string_header(&mut self, key: &str, header_span: Span, value: &str, value_span: Span) {
-        if self.header_already_defined(key, header_span) {
+        if self.header_already_defined(key, value, header_span) {
             return;
         }
         let my_string = MyString::new(Either::Left(value.trim().to_owned()), value_span);
@@ -303,7 +313,7 @@ impl<'src> LowerCtx<'src> {
     }
 
     fn lower_u32_header(&mut self, key: &str, header_span: Span, value: &str, value_span: Span) {
-        if self.header_already_defined(key, header_span) {
+        if self.header_already_defined(key, value, header_span) {
             return;
         }
         let val_str = value.trim();
@@ -324,7 +334,7 @@ impl<'src> LowerCtx<'src> {
     }
 
     fn lower_position_header(&mut self, header_span: Span, value: &str, value_span: Span) {
-        if self.header_already_defined("Position", header_span) {
+        if self.header_already_defined("Position", value, header_span) {
             return;
         }
         let val_str = value.trim();

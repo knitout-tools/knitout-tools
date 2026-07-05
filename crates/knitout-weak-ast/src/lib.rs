@@ -283,6 +283,43 @@ mod tests {
         );
     }
 
+    #[test]
+    fn conflicting_header_values_emit_error() {
+        // Re-declaring a header with a *different* value → ConflictingHeader error (in addition to
+        // the DuplicateHeader warning).
+        let (_, warnings, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Gauge: 10\n;;Gauge: 20\n");
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::ConflictingHeader { .. })),
+            "expected ConflictingHeader error, got {errors:?}"
+        );
+        assert!(
+            warnings
+                .iter()
+                .any(|w| matches!(w, ParseWarning::DuplicateHeader { .. })),
+            "expected DuplicateHeader warning, got {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn duplicate_header_same_value_no_conflict_error() {
+        // Re-declaring a header with the *same* value → DuplicateHeader warning but no error.
+        let (_, warnings, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Gauge: 10\n;;Gauge: 10\n");
+        assert!(
+            !errors
+                .iter()
+                .any(|e| matches!(e, ParseError::ConflictingHeader { .. })),
+            "unexpected ConflictingHeader error, got {errors:?}"
+        );
+        assert!(
+            warnings
+                .iter()
+                .any(|w| matches!(w, ParseWarning::DuplicateHeader { .. })),
+            "expected DuplicateHeader warning, got {warnings:?}"
+        );
+    }
+
     // ─── other header tests ───────────────────────────────────────────────────
 
     #[test]
