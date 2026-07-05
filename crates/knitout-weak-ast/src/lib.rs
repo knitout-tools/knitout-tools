@@ -1021,4 +1021,421 @@ mod tests {
         let (_, headers, _, _) = prog.into_components();
         assert_eq!(headers.yarn().len(), 1);
     }
+
+    // ─── exact span byte-offset tests ────────────────────────────────────────
+
+    #[test]
+    fn magic_version_span_exact_bytes() {
+        // ";!knitout-2\n..." — ";!" is 2 bytes, "knitout-" is 8 bytes, "2" is 1 byte
+        // tag_comment node covers ";!knitout-2" (bytes 0-10)
+        // value node "knitout-2" starts at byte 2 (vstart=2), ends at byte 11 (vend=11)
+        // prefix_span = Span::new(0, vstart + 8) = Span::new(0, 10) → ";!knitout-"
+        // ver_span    = Span::new(10, 11)                            → "2"
+        let source = ";!knitout-2\n;;Carriers: A\n";
+        let (prog, _, _) = parse(source);
+        let (version, _, _, _) = prog.into_components();
+        let ann = version.left().unwrap().annotation;
+        let (prefix_span, ver_span) = ann;
+        let src = source.as_bytes();
+        assert_eq!(&src[prefix_span.start() as usize..prefix_span.end() as usize], b";!knitout-");
+        assert_eq!(&src[ver_span.start() as usize..ver_span.end() as usize], b"2");
+        assert_eq!(prefix_span.start(), 0);
+        assert_eq!(prefix_span.end(), 10);
+        assert_eq!(ver_span.start(), 10);
+        assert_eq!(ver_span.end(), 11);
+    }
+
+    #[test]
+    fn magic_version_span_two_digit_version() {
+        // ";!knitout-18\n..." — ver is "18" at bytes 10-11
+        let source = ";!knitout-18\n;;Carriers: A\n";
+        let (prog, _, _) = parse(source);
+        let (version, _, _, _) = prog.into_components();
+        let (prefix_span, ver_span) = version.left().unwrap().annotation;
+        let src = source.as_bytes();
+        assert_eq!(&src[prefix_span.start() as usize..prefix_span.end() as usize], b";!knitout-");
+        assert_eq!(&src[ver_span.start() as usize..ver_span.end() as usize], b"18");
+        assert_eq!(ver_span.start(), 10);
+        assert_eq!(ver_span.end(), 12);
+    }
+
+    // ─── comment-line before magic ────────────────────────────────────────────
+
+    #[test]
+    fn comment_line_before_magic_triggers_magic_not_first() {
+        // A plain comment on line 0 should increment line_index.
+        // Then magic on line 1 (line_index=1 > 0) triggers MagicNotFirst.
+        let (_, warnings, _) =
+            parse("; just a comment\n;!knitout-2\n;;Carriers: A\n");
+        assert!(
+            warnings.iter().any(|w| matches!(w, ParseWarning::MagicNotFirst(_))),
+            "expected MagicNotFirst when magic follows a comment, got {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn comment_only_line_does_not_produce_operations() {
+        // A bare comment line must not produce any operation nodes.
+        let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\n; just a comment\n");
+        let (_, _, ops, _) = prog.into_components();
+        assert!(ops.is_empty(), "comment line should produce no operations, got {ops:?}");
+    }
+
+    // ─── needle span byte-offset tests ───────────────────────────────────────
+
+    #[test]
+    fn needle_bed_and_index_span_exact_bytes() {
+        // Source: ";!knitout-2\n;;Carriers: A\ndrop f5\n"
+        // Byte layout:
+        //   0-11:  ";!knitout-2\n"
+        //   12-25: ";;Carriers: A\n"  (14 bytes)
+        //   26-33: "drop f5\n"
+        // "f" is at byte 31, "5" is at byte 32.
+        let source = ";!knitout-2\n;;Carriers: A\ndrop f5\n";
+        let src = source.as_bytes();
+        let (prog, _, _) = parse(source);
+        let (_, _, ops, _) = prog.into_components();
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Drop { needle }) => {
+                let n = needle.as_ref().left().unwrap();
+
+                // bed span covers just "f"
+                let bed_span = match n.bed() {
+                    knitout_ast::Bed::Front(s) => *s,
+                    other => panic!("expected Front, got {other:?}"),
+                };
+                assert_eq!(&src[bed_span.start() as usize..bed_span.end() as usize], b"f");
+                assert_eq!(bed_span.start(), 31);
+                assert_eq!(bed_span.end(), 32);
+
+                // NotSlider: zero-length span immediately after bed byte
+                let slider_span = match n.is_slider() {
+                    knitout_ast::IsSlider::NotSlider(s) => *s,
+                    other => panic!("expected NotSlider, got {other:?}"),
+                };
+                assert_eq!(slider_span.start(), 32);
+                assert_eq!(slider_span.end(), 32); // zero length
+
+                // index span covers "5"
+                let index_ann = n.index().as_ref().left().unwrap();
+                let index_span = index_ann.annotation;
+                assert_eq!(&src[index_span.start() as usize..index_span.end() as usize], b"5");
+                assert_eq!(index_span.start(), 32);
+                assert_eq!(index_span.end(), 33);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn needle_slider_span_exact_bytes() {
+        // Source: ";!knitout-2\n;;Carriers: A\ndrop fs5\n"
+        //   "f" at byte 31, "s" at byte 32, "5" at byte 33
+        let source = ";!knitout-2\n;;Carriers: A\ndrop fs5\n";
+        let src = source.as_bytes();
+        let (prog, _, _) = parse(source);
+        let (_, _, ops, _) = prog.into_components();
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Drop { needle }) => {
+                let n = needle.as_ref().left().unwrap();
+
+                let slider_span = match n.is_slider() {
+                    knitout_ast::IsSlider::Slider(s) => *s,
+                    other => panic!("expected Slider, got {other:?}"),
+                };
+                assert_eq!(&src[slider_span.start() as usize..slider_span.end() as usize], b"s");
+                assert_eq!(slider_span.start(), 32);
+                assert_eq!(slider_span.end(), 33);
+
+                let index_ann = n.index().as_ref().left().unwrap();
+                let index_span = index_ann.annotation;
+                assert_eq!(&src[index_span.start() as usize..index_span.end() as usize], b"5");
+                assert_eq!(index_span.start(), 33);
+                assert_eq!(index_span.end(), 34);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn needle_negative_index_span_exact_bytes() {
+        // Source: ";!knitout-2\n;;Carriers: A\nknit - bs-3 A\n"
+        //   Byte layout:
+        //   0-11:  ";!knitout-2\n"
+        //   12-25: ";;Carriers: A\n"
+        //   26-: "knit - bs-3 A\n"
+        //      "knit" = 26-29, " " = 30, "-" = 31, " " = 32,
+        //      "bs-3" = 33-36: "b"=33, "s"=34, "-"=35, "3"=36, " "=37
+        let source = ";!knitout-2\n;;Carriers: A\nknit - bs-3 A\n";
+        let src = source.as_bytes();
+        let (prog, _, _) = parse(source);
+        let (_, _, ops, _) = prog.into_components();
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Knit { needle, .. }) => {
+                let n = needle.as_ref().left().unwrap();
+
+                let bed_span = match n.bed() {
+                    knitout_ast::Bed::Back(s) => *s,
+                    other => panic!("expected Back, got {other:?}"),
+                };
+                assert_eq!(&src[bed_span.start() as usize..bed_span.end() as usize], b"b");
+                assert_eq!(bed_span.start(), 33);
+
+                let slider_span = match n.is_slider() {
+                    knitout_ast::IsSlider::Slider(s) => *s,
+                    other => panic!("expected Slider, got {other:?}"),
+                };
+                assert_eq!(&src[slider_span.start() as usize..slider_span.end() as usize], b"s");
+                assert_eq!(slider_span.start(), 34);
+                assert_eq!(slider_span.end(), 35);
+
+                let index_ann = n.index().as_ref().left().unwrap();
+                assert_eq!(index_ann.value, -3);
+                let index_span = index_ann.annotation;
+                assert_eq!(&src[index_span.start() as usize..index_span.end() as usize], b"-3");
+                assert_eq!(index_span.start(), 35);
+                assert_eq!(index_span.end(), 37);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    // ─── header span byte-offset tests ───────────────────────────────────────
+
+    #[test]
+    fn gauge_header_name_and_value_span_exact_bytes() {
+        // Source: ";!knitout-2\n;;Carriers: A\n;;Gauge: 15\n"
+        // Byte layout:
+        //   0-11:  ";!knitout-2\n"
+        //   12-25: ";;Carriers: A\n"
+        //   26-37: ";;Gauge: 15\n"
+        //     26=;, 27=;, 28=G, 29=a, 30=u, 31=g, 32=e, 33=:, 34= , 35=1, 36=5, 37=\n
+        // content starts at 28, colon at relative pos 5 (abs 33)
+        // name_colon_span = Span::new(28, 34) → "Gauge:"
+        // value " 15": value_start=34, trim_start=35, value_end=37
+        // value_span = Span::new(35, 37) → "15"
+        let source = ";!knitout-2\n;;Carriers: A\n;;Gauge: 15\n";
+        let src = source.as_bytes();
+        let (prog, _, _) = parse(source);
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, _, gauge, _, _, _) = headers.into_components();
+        let gauge_ann = gauge.expect("expected gauge header");
+        let name_span = gauge_ann.annotation; // P::Header = Span
+        assert_eq!(&src[name_span.start() as usize..name_span.end() as usize], b"Gauge:");
+        assert_eq!(name_span.start(), 28);
+        assert_eq!(name_span.end(), 34);
+        // value span covers "15"
+        let value_span = gauge_ann.value.value().as_ref().left().unwrap().annotation;
+        assert_eq!(&src[value_span.start() as usize..value_span.end() as usize], b"15");
+        assert_eq!(value_span.start(), 35);
+        assert_eq!(value_span.end(), 37);
+    }
+
+    #[test]
+    fn gauge_header_value_with_leading_whitespace_span() {
+        // ";;Gauge:   15\n" — three leading spaces before "15"
+        // Trims to "15"; value_trim_start should point past all three spaces.
+        let source = ";!knitout-2\n;;Carriers: A\n;;Gauge:   15\n";
+        let src = source.as_bytes();
+        // Count bytes: 0-11 magic, 12-25 carriers (14 bytes), 26- gauge
+        // ";;Gauge:   15\n": ;;=26-27, content "Gauge:   15" starts at 28
+        // colon at pos 5 in content (abs 33), value=" " " " " " "1""5", value_start=34
+        // three spaces → trim_offset=3, trim_start=37
+        // value_end = 28 + len("Gauge:   15") = 28 + 11 = 39
+        let (prog, _, _) = parse(source);
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, _, gauge, _, _, _) = headers.into_components();
+        let gauge_ann = gauge.expect("expected gauge header");
+        let value_span = gauge_ann.value.value().as_ref().left().unwrap().annotation;
+        assert_eq!(&src[value_span.start() as usize..value_span.end() as usize], b"15");
+        // value must start AFTER the three leading spaces
+        assert!(value_span.start() > 34, "value_trim_start should skip leading spaces");
+    }
+
+    // ─── carrier header span byte-offset tests ────────────────────────────────
+
+    #[test]
+    fn carrier_token_span_exact_bytes() {
+        // Source: ";!knitout-2\n;;Carriers: A B\n"
+        // Byte layout:
+        //   0-11:  ";!knitout-2\n"
+        //   12-27: ";;Carriers: A B\n"  (16 bytes)
+        //     12=;, 13=;, 14=C..21=s, 22=:, 23= , 24=A, 25= , 26=B, 27=\n
+        // trimmed value "A B" starts at byte 24
+        // token "A": abs_start=24, abs_end=25
+        // token "B": abs_start=26, abs_end=27
+        let source = ";!knitout-2\n;;Carriers: A B\n";
+        let src = source.as_bytes();
+        let (prog, _, _) = parse(source);
+        let (_, headers, _, _) = prog.into_components();
+        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
+        let ann = carriers_field.left().unwrap();
+        let (items_either, _) = ann.value.into_inner();
+        let items = items_either.left().unwrap();
+        assert_eq!(items.len(), 2);
+        match &items[0] {
+            CarrierOrRail::Carrier(c) => {
+                let span = *c.annotation();
+                assert_eq!(&src[span.start() as usize..span.end() as usize], b"A");
+                assert_eq!(span.start(), 24);
+                assert_eq!(span.end(), 25);
+            }
+            other => panic!("expected Carrier, got {other:?}"),
+        }
+        match &items[1] {
+            CarrierOrRail::Carrier(c) => {
+                let span = *c.annotation();
+                assert_eq!(&src[span.start() as usize..span.end() as usize], b"B");
+                assert_eq!(span.start(), 26);
+                assert_eq!(span.end(), 27);
+            }
+            other => panic!("expected Carrier, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rail_carrier_spans_exact_bytes() {
+        // Source: ";!knitout-2\n;;Carriers: A,C;B,D\n"
+        // Byte layout:
+        //   0-11:  ";!knitout-2\n"
+        //   12-31: ";;Carriers: A,C;B,D\n"  (20 bytes)
+        //     12=;, 13=;, 14=C..21=s, 22=:, 23= , 24=A, 25=,,26=C, 27=;, 28=B, 29=,, 30=D, 31=\n
+        // trimmed value "A,C;B,D" starts at byte 24, ends at byte 31
+        // rail token: abs_start=24, abs_end=31 (semicolon at byte 27)
+        // left side "A,C": left_start=24, left_end=27
+        //   carrier "A": part_start=24, part_end=25
+        //   carrier "C": part_start=26, part_end=27
+        // right side "B,D": right_start=28, right_end=31
+        //   carrier "B": part_start=28, part_end=29
+        //   carrier "D": part_start=30, part_end=31
+        let source = ";!knitout-2\n;;Carriers: A,C;B,D\n";
+        let src = source.as_bytes();
+        let (prog, _, _) = parse(source);
+        let (_, headers, _, _) = prog.into_components();
+        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
+        let ann = carriers_field.left().unwrap();
+        let (items_either, _) = ann.value.into_inner();
+        let items = items_either.left().unwrap();
+        assert_eq!(items.len(), 1);
+        match items.into_iter().next().unwrap() {
+            CarrierOrRail::Rail(rail) => {
+                let (left, right, rail_span) = rail.into_parts();
+                assert_eq!(&src[rail_span.start() as usize..rail_span.end() as usize], b"A,C;B,D");
+                assert_eq!(rail_span.start(), 24);
+                assert_eq!(rail_span.end(), 31);
+
+                let (left_carriers, left_span) = left.left().unwrap().into_parts();
+                assert_eq!(&src[left_span.start() as usize..left_span.end() as usize], b"A,C");
+                assert_eq!(left_span.start(), 24);
+                assert_eq!(left_span.end(), 27);
+                assert_eq!(&src[left_carriers[0].annotation().start() as usize..left_carriers[0].annotation().end() as usize], b"A");
+                assert_eq!(left_carriers[0].annotation().start(), 24);
+                assert_eq!(left_carriers[0].annotation().end(), 25);
+                assert_eq!(&src[left_carriers[1].annotation().start() as usize..left_carriers[1].annotation().end() as usize], b"C");
+                assert_eq!(left_carriers[1].annotation().start(), 26);
+                assert_eq!(left_carriers[1].annotation().end(), 27);
+
+                let (right_carriers, right_span) = right.left().unwrap().into_parts();
+                assert_eq!(&src[right_span.start() as usize..right_span.end() as usize], b"B,D");
+                assert_eq!(right_span.start(), 28);
+                assert_eq!(right_span.end(), 31);
+                assert_eq!(&src[right_carriers[0].annotation().start() as usize..right_carriers[0].annotation().end() as usize], b"B");
+                assert_eq!(right_carriers[0].annotation().start(), 28);
+                assert_eq!(right_carriers[0].annotation().end(), 29);
+                assert_eq!(&src[right_carriers[1].annotation().start() as usize..right_carriers[1].annotation().end() as usize], b"D");
+                assert_eq!(right_carriers[1].annotation().start(), 30);
+                assert_eq!(right_carriers[1].annotation().end(), 31);
+            }
+            other => panic!("expected Rail, got {other:?}"),
+        }
+    }
+
+    // ─── lowercase x-header ───────────────────────────────────────────────────
+
+    #[test]
+    fn lowercase_x_header_triggers_unrecognized_warning() {
+        // ";;x-foo: bar" uses lowercase 'x'. The guard uses eq_ignore_ascii_case,
+        // so this must still emit UnrecognizedExtensionHeader.
+        let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\n;;x-foo: bar\n");
+        assert!(
+            warnings.iter().any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
+            "expected UnrecognizedExtensionHeader for lowercase x-header, got {warnings:?}"
+        );
+    }
+
+    // ─── missing x-op tests ───────────────────────────────────────────────────
+
+    #[test]
+    fn x_loop_in() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-loop-in + f5 A\n") {
+            ExtensionOperation::XLoopIn { direction, needle, carriers } => {
+                assert!(matches!(direction, Direction::Right(_)));
+                assert!(needle.as_ref().left().is_some());
+                assert_eq!(carriers.len(), 1);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn x_yarn_in() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-yarn-in - b3 A\n") {
+            ExtensionOperation::XYarnIn { direction, needle, carriers } => {
+                assert!(matches!(direction, Direction::Left(_)));
+                assert!(needle.as_ref().left().is_some());
+                assert_eq!(carriers.len(), 1);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn x_yarn_out() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-yarn-out + f1 A\n") {
+            ExtensionOperation::XYarnOut { direction, needle, carriers } => {
+                assert!(matches!(direction, Direction::Right(_)));
+                assert!(needle.as_ref().left().is_some());
+                assert_eq!(carriers.len(), 1);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn x_carrier_stopping_distance() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-carrier-stopping-distance 10\n") {
+            ExtensionOperation::XCarrierStoppingDistance { value } => {
+                assert_eq!(value.value().clone().left().unwrap().value, 10);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    // ─── validated operation provenance ──────────────────────────────────────
+
+    #[test]
+    fn validated_operation_provenance_is_default() {
+        // transform_operation maps (Span, CommentInfo) → Provenance::default().
+        // Verified: the annotation has no span and no source.
+        let source = ";!knitout-2\n;;Carriers: A\npause\n";
+        let (prog, _, errors) = parse(source);
+        assert!(errors.is_empty(), "{errors:?}");
+        let v = parsed_to_valid(prog).unwrap();
+        let ops = v.operations();
+        assert_eq!(ops.len(), 1);
+        assert_eq!(ops[0].annotation.span(), None);
+        assert_eq!(ops[0].annotation.source(), None);
+    }
+
+    #[test]
+    fn validated_operation_provenance_multi_op() {
+        let source = ";!knitout-2\n;;Carriers: A\nknit + f1 A\ntuck - b2 A\n";
+        let (prog, _, errors) = parse(source);
+        assert!(errors.is_empty(), "{errors:?}");
+        let v = parsed_to_valid(prog).unwrap();
+        for op in v.operations() {
+            assert_eq!(op.annotation.span(), None);
+            assert_eq!(op.annotation.source(), None);
+        }
+    }
 }

@@ -40,8 +40,6 @@ struct LowerCtx<'src> {
 
     /// Span of the `MagicVersion` annotation if we have already seen the magic line.
     magic: Option<(u32, (Span, Span))>,
-    /// Whether the magic line was the very first non-blank line in the file.
-    magic_was_first: bool,
     /// Whether any operation line has been emitted yet.
     operations_started: bool,
     /// Span of the first operation, used to anchor missing-header diagnostics.
@@ -67,7 +65,6 @@ impl<'src> LowerCtx<'src> {
             warnings: Vec::new(),
             errors: Vec::new(),
             magic: None,
-            magic_was_first: false,
             operations_started: false,
             first_op_span: None,
             seen_headers: std::collections::HashMap::new(),
@@ -222,9 +219,6 @@ impl<'src> LowerCtx<'src> {
             match ver_str.parse::<u32>() {
                 Ok(ver) => {
                     self.magic = Some((ver, (prefix_span, ver_span)));
-                    if line_index == 0 {
-                        self.magic_was_first = true;
-                    }
                 }
                 Err(_) => {
                     self.errors.push(ParseError::BadMagicVersion(ver_span));
