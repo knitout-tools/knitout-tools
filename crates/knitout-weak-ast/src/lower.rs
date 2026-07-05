@@ -14,7 +14,7 @@ use knitout_ast::{
     ExtensionOperation, Headers, IsSlider, Needle, Operation, PositionHeaderValue, PresserMode,
     Program, Rail, RailSide, Span, XferStyle,
 };
-use knitout_ast::{CarrierTable, MyBigDecimal, MyString, MyU32};
+use knitout_ast::{CarrierTable, MyBigDecimal, MyI32, MyString, MyU32};
 use tree_sitter::{Node, Tree};
 
 use crate::diagnostics::{ParseError, ParseWarning};
@@ -370,10 +370,10 @@ impl<'src> LowerCtx<'src> {
             return;
         }
         let my_u32 = match val_str.parse::<u32>() {
-            Ok(n) => MyU32::new(Either::Left(Annotated::new(n, value_span))),
+            Ok(n) => MyU32::new(Either::Left(n), value_span),
             Err(_) => {
                 self.errors.push(ParseError::BadU32(value_span));
-                MyU32::new(Either::Right(value_span))
+                MyU32::new(Either::Right(value_span), value_span)
             }
         };
         if key == "Gauge" {
@@ -397,7 +397,7 @@ impl<'src> LowerCtx<'src> {
             "Keep" => PositionHeaderValue::Keep(value_span),
             _ => {
                 self.errors.push(ParseError::BadPositionValue(value_span));
-                PositionHeaderValue::Other(value_span)
+                PositionHeaderValue::Other(value_span, value_span)
             }
         };
         self.headers_partial
@@ -417,7 +417,7 @@ impl<'src> LowerCtx<'src> {
         let carrier = self.carrier_table.make_carrier(carrier_name, name_span);
         let val_str = std::str::from_utf8(value).unwrap_or("").trim().to_owned();
         let value_span = Span::new(value_start, value_end);
-        let my_string = MyString::new(Either::Left(Annotated::new(val_str, value_span)));
+        let my_string = MyString::new(Either::Left(val_str), value_span);
         self.headers_partial.add_yarn(carrier, my_string, name_span);
     }
 
@@ -561,7 +561,7 @@ impl<'src> LowerCtx<'src> {
             b"-" => Direction::Left(span),
             _ => {
                 self.errors.push(ParseError::BadDirection(span));
-                Direction::Other(span)
+                Direction::Other(span, span)
             }
         }
     }
@@ -579,7 +579,7 @@ impl<'src> LowerCtx<'src> {
             b'b' => Bed::Back(bed_span),
             _ => {
                 self.errors.push(ParseError::BadBed(bed_span));
-                Bed::Other(bed_span)
+                Bed::Other(bed_span, bed_span)
             }
         };
 
@@ -604,7 +604,7 @@ impl<'src> LowerCtx<'src> {
                 let needle = Needle::new(
                     bed,
                     is_slider,
-                    Either::Left(Annotated::new(idx, index_span)),
+                    MyI32::new(Either::Left(idx), index_span),
                     span,
                 );
                 Either::Left(needle)
@@ -612,7 +612,7 @@ impl<'src> LowerCtx<'src> {
             Err(_) => {
                 self.errors.push(ParseError::BadNeedleIndex(index_span));
                 // Return a needle with Other index, keeping bed/slider for partial info.
-                let needle = Needle::new(bed, is_slider, Either::Right(index_span), span);
+                let needle = Needle::new(bed, is_slider, MyI32::new(Either::Right(index_span), index_span), span);
                 Either::Left(needle)
             }
         }
@@ -621,10 +621,10 @@ impl<'src> LowerCtx<'src> {
     fn parse_big_decimal(&mut self, text: &[u8], span: Span) -> MyBigDecimal<Parsed> {
         let s = std::str::from_utf8(text).unwrap_or("");
         match BigDecimal::from_str(s) {
-            Ok(bd) => MyBigDecimal::new(Either::Left(Annotated::new(bd, span))),
+            Ok(bd) => MyBigDecimal::new(Either::Left(bd), span),
             Err(_) => {
                 self.errors.push(ParseError::BadBigDecimal(span));
-                MyBigDecimal::new(Either::Right(span))
+                MyBigDecimal::new(Either::Right(span), span)
             }
         }
     }
@@ -632,17 +632,17 @@ impl<'src> LowerCtx<'src> {
     fn parse_u32(&mut self, text: &[u8], span: Span) -> MyU32<Parsed> {
         let s = std::str::from_utf8(text).unwrap_or("");
         match s.parse::<u32>() {
-            Ok(n) => MyU32::new(Either::Left(Annotated::new(n, span))),
+            Ok(n) => MyU32::new(Either::Left(n), span),
             Err(_) => {
                 self.errors.push(ParseError::BadU32(span));
-                MyU32::new(Either::Right(span))
+                MyU32::new(Either::Right(span), span)
             }
         }
     }
 
     fn parse_my_string(&self, text: &[u8], span: Span) -> MyString<Parsed> {
         let s = std::str::from_utf8(text).unwrap_or("").to_owned();
-        MyString::new(Either::Left(Annotated::new(s, span)))
+        MyString::new(Either::Left(s), span)
     }
 
     fn parse_carrier(&mut self, text: &[u8], span: Span) -> knitout_ast::Carrier<Parsed> {
@@ -661,7 +661,7 @@ impl<'src> LowerCtx<'src> {
             Some(&(span, text)) => self.parse_direction(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                Direction::Other(opcode_span)
+                Direction::Other(opcode_span, opcode_span)
             }
         }
     }
@@ -693,7 +693,7 @@ impl<'src> LowerCtx<'src> {
             Some(&(span, text)) => self.parse_big_decimal(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                MyBigDecimal::new(Either::Right(opcode_span))
+                MyBigDecimal::new(Either::Right(opcode_span), opcode_span)
             }
         }
     }
@@ -704,7 +704,7 @@ impl<'src> LowerCtx<'src> {
             Some(&(span, text)) => self.parse_u32(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                MyU32::new(Either::Right(opcode_span))
+                MyU32::new(Either::Right(opcode_span), opcode_span)
             }
         }
     }
@@ -720,7 +720,7 @@ impl<'src> LowerCtx<'src> {
             Some(&(span, text)) => self.parse_my_string(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                MyString::new(Either::Right(opcode_span))
+                MyString::new(Either::Right(opcode_span), opcode_span)
             }
         }
     }
@@ -992,12 +992,12 @@ impl<'src> LowerCtx<'src> {
                 b"on" => PresserMode::On(span),
                 _ => {
                     self.errors.push(ParseError::BadPresserMode(span));
-                    PresserMode::Other(span)
+                    PresserMode::Other(span, span)
                 }
             },
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                PresserMode::Other(opcode_span)
+                PresserMode::Other(opcode_span, opcode_span)
             }
         }
     }
@@ -1013,12 +1013,12 @@ impl<'src> LowerCtx<'src> {
                 b"two-pass" => XferStyle::TwoPass(span),
                 _ => {
                     self.errors.push(ParseError::BadXferStyle(span));
-                    XferStyle::Other(span)
+                    XferStyle::Other(span, span)
                 }
             },
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                XferStyle::Other(opcode_span)
+                XferStyle::Other(opcode_span, opcode_span)
             }
         }
     }

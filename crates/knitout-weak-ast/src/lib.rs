@@ -2,7 +2,8 @@ mod convert;
 mod diagnostics;
 mod lower;
 
-pub use convert::{ParsedToValidated, PhaseTransform, parsed_to_valid, transform_program};
+pub use convert::{ParsedToValidated, parsed_to_valid};
+pub use knitout_ast::{PhaseTransform, transform_program};
 pub use diagnostics::{ParseError, ParseWarning};
 pub use lower::cst_to_program;
 
