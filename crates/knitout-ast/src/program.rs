@@ -72,23 +72,6 @@ impl<P: Phase> Program<P> {
     pub fn carrier_table_mut(&mut self) -> &mut CarrierTable {
         &mut self.carrier_table
     }
-
-    /// Destructure into all components, for use when mapping between phases.
-    pub fn into_components(
-        self,
-    ) -> (
-        Either<Annotated<u32, P::MagicVersion>, P::Other>,
-        Headers<P>,
-        Vec<Annotated<Operation<P>, P::Operation>>,
-        CarrierTable,
-    ) {
-        (
-            self.version,
-            self.headers,
-            self.operations,
-            self.carrier_table,
-        )
-    }
 }
 
 /// A table that stores carrier names once. Use `CarrierTable::make_carrier` to create `Carrier`s.

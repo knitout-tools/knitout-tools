@@ -168,10 +168,6 @@ impl<P: Phase> Needle<P> {
     pub fn annotation(&self) -> &P::Needle {
         &self.annotation
     }
-
-    pub fn into_parts(self) -> (Bed<P>, IsSlider<P>, MyI32<P>, P::Needle) {
-        (self.bed, self.is_slider, self.index, self.annotation)
-    }
 }
 
 impl Display for Needle<Validated> {

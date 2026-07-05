@@ -37,16 +37,6 @@ impl<P: Phase> CarriersHeaderValue<P> {
     pub fn annotation(&self) -> &P::CarriersHeaderValue {
         &self.annotation
     }
-
-    /// Consume self, returning the inner carriers-and-rails and the annotation.
-    pub fn into_inner(
-        self,
-    ) -> (
-        Either<Vec<CarrierOrRail<P>>, P::Other>,
-        P::CarriersHeaderValue,
-    ) {
-        (self.carriers_and_rails, self.annotation)
-    }
 }
 
 /// Either a carrier or a rail.
@@ -89,16 +79,6 @@ impl<P: Phase> Rail<P> {
     pub fn annotation(&self) -> &P::Rail {
         &self.annotation
     }
-
-    pub fn into_parts(
-        self,
-    ) -> (
-        Either<RailSide<P>, P::Other>,
-        Either<RailSide<P>, P::Other>,
-        P::Rail,
-    ) {
-        (self.left, self.right, self.annotation)
-    }
 }
 
 /// The left or right side of a rail, which has an ordered list of carriers separated by commas.
@@ -122,10 +102,6 @@ impl<P: Phase> RailSide<P> {
 
     pub fn annotation(&self) -> &P::RailSide {
         &self.annotation
-    }
-
-    pub fn into_parts(self) -> (Vec<Carrier<P>>, P::RailSide) {
-        (self.carriers, self.annotation)
     }
 }
 
@@ -182,29 +158,6 @@ impl<P: Phase> Headers<P> {
             position: None,
             unknown: IndexMap::new(),
         }
-    }
-
-    /// Destructure into all component fields, for use when mapping between phases.
-    pub fn into_components(
-        self,
-    ) -> (
-        Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>,
-        IndexMap<Carrier<P>, Annotated<MyString<P>, P::Header>>,
-        Option<Annotated<MyString<P>, P::Header>>,
-        Option<Annotated<MyU32<P>, P::Header>>,
-        Option<Annotated<MyU32<P>, P::Header>>,
-        Option<Annotated<PositionHeaderValue<P>, P::Header>>,
-        IndexMap<String, Annotated<String, P::UnknownHeader>>,
-    ) {
-        (
-            self.carriers,
-            self.yarn,
-            self.machine,
-            self.gauge,
-            self.width,
-            self.position,
-            self.unknown,
-        )
     }
 
     pub fn carriers(&self) -> &Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other> {
