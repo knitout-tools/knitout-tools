@@ -803,6 +803,26 @@ mod tests {
     }
 
     #[test]
+    fn x_loop_start() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-loop-start 5\n") {
+            ExtensionOperation::XLoopStart { value } => {
+                assert_eq!(value.value().clone().left().unwrap(), 5);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn x_loop_end() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-loop-end 5\n") {
+            ExtensionOperation::XLoopEnd { value } => {
+                assert_eq!(value.value().clone().left().unwrap(), 5);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
     fn x_speed_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-speed-number 3\n") {
             ExtensionOperation::XSpeedNumber { value } => {
