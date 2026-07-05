@@ -380,6 +380,24 @@ mod tests {
     }
 
     #[test]
+    fn header_name_with_multibyte_char_does_not_panic() {
+        // A header name whose byte 2 falls inside a multi-byte UTF-8 char must not panic
+        // when we test for the "X-" extension prefix. It should be treated as an unknown header.
+        let (prog, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;a\u{20ac}: x\n");
+        assert!(
+            !errors.iter().any(|e| matches!(e, ParseError::BadUtf8(_))),
+            "unexpected BadUtf8, got {errors:?}"
+        );
+        assert!(
+            prog.headers()
+                .unknown()
+                .iter()
+                .any(|(k, _)| k == "a\u{20ac}"),
+            "expected unknown header keyed by the full name"
+        );
+    }
+
+    #[test]
     fn header_after_operations_emits_warning() {
         let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\npause\n;;Gauge: 15\n");
         assert!(
