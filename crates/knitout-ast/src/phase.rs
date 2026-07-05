@@ -15,7 +15,6 @@ pub trait Phase {
     type Other: PhaseType;
 
     type MagicVersion: PhaseType;
-    type Headers: PhaseType;
     type Operation: PhaseType;
 
     type Header: PhaseType;
@@ -23,7 +22,6 @@ pub trait Phase {
     type PositionHeaderValue: PhaseType;
     type CarriersHeaderValue: PhaseType;
 
-    type CarrierOrRail: PhaseType;
     type Rail: PhaseType;
     type RailSide: PhaseType;
 
@@ -49,7 +47,6 @@ impl Phase for Validated {
     type Other = Infallible;
 
     type MagicVersion = ();
-    type Headers = ();
     type Operation = Provenance;
 
     type Header = ();
@@ -57,7 +54,6 @@ impl Phase for Validated {
     type PositionHeaderValue = ();
     type CarriersHeaderValue = ();
 
-    type CarrierOrRail = ();
     type Rail = ();
     type RailSide = ();
 

@@ -70,7 +70,7 @@ impl DisplayCarrierTable for Carrier<Validated> {
 pub enum Direction<P: Phase> {
     Left(P::Direction),
     Right(P::Direction),
-    Other(P::Other),
+    Other(P::Direction, P::Other),
 }
 
 impl Display for Direction<Validated> {
@@ -78,7 +78,7 @@ impl Display for Direction<Validated> {
         match self {
             Direction::Left(_) => write!(f, "-"),
             Direction::Right(_) => write!(f, "+"),
-            Direction::Other(x) => match *x {},
+            Direction::Other(_, x) => match *x {},
         }
     }
 }
@@ -88,7 +88,7 @@ impl Display for Direction<Validated> {
 pub enum Bed<P: Phase> {
     Front(P::Bed),
     Back(P::Bed),
-    Other(P::Other),
+    Other(P::Bed, P::Other),
 }
 
 impl Display for Bed<Validated> {
@@ -96,7 +96,7 @@ impl Display for Bed<Validated> {
         match self {
             Bed::Front(_) => write!(f, "f"),
             Bed::Back(_) => write!(f, "b"),
-            Bed::Other(x) => match *x {},
+            Bed::Other(_, x) => match *x {},
         }
     }
 }
@@ -106,7 +106,7 @@ impl Display for Bed<Validated> {
 pub enum IsSlider<P: Phase> {
     Slider(P::IsSlider),
     NotSlider(P::IsSlider),
-    Other(P::Other),
+    Other(P::IsSlider, P::Other),
 }
 
 impl Display for IsSlider<Validated> {
@@ -114,7 +114,7 @@ impl Display for IsSlider<Validated> {
         match self {
             IsSlider::Slider(_) => write!(f, "s"),
             IsSlider::NotSlider(_) => write!(f, ""),
-            IsSlider::Other(x) => match *x {},
+            IsSlider::Other(_, x) => match *x {},
         }
     }
 }
@@ -164,60 +164,82 @@ impl Display for Needle<Validated> {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyBigDecimal<P: Phase> {
-    value: Either<Annotated<BigDecimal, P::MyBigDecimal>, P::Other>,
+    value: Either<BigDecimal, P::Other>,
+    annotation: P::MyBigDecimal
 }
+
 impl<P: Phase> MyBigDecimal<P> {
-    pub fn new(value: Either<Annotated<BigDecimal, P::MyBigDecimal>, P::Other>) -> Self {
-        Self { value }
+    pub fn new(value: Either<BigDecimal, P::Other>, annotation: P::MyBigDecimal) -> Self {
+        Self { value, annotation }
     }
-    pub fn value(&self) -> &Either<Annotated<BigDecimal, P::MyBigDecimal>, P::Other> {
+
+    pub fn value(&self) -> &Either<BigDecimal, P::Other> {
         &self.value
     }
+
+    pub fn annotation(&self) -> &P::MyBigDecimal {
+        &self.annotation
+    }
+
 }
 impl Display for MyBigDecimal<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.value {
-            Either::Left(v) => write!(f, "{}", v.value),
+            Either::Left(v) => write!(f, "{}", v),
             Either::Right(x) => match *x {},
         }
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyU32<P: Phase> {
-    value: Either<Annotated<u32, P::MyU32>, P::Other>,
+    value: Either<u32, P::Other>,
+    annotation: P::MyU32
 }
 impl<P: Phase> MyU32<P> {
-    pub fn new(value: Either<Annotated<u32, P::MyU32>, P::Other>) -> Self {
-        Self { value }
+    pub fn new(value: Either<u32, P::Other>, annotation: P::MyU32) -> Self {
+        Self { value, annotation }
     }
-    pub fn value(&self) -> &Either<Annotated<u32, P::MyU32>, P::Other> {
+
+    pub fn value(&self) -> &Either<u32, P::Other> {
         &self.value
     }
+
+    pub fn annotation(&self) -> &P::MyU32 {
+        &self.annotation
+    }
+
 }
 impl Display for MyU32<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.value {
-            Either::Left(v) => write!(f, "{}", v.value),
+            Either::Left(v) => write!(f, "{}", v),
             Either::Right(x) => match *x {},
         }
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyString<P: Phase> {
-    value: Either<Annotated<String, P::MyString>, P::Other>,
+    value: Either<String, P::Other>,
+    annotation: P::MyString,
 }
 impl<P: Phase> MyString<P> {
-    pub fn new(value: Either<Annotated<String, P::MyString>, P::Other>) -> Self {
-        Self { value }
+    pub fn new(value: Either<String, P::Other>, annotation: P::MyString) -> Self {
+        Self { value, annotation }
     }
-    pub fn value(&self) -> &Either<Annotated<String, P::MyString>, P::Other> {
+
+    pub fn value(&self) -> &Either<String, P::Other> {
         &self.value
     }
+
+    pub fn annotation(&self) -> &P::MyString {
+        &self.annotation
+    }
+
 }
 impl Display for MyString<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.value {
-            Either::Left(v) => write!(f, "{}", v.value),
+            Either::Left(v) => write!(f, "{}", v),
             Either::Right(x) => match *x {},
         }
     }
@@ -278,7 +300,7 @@ mod tests {
     #[test]
     fn test_my_big_decimal_display() {
         let value =
-            MyBigDecimal::<Validated>::new(Either::Left(Annotated::unit(BigDecimal::from(42))));
+            MyBigDecimal::<Validated>::new(Either::Left(BigDecimal::from(42)), ());
         assert_eq!(value.to_string(), "42");
     }
 
