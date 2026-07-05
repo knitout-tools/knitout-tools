@@ -299,7 +299,7 @@ mod tests {
             .headers_mut()
             .set_position(Annotated::unit(PositionHeaderValue::Left(())));
         program.headers_mut().set_gauge(Annotated::new(
-            MyU32::new(Either::Left(Annotated::unit(1500u32))),
+            MyU32::new(Either::Left(1500u32), ()),
             (),
         ));
 
@@ -318,10 +318,10 @@ mod tests {
         ));
         program.push_operation(Annotated::new(
             Operation::ExtensionOperation(ExtensionOperation::UnknownExtension {
-                name: MyString::new(Either::Left(Annotated::unit("x-custom".to_string()))),
+                name: MyString::new(Either::Left("x-custom".to_string()), ()),
                 arguments: vec![
-                    MyString::new(Either::Left(Annotated::unit("arg1".to_string()))),
-                    MyString::new(Either::Left(Annotated::unit("arg2".to_string()))),
+                    MyString::new(Either::Left("arg1".to_string()), ()),
+                    MyString::new(Either::Left("arg2".to_string()), ()),
                 ],
             }),
             Provenance::new(None, Some("test_source".to_string())),
