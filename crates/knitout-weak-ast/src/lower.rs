@@ -1067,3 +1067,24 @@ pub fn cst_to_program(
 
     ctx.finish()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `make_carrier` rejects illegal names. Some illegal characters (whitespace, `;`) can't reach
+    /// it through the tokenizer, so we exercise the guard directly here.
+    #[test]
+    fn make_carrier_rejects_illegal_characters() {
+        let mut ctx = LowerCtx::new(b"");
+        let span = Span::new(0, 1);
+        for name in ["", "a b", "a;b", "a,b"] {
+            assert!(
+                ctx.make_carrier(name, span).is_right(),
+                "expected {name:?} to be rejected as an illegal carrier name"
+            );
+        }
+        // A legal name is accepted.
+        assert!(ctx.make_carrier("A", span).is_left());
+    }
+}

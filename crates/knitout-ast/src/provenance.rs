@@ -91,6 +91,15 @@ mod tests {
     }
 
     #[test]
+    fn split_remove_drops_the_index_byte() {
+        // split_remove(index) splits [start,end) into [start,index) and [index+1,end), dropping the
+        // byte at `index` (e.g. the ';' separating a rail's two sides).
+        let (left, right) = Span::new(4, 10).split_remove(6);
+        assert_eq!(left, Span::new(4, 6));
+        assert_eq!(right, Span::new(7, 10));
+    }
+
+    #[test]
     fn provenance_default_has_no_span_or_source() {
         let p = Provenance::default();
         assert_eq!(p.span(), None);
