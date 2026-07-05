@@ -131,7 +131,7 @@ mod tests {
     // ── span helpers ──────────────────────────────────────────────────────────
 
     fn span_within(span: Span, source: &str) -> bool {
-        (span.end() as usize) <= source.len()
+        (span.end()) <= source.len()
     }
 
     // ─── magic / version tests ────────────────────────────────────────────────
@@ -1075,7 +1075,7 @@ mod tests {
                 let n = needle.as_ref().left().unwrap();
                 let ann = n.annotation();
                 // The needle span should point to "f5" in the source
-                let text = &source_bytes[ann.start() as usize..ann.end() as usize];
+                let text = &source_bytes[ann.start()..ann.end()];
                 assert_eq!(text, b"f5");
             }
             other => panic!("{other:?}"),
@@ -1155,14 +1155,8 @@ mod tests {
         let ann = prog.version().as_ref().left().unwrap().annotation;
         let (prefix_span, ver_span) = ann;
         let src = source.as_bytes();
-        assert_eq!(
-            &src[prefix_span.start() as usize..prefix_span.end() as usize],
-            b";!knitout-"
-        );
-        assert_eq!(
-            &src[ver_span.start() as usize..ver_span.end() as usize],
-            b"2"
-        );
+        assert_eq!(&src[prefix_span.start()..prefix_span.end()], b";!knitout-");
+        assert_eq!(&src[ver_span.start()..ver_span.end()], b"2");
         assert_eq!(prefix_span.start(), 0);
         assert_eq!(prefix_span.end(), 10);
         assert_eq!(ver_span.start(), 10);
@@ -1176,14 +1170,8 @@ mod tests {
         let (prog, _, _) = parse(source);
         let (prefix_span, ver_span) = prog.version().as_ref().left().unwrap().annotation;
         let src = source.as_bytes();
-        assert_eq!(
-            &src[prefix_span.start() as usize..prefix_span.end() as usize],
-            b";!knitout-"
-        );
-        assert_eq!(
-            &src[ver_span.start() as usize..ver_span.end() as usize],
-            b"18"
-        );
+        assert_eq!(&src[prefix_span.start()..prefix_span.end()], b";!knitout-");
+        assert_eq!(&src[ver_span.start()..ver_span.end()], b"18");
         assert_eq!(ver_span.start(), 10);
         assert_eq!(ver_span.end(), 12);
     }
@@ -1237,10 +1225,7 @@ mod tests {
                     knitout_ast::Bed::Front(s) => *s,
                     other => panic!("expected Front, got {other:?}"),
                 };
-                assert_eq!(
-                    &src[bed_span.start() as usize..bed_span.end() as usize],
-                    b"f"
-                );
+                assert_eq!(&src[bed_span.start()..bed_span.end()], b"f");
                 assert_eq!(bed_span.start(), 31);
                 assert_eq!(bed_span.end(), 32);
 
@@ -1254,10 +1239,7 @@ mod tests {
 
                 // index span covers "5"
                 let index_span = n.index().annotation();
-                assert_eq!(
-                    &src[index_span.start() as usize..index_span.end() as usize],
-                    b"5"
-                );
+                assert_eq!(&src[index_span.start()..index_span.end()], b"5");
                 assert_eq!(index_span.start(), 32);
                 assert_eq!(index_span.end(), 33);
             }
@@ -1281,18 +1263,12 @@ mod tests {
                     knitout_ast::IsSlider::Slider(s) => *s,
                     other => panic!("expected Slider, got {other:?}"),
                 };
-                assert_eq!(
-                    &src[slider_span.start() as usize..slider_span.end() as usize],
-                    b"s"
-                );
+                assert_eq!(&src[slider_span.start()..slider_span.end()], b"s");
                 assert_eq!(slider_span.start(), 32);
                 assert_eq!(slider_span.end(), 33);
 
                 let index_span = n.index().annotation();
-                assert_eq!(
-                    &src[index_span.start() as usize..index_span.end() as usize],
-                    b"5"
-                );
+                assert_eq!(&src[index_span.start()..index_span.end()], b"5");
                 assert_eq!(index_span.start(), 33);
                 assert_eq!(index_span.end(), 34);
             }
@@ -1321,30 +1297,21 @@ mod tests {
                     knitout_ast::Bed::Back(s) => *s,
                     other => panic!("expected Back, got {other:?}"),
                 };
-                assert_eq!(
-                    &src[bed_span.start() as usize..bed_span.end() as usize],
-                    b"b"
-                );
+                assert_eq!(&src[bed_span.start()..bed_span.end()], b"b");
                 assert_eq!(bed_span.start(), 33);
 
                 let slider_span = match n.is_slider() {
                     knitout_ast::IsSlider::Slider(s) => *s,
                     other => panic!("expected Slider, got {other:?}"),
                 };
-                assert_eq!(
-                    &src[slider_span.start() as usize..slider_span.end() as usize],
-                    b"s"
-                );
+                assert_eq!(&src[slider_span.start()..slider_span.end()], b"s");
                 assert_eq!(slider_span.start(), 34);
                 assert_eq!(slider_span.end(), 35);
 
                 let index_ann = n.index().value().left().unwrap();
                 assert_eq!(index_ann, -3);
                 let index_span = n.index().annotation();
-                assert_eq!(
-                    &src[index_span.start() as usize..index_span.end() as usize],
-                    b"-3"
-                );
+                assert_eq!(&src[index_span.start()..index_span.end()], b"-3");
                 assert_eq!(index_span.start(), 35);
                 assert_eq!(index_span.end(), 37);
             }
@@ -1402,10 +1369,7 @@ mod tests {
             .as_ref()
             .expect("expected gauge header");
         let value_span = gauge_ann.value.annotation();
-        assert_eq!(
-            &src[value_span.start() as usize..value_span.end() as usize],
-            b"15"
-        );
+        assert_eq!(&src[value_span.start()..value_span.end()], b"15");
         // value must start AFTER the three leading spaces
         assert!(
             value_span.start() > 34,
@@ -1434,7 +1398,7 @@ mod tests {
         match &items[0] {
             CarrierOrRail::Carrier(c) => {
                 let span = *c.annotation();
-                assert_eq!(&src[span.start() as usize..span.end() as usize], b"A");
+                assert_eq!(&src[span.start()..span.end()], b"A");
                 assert_eq!(span.start(), 24);
                 assert_eq!(span.end(), 25);
             }
@@ -1443,7 +1407,7 @@ mod tests {
         match &items[1] {
             CarrierOrRail::Carrier(c) => {
                 let span = *c.annotation();
-                assert_eq!(&src[span.start() as usize..span.end() as usize], b"B");
+                assert_eq!(&src[span.start()..span.end()], b"B");
                 assert_eq!(span.start(), 26);
                 assert_eq!(span.end(), 27);
             }
@@ -1475,32 +1439,26 @@ mod tests {
         match &items[0] {
             CarrierOrRail::Rail(rail) => {
                 let rail_span = *rail.annotation();
-                assert_eq!(
-                    &src[rail_span.start() as usize..rail_span.end() as usize],
-                    b"A,C;B,D"
-                );
+                assert_eq!(&src[rail_span.start()..rail_span.end()], b"A,C;B,D");
                 assert_eq!(rail_span.start(), 24);
                 assert_eq!(rail_span.end(), 31);
 
                 let left_side = rail.left().as_ref().left().unwrap();
                 let left_span = *left_side.annotation();
                 let left_carriers = left_side.carriers();
-                assert_eq!(
-                    &src[left_span.start() as usize..left_span.end() as usize],
-                    b"A,C"
-                );
+                assert_eq!(&src[left_span.start()..left_span.end()], b"A,C");
                 assert_eq!(left_span.start(), 24);
                 assert_eq!(left_span.end(), 27);
                 assert_eq!(
-                    &src[left_carriers[0].annotation().start() as usize
-                        ..left_carriers[0].annotation().end() as usize],
+                    &src[left_carriers[0].annotation().start()
+                        ..left_carriers[0].annotation().end()],
                     b"A"
                 );
                 assert_eq!(left_carriers[0].annotation().start(), 24);
                 assert_eq!(left_carriers[0].annotation().end(), 25);
                 assert_eq!(
-                    &src[left_carriers[1].annotation().start() as usize
-                        ..left_carriers[1].annotation().end() as usize],
+                    &src[left_carriers[1].annotation().start()
+                        ..left_carriers[1].annotation().end()],
                     b"C"
                 );
                 assert_eq!(left_carriers[1].annotation().start(), 26);
@@ -1509,22 +1467,19 @@ mod tests {
                 let right_side = rail.right().as_ref().left().unwrap();
                 let right_span = *right_side.annotation();
                 let right_carriers = right_side.carriers();
-                assert_eq!(
-                    &src[right_span.start() as usize..right_span.end() as usize],
-                    b"B,D"
-                );
+                assert_eq!(&src[right_span.start()..right_span.end()], b"B,D");
                 assert_eq!(right_span.start(), 28);
                 assert_eq!(right_span.end(), 31);
                 assert_eq!(
-                    &src[right_carriers[0].annotation().start() as usize
-                        ..right_carriers[0].annotation().end() as usize],
+                    &src[right_carriers[0].annotation().start()
+                        ..right_carriers[0].annotation().end()],
                     b"B"
                 );
                 assert_eq!(right_carriers[0].annotation().start(), 28);
                 assert_eq!(right_carriers[0].annotation().end(), 29);
                 assert_eq!(
-                    &src[right_carriers[1].annotation().start() as usize
-                        ..right_carriers[1].annotation().end() as usize],
+                    &src[right_carriers[1].annotation().start()
+                        ..right_carriers[1].annotation().end()],
                     b"D"
                 );
                 assert_eq!(right_carriers[1].annotation().start(), 30);
