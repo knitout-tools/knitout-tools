@@ -509,7 +509,10 @@ where
         Either::Right(_) => return None,
     };
 
-    let headers_b = t_headers::<A, B, T>(prog.headers)?;
+    let headers_b = match prog.headers {
+        Either::Left(headers) => Either::Left(t_headers::<A, B, T>(headers)?),
+        Either::Right(_) => return None,
+    };
 
     let mut prog_b = Program::new(version_b, headers_b, Vec::new(), prog.carrier_table);
 

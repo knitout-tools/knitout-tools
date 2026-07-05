@@ -36,6 +36,16 @@ struct LowerCtx<'src> {
 
     /// Span of the `MagicVersion` annotation if we have already seen the magic line.
     magic: Option<(u32, (Span, Span))>,
+    /// Set (to the first `ConflictingMagicVersion` error) once two `;!knitout-N` lines disagree.
+    /// While set, the program's version resolves to `Other` rather than any parsed number.
+    magic_conflict: Option<ParseError>,
+    /// Set (to the first `ConflictingHeader` error) once a header is re-declared with a different
+    /// value. While set, the whole header block resolves to `Other`.
+    header_conflict: Option<ParseError>,
+    /// Set (to the first `BadUtf8` error) if any source bytes could not be read as UTF-8. Since a
+    /// bad-UTF-8 token can appear anywhere, we escalate the program's version to `Other` so the
+    /// whole program cannot validate.
+    bad_utf8: Option<ParseError>,
     /// Whether any operation line has been emitted yet.
     operations_started: bool,
     /// Span of the first operation, used to anchor missing-header diagnostics.
@@ -61,24 +71,35 @@ impl<'src> LowerCtx<'src> {
             warnings: Vec::new(),
             errors: Vec::new(),
             magic: None,
+            magic_conflict: None,
+            header_conflict: None,
+            bad_utf8: None,
             operations_started: false,
             first_op_span: None,
             seen_headers: std::collections::HashMap::new(),
             operations: Vec::new(),
-            // Span::new(0, 0) is a dummy value
-            headers_partial: Headers::new(Either::Right(Span::new(0, 0))),
+            // Placeholder until a `Carriers:` header arrives; if none does, this stays and
+            // `finish` records the `MissingCarriersHeader` error.
+            headers_partial: Headers::new(Either::Right(ParseError::MissingCarriersHeader)),
         }
     }
 
     // ── finalise ─────────────────────────────────────────────────────────────
 
     fn finish(mut self) -> (Program<Parsed>, Vec<ParseWarning>, Vec<ParseError>) {
-        // Resolve the version
-        let version_either: Either<Annotated<u32, (Span, Span)>, Span> = match self.magic {
-            Some((ver, ann)) => Either::Left(Annotated::new(ver, ann)),
-            None => {
+        // Resolve the version. A bad-UTF-8 anywhere, or a magic conflict, forces `Other` regardless
+        // of any parsed number; the underlying error was already recorded when it was detected.
+        let version_either: Either<Annotated<u32, (Span, Span)>, ParseError> = match (
+            self.bad_utf8
+                .clone()
+                .or_else(|| self.magic_conflict.clone()),
+            self.magic,
+        ) {
+            (Some(err), _) => Either::Right(err),
+            (None, Some((ver, ann))) => Either::Left(Annotated::new(ver, ann)),
+            (None, None) => {
                 self.errors.push(ParseError::MagicMissing);
-                Either::Right(Span::new(0, 0))
+                Either::Right(ParseError::MagicMissing)
             }
         };
 
@@ -87,9 +108,16 @@ impl<'src> LowerCtx<'src> {
             self.errors.push(ParseError::MissingCarriersHeader);
         }
 
+        // A conflicting header escalates the whole header block to `Other`; the conflict error was
+        // already recorded when it was detected.
+        let headers_either = match self.header_conflict.clone() {
+            Some(err) => Either::Right(err),
+            None => Either::Left(self.headers_partial),
+        };
+
         let prog = Program::new(
             version_either,
-            self.headers_partial,
+            headers_either,
             self.operations,
             self.carrier_table,
         );
@@ -104,26 +132,27 @@ impl<'src> LowerCtx<'src> {
             Ok(s) => Some(s),
             Err(_) => {
                 self.errors.push(ParseError::BadUtf8(span));
+                self.bad_utf8.get_or_insert(ParseError::BadUtf8(span));
                 None
             }
         }
     }
 
     /// Creates a carrier from a name token. If the name is illegal (empty, or containing
-    /// whitespace, `;`, or `,`), pushes a `BadCarrierName` error and returns `Either::Right(span)`
+    /// whitespace, `;`, or `,`), pushes a `BadCarrierName` error and returns it as an `Other`
     /// so the carrier surfaces as an `Other` node rather than a bogus `Carrier`.
     fn make_carrier(
         &mut self,
         name: &str,
         span: Span,
-    ) -> Either<knitout_ast::Carrier<Parsed>, Span> {
+    ) -> Either<knitout_ast::Carrier<Parsed>, ParseError> {
         if name.is_empty()
             || name
                 .chars()
                 .any(|c| c.is_whitespace() || c == ';' || c == ',')
         {
             self.errors.push(ParseError::BadCarrierName(span));
-            return Either::Right(span);
+            return Either::Right(ParseError::BadCarrierName(span));
         }
         Either::Left(self.carrier_table.make_carrier(name, span))
     }
@@ -146,10 +175,12 @@ impl<'src> LowerCtx<'src> {
                     previous: prev_span,
                 });
                 if prev_value != value {
-                    self.errors.push(ParseError::ConflictingHeader {
+                    let err = ParseError::ConflictingHeader {
                         span,
                         previous: prev_span,
-                    });
+                    };
+                    self.errors.push(err.clone());
+                    self.header_conflict.get_or_insert(err);
                 }
                 true
             }
@@ -215,12 +246,14 @@ impl<'src> LowerCtx<'src> {
             match self.text_of(ver_span)?.parse::<u32>() {
                 Ok(ver) => {
                     match self.magic {
-                        // Conflicting magic versions -> error
+                        // Conflicting magic versions -> error. The version resolves to Other.
                         Some((prev_ver, (prev_prefix, prev_ver_span))) if prev_ver != ver => {
-                            self.errors.push(ParseError::ConflictingMagicVersion {
+                            let err = ParseError::ConflictingMagicVersion {
                                 span: prefix_span.union(&ver_span),
                                 previous: prev_prefix.union(&prev_ver_span),
-                            });
+                            };
+                            self.errors.push(err.clone());
+                            self.magic_conflict.get_or_insert(err);
                         }
                         // Non-conflicting -> no action (already warned MagicNotFirst)
                         Some(_) => {}
@@ -327,7 +360,7 @@ impl<'src> LowerCtx<'src> {
             Ok(n) => MyU32::new(Either::Left(n), value_span),
             Err(_) => {
                 self.errors.push(ParseError::BadU32(value_span));
-                MyU32::new(Either::Right(value_span), value_span)
+                MyU32::new(Either::Right(ParseError::BadU32(value_span)), value_span)
             }
         };
         if key == "Gauge" {
@@ -351,7 +384,7 @@ impl<'src> LowerCtx<'src> {
             "Keep" => PositionHeaderValue::Keep(value_span),
             _ => {
                 self.errors.push(ParseError::BadPositionValue(value_span));
-                PositionHeaderValue::Other(value_span, value_span)
+                PositionHeaderValue::Other(value_span, ParseError::BadPositionValue(value_span))
             }
         };
         self.headers_partial
@@ -422,7 +455,7 @@ impl<'src> LowerCtx<'src> {
                                 Either::Left(carrier) => {
                                     items.push(CarrierOrRail::Carrier(carrier))
                                 }
-                                Either::Right(span) => items.push(CarrierOrRail::Other(span)),
+                                Either::Right(err) => items.push(CarrierOrRail::Other(err)),
                             }
                         }
                     }
@@ -515,15 +548,15 @@ impl<'src> LowerCtx<'src> {
             "-" => Direction::Left(span),
             _ => {
                 self.errors.push(ParseError::BadDirection(span));
-                Direction::Other(span, span)
+                Direction::Other(span, ParseError::BadDirection(span))
             }
         }
     }
 
-    fn parse_needle(&mut self, text: &str, span: Span) -> Either<Needle<Parsed>, Span> {
+    fn parse_needle(&mut self, text: &str, span: Span) -> Either<Needle<Parsed>, ParseError> {
         if text.is_empty() {
             self.errors.push(ParseError::BadNeedle(span));
-            return Either::Right(span);
+            return Either::Right(ParseError::BadNeedle(span));
         }
 
         let bed_span = Span::new(span.start(), span.start() + 1);
@@ -532,7 +565,7 @@ impl<'src> LowerCtx<'src> {
             b'b' => Bed::Back(bed_span),
             _ => {
                 self.errors.push(ParseError::BadBed(bed_span));
-                Bed::Other(bed_span, bed_span)
+                Bed::Other(bed_span, ParseError::BadBed(bed_span))
             }
         };
 
@@ -565,7 +598,10 @@ impl<'src> LowerCtx<'src> {
                 let needle = Needle::new(
                     bed,
                     is_slider,
-                    MyI32::new(Either::Right(index_span), index_span),
+                    MyI32::new(
+                        Either::Right(ParseError::BadNeedleIndex(index_span)),
+                        index_span,
+                    ),
                     span,
                 );
                 Either::Left(needle)
@@ -578,7 +614,7 @@ impl<'src> LowerCtx<'src> {
             Ok(bd) => MyBigDecimal::new(Either::Left(bd), span),
             Err(_) => {
                 self.errors.push(ParseError::BadBigDecimal(span));
-                MyBigDecimal::new(Either::Right(span), span)
+                MyBigDecimal::new(Either::Right(ParseError::BadBigDecimal(span)), span)
             }
         }
     }
@@ -588,7 +624,7 @@ impl<'src> LowerCtx<'src> {
             Ok(n) => MyU32::new(Either::Left(n), span),
             Err(_) => {
                 self.errors.push(ParseError::BadU32(span));
-                MyU32::new(Either::Right(span), span)
+                MyU32::new(Either::Right(ParseError::BadU32(span)), span)
             }
         }
     }
@@ -601,7 +637,7 @@ impl<'src> LowerCtx<'src> {
         &mut self,
         text: &str,
         span: Span,
-    ) -> Either<knitout_ast::Carrier<Parsed>, Span> {
+    ) -> Either<knitout_ast::Carrier<Parsed>, ParseError> {
         self.make_carrier(text.trim(), span)
     }
 
@@ -616,7 +652,7 @@ impl<'src> LowerCtx<'src> {
             Some(&(span, text)) => self.parse_direction(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                Direction::Other(opcode_span, opcode_span)
+                Direction::Other(opcode_span, ParseError::MissingArgument(opcode_span))
             }
         }
     }
@@ -627,12 +663,12 @@ impl<'src> LowerCtx<'src> {
         args: &[(Span, &str)],
         at: usize,
         opcode_span: Span,
-    ) -> Either<Needle<Parsed>, Span> {
+    ) -> Either<Needle<Parsed>, ParseError> {
         match args.get(at) {
             Some(&(span, text)) => self.parse_needle(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                Either::Right(opcode_span)
+                Either::Right(ParseError::MissingArgument(opcode_span))
             }
         }
     }
@@ -648,7 +684,10 @@ impl<'src> LowerCtx<'src> {
             Some(&(span, text)) => self.parse_big_decimal(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                MyBigDecimal::new(Either::Right(opcode_span), opcode_span)
+                MyBigDecimal::new(
+                    Either::Right(ParseError::MissingArgument(opcode_span)),
+                    opcode_span,
+                )
             }
         }
     }
@@ -659,7 +698,10 @@ impl<'src> LowerCtx<'src> {
             Some(&(span, text)) => self.parse_u32(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                MyU32::new(Either::Right(opcode_span), opcode_span)
+                MyU32::new(
+                    Either::Right(ParseError::MissingArgument(opcode_span)),
+                    opcode_span,
+                )
             }
         }
     }
@@ -675,7 +717,10 @@ impl<'src> LowerCtx<'src> {
             Some(&(span, text)) => self.parse_my_string(text, span),
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                MyString::new(Either::Right(opcode_span), opcode_span)
+                MyString::new(
+                    Either::Right(ParseError::MissingArgument(opcode_span)),
+                    opcode_span,
+                )
             }
         }
     }
@@ -685,17 +730,30 @@ impl<'src> LowerCtx<'src> {
         &mut self,
         args: &[(Span, &str)],
         from: usize,
-    ) -> Vec<Either<knitout_ast::Carrier<Parsed>, Span>> {
+    ) -> Vec<Either<knitout_ast::Carrier<Parsed>, ParseError>> {
         args[from.min(args.len())..]
             .iter()
             .map(|&(span, text)| self.parse_carrier(text, span))
             .collect()
     }
 
-    fn warn_extra_args(&mut self, args: &[(Span, &str)], from: usize) {
-        for &(span, _) in &args[from.min(args.len())..] {
+    /// If any arguments remain at or after `from`, records a `TooManyArguments` error for each and
+    /// replaces the whole operation with `Operation::Other` (so it cannot validate). Otherwise
+    /// returns `op` unchanged.
+    fn check_extra_args(
+        &mut self,
+        op: Operation<Parsed>,
+        args: &[(Span, &str)],
+        from: usize,
+    ) -> Operation<Parsed> {
+        let extra = &args[from.min(args.len())..];
+        let Some(&(first_span, _)) = extra.first() else {
+            return op;
+        };
+        for &(span, _) in extra {
             self.errors.push(ParseError::TooManyArguments(span));
         }
+        Operation::Other(ParseError::TooManyArguments(first_span))
     }
 
     // ── operation parsers ─────────────────────────────────────────────────────
@@ -728,16 +786,16 @@ impl<'src> LowerCtx<'src> {
             "stitch" => {
                 let before_pull = self.take_big_decimal(args, 0, opcode_span);
                 let after_pull = self.take_big_decimal(args, 1, opcode_span);
-                self.warn_extra_args(args, 2);
-                Operation::BaseOperation(BaseOperation::Stitch {
+                let op = Operation::BaseOperation(BaseOperation::Stitch {
                     before_pull,
                     after_pull,
-                })
+                });
+                self.check_extra_args(op, args, 2)
             }
             "rack" => {
                 let offset = self.take_big_decimal(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                Operation::BaseOperation(BaseOperation::Rack { offset })
+                let op = Operation::BaseOperation(BaseOperation::Rack { offset });
+                self.check_extra_args(op, args, 1)
             }
 
             // ── direction + needle + carriers ─────────────────────────────────
@@ -786,27 +844,27 @@ impl<'src> LowerCtx<'src> {
 
             // ── no-arg / single-needle ────────────────────────────────────────
             "pause" => {
-                self.warn_extra_args(args, 0);
-                Operation::BaseOperation(BaseOperation::Pause)
+                let op = Operation::BaseOperation(BaseOperation::Pause);
+                self.check_extra_args(op, args, 0)
             }
             "drop" => {
                 let needle = self.take_needle(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                Operation::BaseOperation(BaseOperation::Drop { needle })
+                let op = Operation::BaseOperation(BaseOperation::Drop { needle });
+                self.check_extra_args(op, args, 1)
             }
             "amiss" => {
                 let needle = self.take_needle(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                Operation::BaseOperation(BaseOperation::Amiss { needle })
+                let op = Operation::BaseOperation(BaseOperation::Amiss { needle });
+                self.check_extra_args(op, args, 1)
             }
             "xfer" => {
                 let source = self.take_needle(args, 0, opcode_span);
                 let destination = self.take_needle(args, 1, opcode_span);
-                self.warn_extra_args(args, 2);
-                Operation::BaseOperation(BaseOperation::Xfer {
+                let op = Operation::BaseOperation(BaseOperation::Xfer {
                     source,
                     destination,
-                })
+                });
+                self.check_extra_args(op, args, 2)
             }
 
             // ── extension operations ──────────────────────────────────────────
@@ -816,7 +874,7 @@ impl<'src> LowerCtx<'src> {
             _ => {
                 self.errors
                     .push(ParseError::UnrecognizedOpcode(opcode_span));
-                Operation::Other(opcode_span)
+                Operation::Other(ParseError::UnrecognizedOpcode(opcode_span))
             }
         }
     }
@@ -827,99 +885,98 @@ impl<'src> LowerCtx<'src> {
         opcode_span: Span,
         args: &[(Span, &str)],
     ) -> Operation<Parsed> {
-        let ext = match opcode_str {
+        // Fixed-arity extensions build their `ExtensionOperation` and the `from` index at which any
+        // further arguments are surplus; carrier-absorbing and unknown extensions consume every
+        // argument and so skip the surplus check (`from == None`).
+        let (ext, extra_from): (ExtensionOperation<Parsed>, Option<usize>) = match opcode_str {
             "x-stitch-number" => {
                 let value = self.take_u32(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XStitchNumber { value }
+                (ExtensionOperation::XStitchNumber { value }, Some(1))
             }
             "x-speed-number" => {
                 let value = self.take_u32(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XSpeedNumber { value }
+                (ExtensionOperation::XSpeedNumber { value }, Some(1))
             }
             "x-sub-roller-number" => {
                 let value = self.take_u32(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XSubRollerNumber { value }
+                (ExtensionOperation::XSubRollerNumber { value }, Some(1))
             }
             "x-presser-mode" => {
                 let mode = self.parse_presser_mode_arg(args, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XPresserMode { mode }
+                (ExtensionOperation::XPresserMode { mode }, Some(1))
             }
             "x-xfer-stitch-number" => {
                 let value = self.take_u32(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XXferStitchNumber { value }
+                (ExtensionOperation::XXferStitchNumber { value }, Some(1))
             }
-            "x-end-pass" => {
-                self.warn_extra_args(args, 0);
-                ExtensionOperation::XEndPass
-            }
+            "x-end-pass" => (ExtensionOperation::XEndPass, Some(0)),
             "x-vis-color" => {
                 let color = self.take_string(args, 0, opcode_span);
                 let carriers = self.take_carriers(args, 1);
-                ExtensionOperation::XVisColor { color, carriers }
+                (ExtensionOperation::XVisColor { color, carriers }, None)
             }
             "x-loop-in" => {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                ExtensionOperation::XLoopIn {
-                    direction,
-                    needle,
-                    carriers,
-                }
+                (
+                    ExtensionOperation::XLoopIn {
+                        direction,
+                        needle,
+                        carriers,
+                    },
+                    None,
+                )
             }
             "x-yarn-in" => {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                ExtensionOperation::XYarnIn {
-                    direction,
-                    needle,
-                    carriers,
-                }
+                (
+                    ExtensionOperation::XYarnIn {
+                        direction,
+                        needle,
+                        carriers,
+                    },
+                    None,
+                )
             }
             "x-yarn-out" => {
                 let direction = self.take_direction(args, 0, opcode_span);
                 let needle = self.take_needle(args, 1, opcode_span);
                 let carriers = self.take_carriers(args, 2);
-                ExtensionOperation::XYarnOut {
-                    direction,
-                    needle,
-                    carriers,
-                }
+                (
+                    ExtensionOperation::XYarnOut {
+                        direction,
+                        needle,
+                        carriers,
+                    },
+                    None,
+                )
             }
-            "x-end" => {
-                self.warn_extra_args(args, 0);
-                ExtensionOperation::XEnd
-            }
+            "x-end" => (ExtensionOperation::XEnd, Some(0)),
             "x-roller-advance" => {
                 let value = self.take_big_decimal(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XRollerAdvance { value }
+                (ExtensionOperation::XRollerAdvance { value }, Some(1))
             }
             "x-add-roller-advance" => {
                 let value = self.take_big_decimal(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XAddRollerAdvance { value }
+                (ExtensionOperation::XAddRollerAdvance { value }, Some(1))
             }
             "x-carrier-spacing" => {
                 let value = self.take_u32(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XCarrierSpacing { value }
+                (ExtensionOperation::XCarrierSpacing { value }, Some(1))
             }
             "x-carrier-stopping-distance" => {
                 let value = self.take_u32(args, 0, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XCarrierStoppingDistance { value }
+                (
+                    ExtensionOperation::XCarrierStoppingDistance { value },
+                    Some(1),
+                )
             }
             "x-xfer-style" => {
                 let style = self.parse_xfer_style_arg(args, opcode_span);
-                self.warn_extra_args(args, 1);
-                ExtensionOperation::XXferStyle { style }
+                (ExtensionOperation::XXferStyle { style }, Some(1))
             }
             _ => {
                 // Unknown x- extension — store name + all args as strings.
@@ -928,10 +985,17 @@ impl<'src> LowerCtx<'src> {
                     .iter()
                     .map(|&(span, text)| self.parse_my_string(text, span))
                     .collect();
-                ExtensionOperation::UnknownExtension { name, arguments }
+                (
+                    ExtensionOperation::UnknownExtension { name, arguments },
+                    None,
+                )
             }
         };
-        Operation::ExtensionOperation(ext)
+        let op = Operation::ExtensionOperation(ext);
+        match extra_from {
+            Some(from) => self.check_extra_args(op, args, from),
+            None => op,
+        }
     }
 
     fn parse_presser_mode_arg(
@@ -946,12 +1010,12 @@ impl<'src> LowerCtx<'src> {
                 "on" => PresserMode::On(span),
                 _ => {
                     self.errors.push(ParseError::BadPresserMode(span));
-                    PresserMode::Other(span, span)
+                    PresserMode::Other(span, ParseError::BadPresserMode(span))
                 }
             },
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                PresserMode::Other(opcode_span, opcode_span)
+                PresserMode::Other(opcode_span, ParseError::MissingArgument(opcode_span))
             }
         }
     }
@@ -967,12 +1031,12 @@ impl<'src> LowerCtx<'src> {
                 "two-pass" => XferStyle::TwoPass(span),
                 _ => {
                     self.errors.push(ParseError::BadXferStyle(span));
-                    XferStyle::Other(span, span)
+                    XferStyle::Other(span, ParseError::BadXferStyle(span))
                 }
             },
             None => {
                 self.errors.push(ParseError::MissingArgument(opcode_span));
-                XferStyle::Other(opcode_span, opcode_span)
+                XferStyle::Other(opcode_span, ParseError::MissingArgument(opcode_span))
             }
         }
     }
@@ -983,7 +1047,7 @@ impl<'src> LowerCtx<'src> {
 /// Lower a tree-sitter CST for a knitout source file into a `Program<Parsed>`.
 ///
 /// Returns the program together with any parse warnings and errors encountered.  Errors are
-/// recoverable: the program is always produced, but may contain `Other(Span)` nodes where
+/// recoverable: the program is always produced, but may contain `Other(ParseError)` nodes where
 /// parsing failed.  Call `parsed_to_valid` to check whether the program is error-free and
 /// produce a `Program<Validated>`.
 pub fn cst_to_program(

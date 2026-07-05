@@ -28,13 +28,14 @@ pub enum CommentInfo {
 
 /// The `Parsed` phase: every AST node is annotated with a `Span` pointing to the
 /// corresponding bytes in the source buffer. Unrecognised constructs are represented
-/// as `Other(Span)` rather than aborting parsing.
+/// as `Other(ParseError)` rather than aborting parsing.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Parsed {}
 
 impl Phase for Parsed {
-    /// Unrecognised constructs.
-    type Other = Span;
+    /// Unrecognised constructs, carrying the `ParseError` that explains why the node could not be
+    /// resolved.
+    type Other = ParseError;
 
     /// `(prefix_span, version_span)`: e.g. `";!knitout-"` and `"2"`.
     type MagicVersion = (Span, Span);
@@ -216,6 +217,9 @@ mod tests {
     fn carriers_items(prog: &Program<Parsed>) -> Vec<CarrierOrRail<Parsed>> {
         let ann = prog
             .headers()
+            .as_ref()
+            .left()
+            .unwrap()
             .carriers()
             .as_ref()
             .left()
@@ -325,8 +329,20 @@ mod tests {
     #[test]
     fn gauge_header_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Gauge: 15\n");
-        let gauge_ann = prog.headers().gauge().as_ref().expect("expected gauge");
-        let val = gauge_ann.value.value().left().expect("expected u32");
+        let gauge_ann = prog
+            .headers()
+            .as_ref()
+            .left()
+            .unwrap()
+            .gauge()
+            .as_ref()
+            .expect("expected gauge");
+        let val = gauge_ann
+            .value
+            .value()
+            .clone()
+            .left()
+            .expect("expected u32");
         assert_eq!(val, 15);
     }
 
@@ -335,11 +351,15 @@ mod tests {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Width: 250\n");
         let val = prog
             .headers()
+            .as_ref()
+            .left()
+            .unwrap()
             .width()
             .as_ref()
             .unwrap()
             .value
             .value()
+            .clone()
             .left()
             .expect("expected u32");
         assert_eq!(val, 250);
@@ -349,7 +369,14 @@ mod tests {
     fn position_left_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Left\n");
         assert!(matches!(
-            prog.headers().position().as_ref().unwrap().value,
+            prog.headers()
+                .as_ref()
+                .left()
+                .unwrap()
+                .position()
+                .as_ref()
+                .unwrap()
+                .value,
             PositionHeaderValue::Left(_)
         ));
     }
@@ -358,7 +385,14 @@ mod tests {
     fn position_center_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Center\n");
         assert!(matches!(
-            prog.headers().position().as_ref().unwrap().value,
+            prog.headers()
+                .as_ref()
+                .left()
+                .unwrap()
+                .position()
+                .as_ref()
+                .unwrap()
+                .value,
             PositionHeaderValue::Center(_)
         ));
     }
@@ -367,7 +401,14 @@ mod tests {
     fn position_right_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Right\n");
         assert!(matches!(
-            prog.headers().position().as_ref().unwrap().value,
+            prog.headers()
+                .as_ref()
+                .left()
+                .unwrap()
+                .position()
+                .as_ref()
+                .unwrap()
+                .value,
             PositionHeaderValue::Right(_)
         ));
     }
@@ -376,7 +417,14 @@ mod tests {
     fn position_keep_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Keep\n");
         assert!(matches!(
-            prog.headers().position().as_ref().unwrap().value,
+            prog.headers()
+                .as_ref()
+                .left()
+                .unwrap()
+                .position()
+                .as_ref()
+                .unwrap()
+                .value,
             PositionHeaderValue::Keep(_)
         ));
     }
@@ -395,7 +443,14 @@ mod tests {
     #[test]
     fn machine_header_parsed() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Machine: SWG091N2\n");
-        let machine = prog.headers().machine().as_ref().unwrap();
+        let machine = prog
+            .headers()
+            .as_ref()
+            .left()
+            .unwrap()
+            .machine()
+            .as_ref()
+            .unwrap();
         let s = machine
             .value
             .value()
@@ -427,6 +482,9 @@ mod tests {
         );
         assert!(
             prog.headers()
+                .as_ref()
+                .left()
+                .unwrap()
                 .unknown()
                 .iter()
                 .any(|(k, _)| k == "a\u{20ac}"),
@@ -487,7 +545,7 @@ mod tests {
                     needle.is_slider(),
                     knitout_ast::IsSlider::Slider(_)
                 ));
-                assert_eq!(needle.index().value().left().unwrap(), 5);
+                assert_eq!(needle.index().value().clone().left().unwrap(), 5);
                 assert_eq!(carriers.len(), 1);
             }
             other => panic!("expected Knit, got {other:?}"),
@@ -505,7 +563,7 @@ mod tests {
                 let n = needle.as_ref().left().unwrap();
                 assert!(matches!(n.bed(), knitout_ast::Bed::Back(_)));
                 assert!(matches!(n.is_slider(), knitout_ast::IsSlider::Slider(_)));
-                assert_eq!(n.index().value().left().unwrap(), -3);
+                assert_eq!(n.index().value().clone().left().unwrap(), -3);
             }
             other => panic!("expected Knit, got {other:?}"),
         }
@@ -737,7 +795,7 @@ mod tests {
     fn x_stitch_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-stitch-number 5\n") {
             ExtensionOperation::XStitchNumber { value } => {
-                assert_eq!(value.value().left().unwrap(), 5);
+                assert_eq!(value.value().clone().left().unwrap(), 5);
             }
             other => panic!("{other:?}"),
         }
@@ -747,7 +805,7 @@ mod tests {
     fn x_speed_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-speed-number 3\n") {
             ExtensionOperation::XSpeedNumber { value } => {
-                assert_eq!(value.value().left().unwrap(), 3);
+                assert_eq!(value.value().clone().left().unwrap(), 3);
             }
             other => panic!("{other:?}"),
         }
@@ -757,7 +815,7 @@ mod tests {
     fn x_sub_roller_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-sub-roller-number 2\n") {
             ExtensionOperation::XSubRollerNumber { value } => {
-                assert_eq!(value.value().left().unwrap(), 2);
+                assert_eq!(value.value().clone().left().unwrap(), 2);
             }
             other => panic!("{other:?}"),
         }
@@ -767,7 +825,7 @@ mod tests {
     fn x_xfer_stitch_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-xfer-stitch-number 4\n") {
             ExtensionOperation::XXferStitchNumber { value } => {
-                assert_eq!(value.value().left().unwrap(), 4);
+                assert_eq!(value.value().clone().left().unwrap(), 4);
             }
             other => panic!("{other:?}"),
         }
@@ -825,7 +883,7 @@ mod tests {
     fn x_carrier_spacing() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-carrier-spacing 5\n") {
             ExtensionOperation::XCarrierSpacing { value } => {
-                assert_eq!(value.value().left().unwrap(), 5);
+                assert_eq!(value.value().clone().left().unwrap(), 5);
             }
             other => panic!("{other:?}"),
         }
@@ -1020,13 +1078,93 @@ mod tests {
             "expected BadCarrierName, got {errors:?}"
         );
         assert!(
-            prog.headers().yarn().keys().any(|k| k.is_right()),
+            prog.headers()
+                .as_ref()
+                .left()
+                .unwrap()
+                .yarn()
+                .keys()
+                .any(|k| k.is_right()),
             "expected the yarn key to be an Other node"
         );
         assert!(
             parsed_to_valid(prog).is_none(),
             "a bad carrier name must block validation"
         );
+    }
+
+    #[test]
+    fn conflicting_header_escalates_headers_to_other_and_blocks_validation() {
+        let (prog, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Gauge: 10\n;;Gauge: 20\n");
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::ConflictingHeader { .. })),
+            "expected ConflictingHeader, got {errors:?}"
+        );
+        assert!(
+            prog.headers().is_right(),
+            "a conflicting header should escalate the whole header block to Other"
+        );
+        assert!(parsed_to_valid(prog).is_none());
+    }
+
+    #[test]
+    fn conflicting_magic_version_forces_other_and_blocks_validation() {
+        let (prog, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;!knitout-3\n");
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::ConflictingMagicVersion { .. })),
+            "expected ConflictingMagicVersion, got {errors:?}"
+        );
+        assert!(
+            prog.version().is_right(),
+            "a magic conflict should make the version Other"
+        );
+        assert!(parsed_to_valid(prog).is_none());
+    }
+
+    #[test]
+    fn too_many_arguments_makes_operation_other_and_blocks_validation() {
+        // `pause` takes no arguments; a trailing argument makes the whole op Other.
+        let (prog, _, errors) = parse(";!knitout-2\n;;Carriers: A\npause 5\n");
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::TooManyArguments(_))),
+            "expected TooManyArguments, got {errors:?}"
+        );
+        assert!(
+            matches!(
+                prog.operations()[0].value,
+                Operation::Other(ParseError::TooManyArguments(_))
+            ),
+            "the operation should be Other"
+        );
+        assert!(parsed_to_valid(prog).is_none());
+    }
+
+    #[test]
+    fn bad_utf8_blocks_validation() {
+        // 0xFF is never valid UTF-8; it appears as an operation token here.
+        let mut src = b";!knitout-2\n;;Carriers: A\n".to_vec();
+        src.extend_from_slice(&[b'k', b'n', b'i', b't', b' ', 0xFF, b'\n']);
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&tree_sitter_knitout::LANGUAGE.into())
+            .expect("failed to load grammar");
+        let tree = parser.parse(&src, None).expect("parse returned None");
+        let (prog, _, errors) = cst_to_program(&src, &tree);
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadUtf8(_))),
+            "expected BadUtf8, got {errors:?}"
+        );
+        assert!(
+            prog.version().is_right(),
+            "bad UTF-8 should force version Other"
+        );
+        assert!(parsed_to_valid(prog).is_none());
     }
 
     #[test]
@@ -1105,7 +1243,10 @@ mod tests {
             Operation::BaseOperation(BaseOperation::Drop { needle }) => {
                 let n = needle.as_ref().left().unwrap();
                 // index should be Other
-                assert!(n.index().value().right().is_some(), "expected Other index");
+                assert!(
+                    n.index().value().clone().right().is_some(),
+                    "expected Other index"
+                );
                 // bed should still be Front
                 assert!(matches!(n.bed(), knitout_ast::Bed::Front(_)));
             }
@@ -1147,7 +1288,7 @@ mod tests {
     #[test]
     fn yarn_header_stored() {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Yarn-A: 50/50 Wool/Nylon Natural\n");
-        assert_eq!(prog.headers().yarn().len(), 1);
+        assert_eq!(prog.headers().as_ref().left().unwrap().yarn().len(), 1);
     }
 
     // ─── exact span byte-offset tests ────────────────────────────────────────
@@ -1317,7 +1458,7 @@ mod tests {
                 assert_eq!(slider_span.start(), 34);
                 assert_eq!(slider_span.end(), 35);
 
-                let index_ann = n.index().value().left().unwrap();
+                let index_ann = n.index().value().clone().left().unwrap();
                 assert_eq!(index_ann, -3);
                 let index_span = n.index().annotation();
                 assert_eq!(&src[index_span.start()..index_span.end()], b"-3");
@@ -1345,6 +1486,9 @@ mod tests {
         let (prog, _, _) = parse(source);
         let gauge_ann = prog
             .headers()
+            .as_ref()
+            .left()
+            .unwrap()
             .gauge()
             .as_ref()
             .expect("expected gauge header");
@@ -1374,6 +1518,9 @@ mod tests {
         let (prog, _, _) = parse(source);
         let gauge_ann = prog
             .headers()
+            .as_ref()
+            .left()
+            .unwrap()
             .gauge()
             .as_ref()
             .expect("expected gauge header");
@@ -1401,7 +1548,15 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A B\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let ann = prog.headers().carriers().as_ref().left().unwrap();
+        let ann = prog
+            .headers()
+            .as_ref()
+            .left()
+            .unwrap()
+            .carriers()
+            .as_ref()
+            .left()
+            .unwrap();
         let items = ann.value.carriers_and_rails().left().unwrap();
         assert_eq!(items.len(), 2);
         match &items[0] {
@@ -1443,7 +1598,15 @@ mod tests {
         let source = ";!knitout-2\n;;Carriers: A,C;B,D\n";
         let src = source.as_bytes();
         let (prog, _, _) = parse(source);
-        let ann = prog.headers().carriers().as_ref().left().unwrap();
+        let ann = prog
+            .headers()
+            .as_ref()
+            .left()
+            .unwrap()
+            .carriers()
+            .as_ref()
+            .left()
+            .unwrap();
         let items = ann.value.carriers_and_rails().left().unwrap();
         assert_eq!(items.len(), 1);
         match &items[0] {
@@ -1713,7 +1876,7 @@ mod tests {
     fn x_carrier_stopping_distance() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-carrier-stopping-distance 10\n") {
             ExtensionOperation::XCarrierStoppingDistance { value } => {
-                assert_eq!(value.value().left().unwrap(), 10);
+                assert_eq!(value.value().clone().left().unwrap(), 10);
             }
             other => panic!("{other:?}"),
         }
@@ -1733,7 +1896,7 @@ mod tests {
             "should not emit BadU32 for a header with no colon"
         );
         assert!(
-            prog.headers().gauge().is_none(),
+            prog.headers().as_ref().left().unwrap().gauge().is_none(),
             "Gauge header should be absent when content has no colon"
         );
     }

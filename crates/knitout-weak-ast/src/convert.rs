@@ -12,7 +12,7 @@ use crate::{CommentInfo, Parsed};
 // ─── Parsed → Validated ──────────────────────────────────────────────────────
 
 /// The canonical `PhaseTransform` from `Parsed` to `Validated`.  All span annotations are
-/// dropped; all `Other(Span)` nodes cause the transformation to return `None`.
+/// dropped; all `Other(ParseError)` nodes cause the transformation to return `None`.
 pub struct ParsedToValidated;
 
 impl PhaseTransform<Parsed, Validated> for ParsedToValidated {
@@ -43,7 +43,7 @@ impl PhaseTransform<Parsed, Validated> for ParsedToValidated {
 
 /// Convert a `Program<Parsed>` to `Option<Program<Validated>>`.
 ///
-/// Returns `None` if any `Other(Span)` node is present in the parsed tree (indicating that
+/// Returns `None` if any `Other(ParseError)` node is present in the parsed tree (indicating that
 /// some portion of the source could not be understood).
 pub fn parsed_to_valid(prog: Program<Parsed>) -> Option<Program<Validated>> {
     transform_program::<Parsed, Validated, ParsedToValidated>(prog)

@@ -22,8 +22,8 @@ use crate::{
 pub struct Program<P: Phase> {
     /// The ;!knitout-`version` at the top
     pub(crate) version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
-    /// The headers
-    pub(crate) headers: Headers<P>,
+    /// The headers, or `Other` if the header block was unrepresentable (e.g. a conflicting header).
+    pub(crate) headers: Either<Headers<P>, P::Other>,
     /// The operations, with attached provenance
     pub(crate) operations: Vec<Annotated<Operation<P>, P::Operation>>,
     /// The carrier naming table
@@ -33,7 +33,7 @@ pub struct Program<P: Phase> {
 impl<P: Phase> Program<P> {
     pub fn new(
         version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
-        headers: Headers<P>,
+        headers: Either<Headers<P>, P::Other>,
         operations: Vec<Annotated<Operation<P>, P::Operation>>,
         carriers_table: CarrierTable,
     ) -> Self {
@@ -49,11 +49,11 @@ impl<P: Phase> Program<P> {
         &self.version
     }
 
-    pub fn headers(&self) -> &Headers<P> {
+    pub fn headers(&self) -> &Either<Headers<P>, P::Other> {
         &self.headers
     }
 
-    pub fn headers_mut(&mut self) -> &mut Headers<P> {
+    pub fn headers_mut(&mut self) -> &mut Either<Headers<P>, P::Other> {
         &mut self.headers
     }
 
@@ -151,7 +151,7 @@ impl Display for Program<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         writeln!(f, ";!knitout-{}", valid(&self.version).value)?;
         // writes a newline at the end of headers:
-        self.headers.fmt_table(f, &self.carrier_table)?;
+        valid(&self.headers).fmt_table(f, &self.carrier_table)?;
         for op in &self.operations {
             // makes an empty line between operations and headers
             writeln!(f)?;
@@ -229,7 +229,7 @@ mod tests {
         ))));
         let mut program = Program::<Validated>::new(
             Either::Left(Annotated::unit(18u32)),
-            headers,
+            Either::Left(headers),
             Vec::new(),
             carrier_table,
         );
@@ -238,7 +238,7 @@ mod tests {
         assert_eq!(program.carrier_table().carrier_name(&carrier_c), "C");
 
         assert_eq!(valid(program.version()).value, 18u32);
-        let carriers_val = valid(program.headers().carriers());
+        let carriers_val = valid(valid(program.headers()).carriers());
         assert_eq!(
             carriers_val
                 .value
@@ -282,15 +282,21 @@ mod tests {
         ))));
         let mut program = Program::<Validated>::new(
             Either::Left(Annotated::unit(18u32)),
-            headers,
+            Either::Left(headers),
             Vec::new(),
             carrier_table,
         );
         program
             .headers_mut()
+            .as_mut()
+            .left()
+            .unwrap()
             .set_position(Annotated::unit(PositionHeaderValue::Left(())));
         program
             .headers_mut()
+            .as_mut()
+            .left()
+            .unwrap()
             .set_gauge(Annotated::new(MyU32::new(Either::Left(1500u32), ()), ()));
 
         program.push_operation(Annotated::new(
