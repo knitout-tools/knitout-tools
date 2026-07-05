@@ -2,7 +2,7 @@ mod convert;
 mod diagnostics;
 mod lower;
 
-pub use convert::{parsed_to_valid, transform_program, ParsedToValidated, PhaseTransform};
+pub use convert::{ParsedToValidated, PhaseTransform, parsed_to_valid, transform_program};
 pub use diagnostics::{ParseError, ParseWarning};
 pub use lower::cst_to_program;
 
@@ -38,9 +38,6 @@ impl Phase for Parsed {
     /// `(prefix_span, version_span)`: e.g. `";!knitout-"` and `"2"`.
     type MagicVersion = (Span, Span);
 
-    /// Not used at the `Headers` level for `Parsed`; headers are stored field-by-field.
-    type Headers = ();
-
     /// `(op_span, CommentInfo)`: the span of the whole operation (excluding any comment)
     /// plus information about any trailing comment.
     type Operation = (Span, CommentInfo);
@@ -56,9 +53,6 @@ impl Phase for Parsed {
 
     /// Span of the whole carriers value (e.g. `"1 2,3;4,5"`).
     type CarriersHeaderValue = Span;
-
-    /// Not used individually; carriers/rails share a common annotation at the item level.
-    type CarrierOrRail = ();
 
     /// Span of a `"left;right"` rail token.
     type Rail = Span;
@@ -104,11 +98,11 @@ impl Phase for Parsed {
 
 #[cfg(test)]
 mod tests {
+    use either::Either;
     use knitout_ast::{
         Annotated, BaseOperation, CarrierOrRail, Direction, ExtensionOperation, Operation,
         PositionHeaderValue, PresserMode, Program, XferStyle,
     };
-    use either::Either;
 
     use super::*;
 
@@ -175,7 +169,9 @@ mod tests {
     fn bad_magic_version_emits_error() {
         let (_, _, errors) = parse(";!knitout-xyz\n;;Carriers: A\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::BadMagicVersion(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadMagicVersion(_))),
             "expected BadMagicVersion, got {errors:?}"
         );
     }
@@ -184,7 +180,9 @@ mod tests {
     fn magic_not_first_emits_warning() {
         let (_, warnings, _) = parse(";;Carriers: A\n;!knitout-2\n");
         assert!(
-            warnings.iter().any(|w| matches!(w, ParseWarning::MagicNotFirst(_))),
+            warnings
+                .iter()
+                .any(|w| matches!(w, ParseWarning::MagicNotFirst(_))),
             "expected MagicNotFirst, got {warnings:?}"
         );
     }
@@ -207,7 +205,9 @@ mod tests {
     fn missing_carriers_header_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::MissingCarriersHeader)),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::MissingCarriersHeader)),
             "expected MissingCarriersHeader, got {errors:?}"
         );
     }
@@ -270,7 +270,9 @@ mod tests {
     fn duplicate_carriers_header_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Carriers: B\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::ConflictingHeader { .. })),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::ConflictingHeader { .. })),
             "expected ConflictingHeader, got {errors:?}"
         );
     }
@@ -283,7 +285,7 @@ mod tests {
         let (_, headers, _, _) = prog.into_components();
         let (_, _, _, gauge, _, _, _) = headers.into_components();
         let gauge_ann = gauge.expect("expected gauge");
-        let val = gauge_ann.value.value().clone().left().expect("expected u32").value;
+        let val = gauge_ann.value.value().left().expect("expected u32");
         assert_eq!(val, 15);
     }
 
@@ -292,7 +294,7 @@ mod tests {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Width: 250\n");
         let (_, headers, _, _) = prog.into_components();
         let (_, _, _, _, width, _, _) = headers.into_components();
-        let val = width.unwrap().value.value().clone().left().unwrap().value;
+        let val = width.unwrap().value.value().left().expect("expected u32");
         assert_eq!(val, 250);
     }
 
@@ -301,7 +303,10 @@ mod tests {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Left\n");
         let (_, headers, _, _) = prog.into_components();
         let (_, _, _, _, _, position, _) = headers.into_components();
-        assert!(matches!(position.unwrap().value, PositionHeaderValue::Left(_)));
+        assert!(matches!(
+            position.unwrap().value,
+            PositionHeaderValue::Left(_)
+        ));
     }
 
     #[test]
@@ -309,7 +314,10 @@ mod tests {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Center\n");
         let (_, headers, _, _) = prog.into_components();
         let (_, _, _, _, _, position, _) = headers.into_components();
-        assert!(matches!(position.unwrap().value, PositionHeaderValue::Center(_)));
+        assert!(matches!(
+            position.unwrap().value,
+            PositionHeaderValue::Center(_)
+        ));
     }
 
     #[test]
@@ -317,7 +325,10 @@ mod tests {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Right\n");
         let (_, headers, _, _) = prog.into_components();
         let (_, _, _, _, _, position, _) = headers.into_components();
-        assert!(matches!(position.unwrap().value, PositionHeaderValue::Right(_)));
+        assert!(matches!(
+            position.unwrap().value,
+            PositionHeaderValue::Right(_)
+        ));
     }
 
     #[test]
@@ -325,14 +336,19 @@ mod tests {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Keep\n");
         let (_, headers, _, _) = prog.into_components();
         let (_, _, _, _, _, position, _) = headers.into_components();
-        assert!(matches!(position.unwrap().value, PositionHeaderValue::Keep(_)));
+        assert!(matches!(
+            position.unwrap().value,
+            PositionHeaderValue::Keep(_)
+        ));
     }
 
     #[test]
     fn bad_position_value_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Position: Bogus\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::BadPositionValue(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadPositionValue(_))),
             "expected BadPositionValue, got {errors:?}"
         );
     }
@@ -342,7 +358,13 @@ mod tests {
         let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Machine: SWG091N2\n");
         let (_, headers, _, _) = prog.into_components();
         let (_, _, machine, _, _, _, _) = headers.into_components();
-        let s = machine.unwrap().value.value().clone().left().unwrap().value;
+        let machine = machine.unwrap();
+        let s = machine
+            .value
+            .value()
+            .as_ref()
+            .left()
+            .expect("expected string");
         assert_eq!(s, "SWG091N2");
     }
 
@@ -350,7 +372,9 @@ mod tests {
     fn unrecognized_extension_header_emits_warning() {
         let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\n;;X-foo: bar\n");
         assert!(
-            warnings.iter().any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
+            warnings
+                .iter()
+                .any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
             "expected UnrecognizedExtensionHeader, got {warnings:?}"
         );
     }
@@ -359,7 +383,9 @@ mod tests {
     fn header_after_operations_emits_warning() {
         let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\npause\n;;Gauge: 15\n");
         assert!(
-            warnings.iter().any(|w| matches!(w, ParseWarning::HeaderAfterOperations(_))),
+            warnings
+                .iter()
+                .any(|w| matches!(w, ParseWarning::HeaderAfterOperations(_))),
             "expected HeaderAfterOperations, got {warnings:?}"
         );
     }
@@ -385,18 +411,28 @@ mod tests {
     fn pause_op_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\npause\n");
         assert_eq!(ops.len(), 1);
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Pause)));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Pause)
+        ));
     }
 
     #[test]
     fn knit_plus_front_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nknit + f5 A\n");
         match &ops[0].value {
-            Operation::BaseOperation(BaseOperation::Knit { direction, needle, carriers }) => {
+            Operation::BaseOperation(BaseOperation::Knit {
+                direction,
+                needle,
+                carriers,
+            }) => {
                 assert!(matches!(direction, Direction::Right(_)));
                 let needle = needle.as_ref().left().expect("expected needle");
                 assert!(matches!(needle.bed(), knitout_ast::Bed::Front(_)));
-                assert!(!matches!(needle.is_slider(), knitout_ast::IsSlider::Slider(_)));
+                assert!(!matches!(
+                    needle.is_slider(),
+                    knitout_ast::IsSlider::Slider(_)
+                ));
                 assert_eq!(needle.index().as_ref().left().unwrap().value, 5);
                 assert_eq!(carriers.len(), 1);
             }
@@ -408,7 +444,9 @@ mod tests {
     fn knit_minus_back_slider_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nknit - bs-3 A\n");
         match &ops[0].value {
-            Operation::BaseOperation(BaseOperation::Knit { direction, needle, .. }) => {
+            Operation::BaseOperation(BaseOperation::Knit {
+                direction, needle, ..
+            }) => {
                 assert!(matches!(direction, Direction::Left(_)));
                 let n = needle.as_ref().left().unwrap();
                 assert!(matches!(n.bed(), knitout_ast::Bed::Back(_)));
@@ -422,19 +460,28 @@ mod tests {
     #[test]
     fn tuck_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\ntuck + f1 A\n");
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Tuck { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Tuck { .. })
+        ));
     }
 
     #[test]
     fn miss_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nmiss + f1 A\n");
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Miss { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Miss { .. })
+        ));
     }
 
     #[test]
     fn split_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nsplit + f1 b1 A\n");
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Split { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Split { .. })
+        ));
     }
 
     #[test]
@@ -451,14 +498,20 @@ mod tests {
     #[test]
     fn amiss_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\namiss b5\n");
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Amiss { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Amiss { .. })
+        ));
     }
 
     #[test]
     fn xfer_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nxfer f5 b5\n");
         match &ops[0].value {
-            Operation::BaseOperation(BaseOperation::Xfer { source, destination }) => {
+            Operation::BaseOperation(BaseOperation::Xfer {
+                source,
+                destination,
+            }) => {
                 assert!(source.as_ref().left().is_some());
                 assert!(destination.as_ref().left().is_some());
             }
@@ -472,11 +525,14 @@ mod tests {
         use std::str::FromStr;
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nstitch -2 3\n");
         match &ops[0].value {
-            Operation::BaseOperation(BaseOperation::Stitch { before_pull, after_pull }) => {
-                let bp = before_pull.value().clone().left().unwrap().value;
-                let ap = after_pull.value().clone().left().unwrap().value;
-                assert_eq!(bp, BigDecimal::from_str("-2").unwrap());
-                assert_eq!(ap, BigDecimal::from_str("3").unwrap());
+            Operation::BaseOperation(BaseOperation::Stitch {
+                before_pull,
+                after_pull,
+            }) => {
+                let bp = before_pull.value().as_ref().left().unwrap();
+                let ap = after_pull.value().as_ref().left().unwrap();
+                assert_eq!(bp, &BigDecimal::from_str("-2").unwrap());
+                assert_eq!(ap, &BigDecimal::from_str("3").unwrap());
             }
             other => panic!("expected Stitch, got {other:?}"),
         }
@@ -489,8 +545,8 @@ mod tests {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nrack 0.5\n");
         match &ops[0].value {
             Operation::BaseOperation(BaseOperation::Rack { offset }) => {
-                let v = offset.value().clone().left().unwrap().value;
-                assert_eq!(v, BigDecimal::from_str("0.5").unwrap());
+                let v = offset.value().as_ref().left().unwrap();
+                assert_eq!(v, &BigDecimal::from_str("0.5").unwrap());
             }
             other => panic!("expected Rack, got {other:?}"),
         }
@@ -510,25 +566,37 @@ mod tests {
     #[test]
     fn inhook_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\ninhook A\n");
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Inhook { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Inhook { .. })
+        ));
     }
 
     #[test]
     fn releasehook_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nreleasehook A\n");
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Releasehook { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Releasehook { .. })
+        ));
     }
 
     #[test]
     fn out_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nout A\n");
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Out { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Out { .. })
+        ));
     }
 
     #[test]
     fn outhook_parsed() {
         let ops = get_ops(";!knitout-2\n;;Carriers: A\nouthook A\n");
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Outhook { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Outhook { .. })
+        ));
     }
 
     // ─── extension operations ─────────────────────────────────────────────────
@@ -544,7 +612,9 @@ mod tests {
     #[test]
     fn x_presser_mode_off() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-presser-mode off\n") {
-            ExtensionOperation::XPresserMode { mode } => assert!(matches!(mode, PresserMode::Off(_))),
+            ExtensionOperation::XPresserMode { mode } => {
+                assert!(matches!(mode, PresserMode::Off(_)))
+            }
             other => panic!("{other:?}"),
         }
     }
@@ -552,7 +622,9 @@ mod tests {
     #[test]
     fn x_presser_mode_auto() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-presser-mode auto\n") {
-            ExtensionOperation::XPresserMode { mode } => assert!(matches!(mode, PresserMode::Auto(_))),
+            ExtensionOperation::XPresserMode { mode } => {
+                assert!(matches!(mode, PresserMode::Auto(_)))
+            }
             other => panic!("{other:?}"),
         }
     }
@@ -560,7 +632,9 @@ mod tests {
     #[test]
     fn x_presser_mode_on() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-presser-mode on\n") {
-            ExtensionOperation::XPresserMode { mode } => assert!(matches!(mode, PresserMode::On(_))),
+            ExtensionOperation::XPresserMode { mode } => {
+                assert!(matches!(mode, PresserMode::On(_)))
+            }
             other => panic!("{other:?}"),
         }
     }
@@ -568,13 +642,19 @@ mod tests {
     #[test]
     fn bad_presser_mode_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nx-presser-mode bogus\n");
-        assert!(errors.iter().any(|e| matches!(e, ParseError::BadPresserMode(_))));
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadPresserMode(_)))
+        );
     }
 
     #[test]
     fn x_xfer_style_four_pass() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-xfer-style four-pass\n") {
-            ExtensionOperation::XXferStyle { style } => assert!(matches!(style, XferStyle::FourPass(_))),
+            ExtensionOperation::XXferStyle { style } => {
+                assert!(matches!(style, XferStyle::FourPass(_)))
+            }
             other => panic!("{other:?}"),
         }
     }
@@ -582,7 +662,9 @@ mod tests {
     #[test]
     fn x_xfer_style_two_pass() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-xfer-style two-pass\n") {
-            ExtensionOperation::XXferStyle { style } => assert!(matches!(style, XferStyle::TwoPass(_))),
+            ExtensionOperation::XXferStyle { style } => {
+                assert!(matches!(style, XferStyle::TwoPass(_)))
+            }
             other => panic!("{other:?}"),
         }
     }
@@ -590,14 +672,18 @@ mod tests {
     #[test]
     fn bad_xfer_style_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nx-xfer-style bogus\n");
-        assert!(errors.iter().any(|e| matches!(e, ParseError::BadXferStyle(_))));
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadXferStyle(_)))
+        );
     }
 
     #[test]
     fn x_stitch_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-stitch-number 5\n") {
             ExtensionOperation::XStitchNumber { value } => {
-                assert_eq!(value.value().clone().left().unwrap().value, 5);
+                assert_eq!(value.value().left().unwrap(), 5);
             }
             other => panic!("{other:?}"),
         }
@@ -607,7 +693,7 @@ mod tests {
     fn x_speed_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-speed-number 3\n") {
             ExtensionOperation::XSpeedNumber { value } => {
-                assert_eq!(value.value().clone().left().unwrap().value, 3);
+                assert_eq!(value.value().left().unwrap(), 3);
             }
             other => panic!("{other:?}"),
         }
@@ -617,7 +703,7 @@ mod tests {
     fn x_sub_roller_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-sub-roller-number 2\n") {
             ExtensionOperation::XSubRollerNumber { value } => {
-                assert_eq!(value.value().clone().left().unwrap().value, 2);
+                assert_eq!(value.value().left().unwrap(), 2);
             }
             other => panic!("{other:?}"),
         }
@@ -627,7 +713,7 @@ mod tests {
     fn x_xfer_stitch_number() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-xfer-stitch-number 4\n") {
             ExtensionOperation::XXferStitchNumber { value } => {
-                assert_eq!(value.value().clone().left().unwrap().value, 4);
+                assert_eq!(value.value().left().unwrap(), 4);
             }
             other => panic!("{other:?}"),
         }
@@ -653,7 +739,7 @@ mod tests {
     fn x_vis_color() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-vis-color 0xff0000 A\n") {
             ExtensionOperation::XVisColor { color, carriers } => {
-                let s = color.value().clone().left().unwrap().value;
+                let s = color.value().as_ref().left().unwrap();
                 assert_eq!(s, "0xff0000");
                 assert_eq!(carriers.len(), 1);
             }
@@ -675,7 +761,7 @@ mod tests {
     fn x_add_roller_advance() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-add-roller-advance 0.5\n") {
             ExtensionOperation::XAddRollerAdvance { value } => {
-                assert!(value.value().clone().left().is_some());
+                assert!(value.value().as_ref().left().is_some());
             }
             other => panic!("{other:?}"),
         }
@@ -685,7 +771,7 @@ mod tests {
     fn x_carrier_spacing() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-carrier-spacing 5\n") {
             ExtensionOperation::XCarrierSpacing { value } => {
-                assert_eq!(value.value().clone().left().unwrap().value, 5);
+                assert_eq!(value.value().left().unwrap(), 5);
             }
             other => panic!("{other:?}"),
         }
@@ -695,11 +781,11 @@ mod tests {
     fn unknown_extension_op() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-my-custom arg1 arg2\n") {
             ExtensionOperation::UnknownExtension { name, arguments } => {
-                let n = name.value().clone().left().unwrap().value;
+                let n = name.value().clone().left().unwrap();
                 assert_eq!(n, "x-my-custom");
                 assert_eq!(arguments.len(), 2);
-                let a0 = arguments[0].value().clone().left().unwrap().value;
-                let a1 = arguments[1].value().clone().left().unwrap().value;
+                let a0 = arguments[0].value().clone().left().unwrap();
+                let a1 = arguments[1].value().clone().left().unwrap();
                 assert_eq!(a0, "arg1");
                 assert_eq!(a1, "arg2");
             }
@@ -713,7 +799,9 @@ mod tests {
     fn unrecognized_opcode_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nfoobar\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::UnrecognizedOpcode(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::UnrecognizedOpcode(_))),
             "expected UnrecognizedOpcode, got {errors:?}"
         );
     }
@@ -732,7 +820,9 @@ mod tests {
     fn missing_direction_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nknit\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::MissingArgument(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::MissingArgument(_))),
             "expected MissingArgument, got {errors:?}"
         );
     }
@@ -741,7 +831,9 @@ mod tests {
     fn bad_direction_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nknit x f5\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::BadDirection(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadDirection(_))),
             "expected BadDirection, got {errors:?}"
         );
     }
@@ -750,7 +842,9 @@ mod tests {
     fn bad_needle_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\ndrop x5\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::BadBed(_) | ParseError::BadNeedle(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadBed(_) | ParseError::BadNeedle(_))),
             "expected BadBed or BadNeedle, got {errors:?}"
         );
     }
@@ -763,14 +857,19 @@ mod tests {
         let (_, _, ops, _) = prog.into_components();
         assert_eq!(ops.len(), 1);
         // The op is Drop (not Other), even though the needle index is bad.
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Drop { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::Drop { .. })
+        ));
     }
 
     #[test]
     fn bad_stitch_value_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nstitch abc def\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::BadBigDecimal(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadBigDecimal(_))),
             "expected BadBigDecimal, got {errors:?}"
         );
     }
@@ -779,7 +878,9 @@ mod tests {
     fn too_many_arguments_emits_error() {
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\npause extra\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::TooManyArguments(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::TooManyArguments(_))),
             "expected TooManyArguments, got {errors:?}"
         );
     }
@@ -952,7 +1053,14 @@ mod tests {
     fn parse_warning_span_duplicate_same_value() {
         let s = Span::new(10, 15);
         let p = Span::new(0, 5);
-        assert_eq!(ParseWarning::DuplicateHeaderSameValue { span: s, previous: p }.span(), s);
+        assert_eq!(
+            ParseWarning::DuplicateHeaderSameValue {
+                span: s,
+                previous: p
+            }
+            .span(),
+            s
+        );
     }
 
     // ─── needle annotation ────────────────────────────────────────────────────
@@ -979,7 +1087,11 @@ mod tests {
     fn bad_needle_index_keeps_needle_with_other_index() {
         // "fxyz" — bed is 'f', no slider, index bytes are "xyz" which fail to parse as i32
         let (prog, _, errors) = parse(";!knitout-2\n;;Carriers: A\ndrop fxyz\n");
-        assert!(errors.iter().any(|e| matches!(e, ParseError::BadNeedleIndex(_))));
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadNeedleIndex(_)))
+        );
         let (_, _, ops, _) = prog.into_components();
         match &ops[0].value {
             Operation::BaseOperation(BaseOperation::Drop { needle }) => {
@@ -1001,9 +1113,18 @@ mod tests {
         let prog = parse_ok(source);
         let (_, _, ops, _) = prog.into_components();
         assert_eq!(ops.len(), 3);
-        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::In { .. })));
-        assert!(matches!(ops[1].value, Operation::BaseOperation(BaseOperation::Knit { .. })));
-        assert!(matches!(ops[2].value, Operation::BaseOperation(BaseOperation::Out { .. })));
+        assert!(matches!(
+            ops[0].value,
+            Operation::BaseOperation(BaseOperation::In { .. })
+        ));
+        assert!(matches!(
+            ops[1].value,
+            Operation::BaseOperation(BaseOperation::Knit { .. })
+        ));
+        assert!(matches!(
+            ops[2].value,
+            Operation::BaseOperation(BaseOperation::Out { .. })
+        ));
     }
 
     #[test]
@@ -1037,8 +1158,14 @@ mod tests {
         let ann = version.left().unwrap().annotation;
         let (prefix_span, ver_span) = ann;
         let src = source.as_bytes();
-        assert_eq!(&src[prefix_span.start() as usize..prefix_span.end() as usize], b";!knitout-");
-        assert_eq!(&src[ver_span.start() as usize..ver_span.end() as usize], b"2");
+        assert_eq!(
+            &src[prefix_span.start() as usize..prefix_span.end() as usize],
+            b";!knitout-"
+        );
+        assert_eq!(
+            &src[ver_span.start() as usize..ver_span.end() as usize],
+            b"2"
+        );
         assert_eq!(prefix_span.start(), 0);
         assert_eq!(prefix_span.end(), 10);
         assert_eq!(ver_span.start(), 10);
@@ -1053,8 +1180,14 @@ mod tests {
         let (version, _, _, _) = prog.into_components();
         let (prefix_span, ver_span) = version.left().unwrap().annotation;
         let src = source.as_bytes();
-        assert_eq!(&src[prefix_span.start() as usize..prefix_span.end() as usize], b";!knitout-");
-        assert_eq!(&src[ver_span.start() as usize..ver_span.end() as usize], b"18");
+        assert_eq!(
+            &src[prefix_span.start() as usize..prefix_span.end() as usize],
+            b";!knitout-"
+        );
+        assert_eq!(
+            &src[ver_span.start() as usize..ver_span.end() as usize],
+            b"18"
+        );
         assert_eq!(ver_span.start(), 10);
         assert_eq!(ver_span.end(), 12);
     }
@@ -1065,10 +1198,11 @@ mod tests {
     fn comment_line_before_magic_triggers_magic_not_first() {
         // A plain comment on line 0 should increment line_index.
         // Then magic on line 1 (line_index=1 > 0) triggers MagicNotFirst.
-        let (_, warnings, _) =
-            parse("; just a comment\n;!knitout-2\n;;Carriers: A\n");
+        let (_, warnings, _) = parse("; just a comment\n;!knitout-2\n;;Carriers: A\n");
         assert!(
-            warnings.iter().any(|w| matches!(w, ParseWarning::MagicNotFirst(_))),
+            warnings
+                .iter()
+                .any(|w| matches!(w, ParseWarning::MagicNotFirst(_))),
             "expected MagicNotFirst when magic follows a comment, got {warnings:?}"
         );
     }
@@ -1078,7 +1212,10 @@ mod tests {
         // A bare comment line must not produce any operation nodes.
         let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\n; just a comment\n");
         let (_, _, ops, _) = prog.into_components();
-        assert!(ops.is_empty(), "comment line should produce no operations, got {ops:?}");
+        assert!(
+            ops.is_empty(),
+            "comment line should produce no operations, got {ops:?}"
+        );
     }
 
     // ─── needle span byte-offset tests ───────────────────────────────────────
@@ -1104,7 +1241,10 @@ mod tests {
                     knitout_ast::Bed::Front(s) => *s,
                     other => panic!("expected Front, got {other:?}"),
                 };
-                assert_eq!(&src[bed_span.start() as usize..bed_span.end() as usize], b"f");
+                assert_eq!(
+                    &src[bed_span.start() as usize..bed_span.end() as usize],
+                    b"f"
+                );
                 assert_eq!(bed_span.start(), 31);
                 assert_eq!(bed_span.end(), 32);
 
@@ -1119,7 +1259,10 @@ mod tests {
                 // index span covers "5"
                 let index_ann = n.index().as_ref().left().unwrap();
                 let index_span = index_ann.annotation;
-                assert_eq!(&src[index_span.start() as usize..index_span.end() as usize], b"5");
+                assert_eq!(
+                    &src[index_span.start() as usize..index_span.end() as usize],
+                    b"5"
+                );
                 assert_eq!(index_span.start(), 32);
                 assert_eq!(index_span.end(), 33);
             }
@@ -1143,13 +1286,19 @@ mod tests {
                     knitout_ast::IsSlider::Slider(s) => *s,
                     other => panic!("expected Slider, got {other:?}"),
                 };
-                assert_eq!(&src[slider_span.start() as usize..slider_span.end() as usize], b"s");
+                assert_eq!(
+                    &src[slider_span.start() as usize..slider_span.end() as usize],
+                    b"s"
+                );
                 assert_eq!(slider_span.start(), 32);
                 assert_eq!(slider_span.end(), 33);
 
                 let index_ann = n.index().as_ref().left().unwrap();
                 let index_span = index_ann.annotation;
-                assert_eq!(&src[index_span.start() as usize..index_span.end() as usize], b"5");
+                assert_eq!(
+                    &src[index_span.start() as usize..index_span.end() as usize],
+                    b"5"
+                );
                 assert_eq!(index_span.start(), 33);
                 assert_eq!(index_span.end(), 34);
             }
@@ -1178,21 +1327,30 @@ mod tests {
                     knitout_ast::Bed::Back(s) => *s,
                     other => panic!("expected Back, got {other:?}"),
                 };
-                assert_eq!(&src[bed_span.start() as usize..bed_span.end() as usize], b"b");
+                assert_eq!(
+                    &src[bed_span.start() as usize..bed_span.end() as usize],
+                    b"b"
+                );
                 assert_eq!(bed_span.start(), 33);
 
                 let slider_span = match n.is_slider() {
                     knitout_ast::IsSlider::Slider(s) => *s,
                     other => panic!("expected Slider, got {other:?}"),
                 };
-                assert_eq!(&src[slider_span.start() as usize..slider_span.end() as usize], b"s");
+                assert_eq!(
+                    &src[slider_span.start() as usize..slider_span.end() as usize],
+                    b"s"
+                );
                 assert_eq!(slider_span.start(), 34);
                 assert_eq!(slider_span.end(), 35);
 
                 let index_ann = n.index().as_ref().left().unwrap();
                 assert_eq!(index_ann.value, -3);
                 let index_span = index_ann.annotation;
-                assert_eq!(&src[index_span.start() as usize..index_span.end() as usize], b"-3");
+                assert_eq!(
+                    &src[index_span.start() as usize..index_span.end() as usize],
+                    b"-3"
+                );
                 assert_eq!(index_span.start(), 35);
                 assert_eq!(index_span.end(), 37);
             }
@@ -1221,12 +1379,18 @@ mod tests {
         let (_, _, _, gauge, _, _, _) = headers.into_components();
         let gauge_ann = gauge.expect("expected gauge header");
         let name_span = gauge_ann.annotation; // P::Header = Span
-        assert_eq!(&src[name_span.start() as usize..name_span.end() as usize], b"Gauge:");
+        assert_eq!(
+            &src[name_span.start() as usize..name_span.end() as usize],
+            b"Gauge:"
+        );
         assert_eq!(name_span.start(), 28);
         assert_eq!(name_span.end(), 34);
         // value span covers "15"
-        let value_span = gauge_ann.value.value().as_ref().left().unwrap().annotation;
-        assert_eq!(&src[value_span.start() as usize..value_span.end() as usize], b"15");
+        let value_span = gauge_ann.value.annotation();
+        assert_eq!(
+            &src[value_span.start() as usize..value_span.end() as usize],
+            b"15"
+        );
         assert_eq!(value_span.start(), 35);
         assert_eq!(value_span.end(), 37);
     }
@@ -1246,10 +1410,16 @@ mod tests {
         let (_, headers, _, _) = prog.into_components();
         let (_, _, _, gauge, _, _, _) = headers.into_components();
         let gauge_ann = gauge.expect("expected gauge header");
-        let value_span = gauge_ann.value.value().as_ref().left().unwrap().annotation;
-        assert_eq!(&src[value_span.start() as usize..value_span.end() as usize], b"15");
+        let value_span = gauge_ann.value.annotation();
+        assert_eq!(
+            &src[value_span.start() as usize..value_span.end() as usize],
+            b"15"
+        );
         // value must start AFTER the three leading spaces
-        assert!(value_span.start() > 34, "value_trim_start should skip leading spaces");
+        assert!(
+            value_span.start() > 34,
+            "value_trim_start should skip leading spaces"
+        );
     }
 
     // ─── carrier header span byte-offset tests ────────────────────────────────
@@ -1320,29 +1490,54 @@ mod tests {
         match items.into_iter().next().unwrap() {
             CarrierOrRail::Rail(rail) => {
                 let (left, right, rail_span) = rail.into_parts();
-                assert_eq!(&src[rail_span.start() as usize..rail_span.end() as usize], b"A,C;B,D");
+                assert_eq!(
+                    &src[rail_span.start() as usize..rail_span.end() as usize],
+                    b"A,C;B,D"
+                );
                 assert_eq!(rail_span.start(), 24);
                 assert_eq!(rail_span.end(), 31);
 
                 let (left_carriers, left_span) = left.left().unwrap().into_parts();
-                assert_eq!(&src[left_span.start() as usize..left_span.end() as usize], b"A,C");
+                assert_eq!(
+                    &src[left_span.start() as usize..left_span.end() as usize],
+                    b"A,C"
+                );
                 assert_eq!(left_span.start(), 24);
                 assert_eq!(left_span.end(), 27);
-                assert_eq!(&src[left_carriers[0].annotation().start() as usize..left_carriers[0].annotation().end() as usize], b"A");
+                assert_eq!(
+                    &src[left_carriers[0].annotation().start() as usize
+                        ..left_carriers[0].annotation().end() as usize],
+                    b"A"
+                );
                 assert_eq!(left_carriers[0].annotation().start(), 24);
                 assert_eq!(left_carriers[0].annotation().end(), 25);
-                assert_eq!(&src[left_carriers[1].annotation().start() as usize..left_carriers[1].annotation().end() as usize], b"C");
+                assert_eq!(
+                    &src[left_carriers[1].annotation().start() as usize
+                        ..left_carriers[1].annotation().end() as usize],
+                    b"C"
+                );
                 assert_eq!(left_carriers[1].annotation().start(), 26);
                 assert_eq!(left_carriers[1].annotation().end(), 27);
 
                 let (right_carriers, right_span) = right.left().unwrap().into_parts();
-                assert_eq!(&src[right_span.start() as usize..right_span.end() as usize], b"B,D");
+                assert_eq!(
+                    &src[right_span.start() as usize..right_span.end() as usize],
+                    b"B,D"
+                );
                 assert_eq!(right_span.start(), 28);
                 assert_eq!(right_span.end(), 31);
-                assert_eq!(&src[right_carriers[0].annotation().start() as usize..right_carriers[0].annotation().end() as usize], b"B");
+                assert_eq!(
+                    &src[right_carriers[0].annotation().start() as usize
+                        ..right_carriers[0].annotation().end() as usize],
+                    b"B"
+                );
                 assert_eq!(right_carriers[0].annotation().start(), 28);
                 assert_eq!(right_carriers[0].annotation().end(), 29);
-                assert_eq!(&src[right_carriers[1].annotation().start() as usize..right_carriers[1].annotation().end() as usize], b"D");
+                assert_eq!(
+                    &src[right_carriers[1].annotation().start() as usize
+                        ..right_carriers[1].annotation().end() as usize],
+                    b"D"
+                );
                 assert_eq!(right_carriers[1].annotation().start(), 30);
                 assert_eq!(right_carriers[1].annotation().end(), 31);
             }
@@ -1358,7 +1553,9 @@ mod tests {
         // so this must still emit UnrecognizedExtensionHeader.
         let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\n;;x-foo: bar\n");
         assert!(
-            warnings.iter().any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
+            warnings
+                .iter()
+                .any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
             "expected UnrecognizedExtensionHeader for lowercase x-header, got {warnings:?}"
         );
     }
@@ -1369,7 +1566,9 @@ mod tests {
         // (s.len() >= 2 && s[..2].eq_ignore_ascii_case("X-")) must NOT match it.
         let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\n;;FooBar: baz\n");
         assert!(
-            !warnings.iter().any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
+            !warnings
+                .iter()
+                .any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
             "non-X- header should not emit UnrecognizedExtensionHeader: {warnings:?}"
         );
     }
@@ -1411,7 +1610,9 @@ mod tests {
         // pos=1 == text.len(). The is_slider check must NOT access text[1].
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\ndrop f\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::BadNeedleIndex(_) | ParseError::BadNeedle(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadNeedleIndex(_) | ParseError::BadNeedle(_))),
             "expected error for bare bed-letter needle, got {errors:?}"
         );
     }
@@ -1421,7 +1622,9 @@ mod tests {
         // Same as above but for 'b' to ensure both bed chars are covered.
         let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\ndrop b\n");
         assert!(
-            errors.iter().any(|e| matches!(e, ParseError::BadNeedleIndex(_) | ParseError::BadNeedle(_))),
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::BadNeedleIndex(_) | ParseError::BadNeedle(_))),
             "expected error for bare back-bed-letter needle, got {errors:?}"
         );
     }
@@ -1431,7 +1634,11 @@ mod tests {
     #[test]
     fn x_loop_in() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-loop-in + f5 A\n") {
-            ExtensionOperation::XLoopIn { direction, needle, carriers } => {
+            ExtensionOperation::XLoopIn {
+                direction,
+                needle,
+                carriers,
+            } => {
                 assert!(matches!(direction, Direction::Right(_)));
                 assert!(needle.as_ref().left().is_some());
                 assert_eq!(carriers.len(), 1);
@@ -1443,7 +1650,11 @@ mod tests {
     #[test]
     fn x_yarn_in() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-yarn-in - b3 A\n") {
-            ExtensionOperation::XYarnIn { direction, needle, carriers } => {
+            ExtensionOperation::XYarnIn {
+                direction,
+                needle,
+                carriers,
+            } => {
                 assert!(matches!(direction, Direction::Left(_)));
                 assert!(needle.as_ref().left().is_some());
                 assert_eq!(carriers.len(), 1);
@@ -1455,7 +1666,11 @@ mod tests {
     #[test]
     fn x_yarn_out() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-yarn-out + f1 A\n") {
-            ExtensionOperation::XYarnOut { direction, needle, carriers } => {
+            ExtensionOperation::XYarnOut {
+                direction,
+                needle,
+                carriers,
+            } => {
                 assert!(matches!(direction, Direction::Right(_)));
                 assert!(needle.as_ref().left().is_some());
                 assert_eq!(carriers.len(), 1);
@@ -1468,7 +1683,7 @@ mod tests {
     fn x_carrier_stopping_distance() {
         match get_ext(";!knitout-2\n;;Carriers: A\nx-carrier-stopping-distance 10\n") {
             ExtensionOperation::XCarrierStoppingDistance { value } => {
-                assert_eq!(value.value().clone().left().unwrap().value, 10);
+                assert_eq!(value.value().clone().left().unwrap(), 10);
             }
             other => panic!("{other:?}"),
         }
@@ -1495,7 +1710,11 @@ mod tests {
             .find(|e| matches!(e, ParseError::BadU32(_)))
             .expect("expected BadU32 error for headerless Gauge");
         if let ParseError::BadU32(span) = bad_u32 {
-            assert_eq!(span.start(), 33, "value span start should be at end of 'Gauge'");
+            assert_eq!(
+                span.start(),
+                33,
+                "value span start should be at end of 'Gauge'"
+            );
             assert_eq!(span.end(), 33, "value span end should be at end of 'Gauge'");
         }
     }
