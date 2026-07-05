@@ -1,131 +1,98 @@
-use std::fmt;
-
 use knitout_ast::Span;
 
-/// A structured parse error produced during CST lowering or weak→strong conversion.
-///
-/// Variants carry only byte-offset spans into the original source; callers slice
-/// the source bytes if they need the raw text for display or fixup.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum ParseError {
-    // -----------------------------------------------------------------------
-    // File-level
-    // -----------------------------------------------------------------------
-    /// The root node itself was an ERROR node.
-    UnparsedFile(Span),
-    /// The `;!knitout-VERSION` magic line is absent.
-    MissingMagic(Span),
-    /// The magic line was syntactically malformed.
-    InvalidMagic(Span),
-    /// The magic line is present but has no version number.
-    MissingVersion(Span),
-    /// The magic line's version token could not be parsed as a positive integer.
-    InvalidVersion(Span),
-
-    // -----------------------------------------------------------------------
-    // Field-level
-    // -----------------------------------------------------------------------
-    /// A required grammar field was absent or produced a MISSING node.
-    MissingField {
+/// A non-fatal observation about the knitout source. The program is still representable as
+/// `Program<Parsed>` and may convert to `Program<Validated>`.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum ParseWarning {
+    /// A `;!knitout-N` line appeared but was not the first non-blank line in the file.
+    MagicNotFirst(Span),
+    /// A header was defined more than once with the same value (duplicate but not conflicting).
+    DuplicateHeaderSameValue {
+        /// Span of the header name+colon in the second occurrence (e.g., `"Gauge:"`).
         span: Span,
-        field: &'static str,
+        /// Span of the header name+colon in the first occurrence.
+        previous: Span,
     },
-    /// A required grammar field was an ERROR node.
-    InvalidField {
-        span: Span,
-        field: &'static str,
-    },
-
-    // -----------------------------------------------------------------------
-    // Unrecognized leaf enum values
-    // -----------------------------------------------------------------------
-    UnrecognizedBed(Span),
-    UnrecognizedDirection(Span),
-    UnrecognizedPresserMode(Span),
-    UnrecognizedPositionValue(Span),
-    UnrecognizedXferStyle(Span),
-
-    // -----------------------------------------------------------------------
-    // Malformed numeric literals
-    // -----------------------------------------------------------------------
-    /// A token that should be a non-negative integer could not be parsed.
-    InvalidInteger(Span),
-    /// A token that should be a decimal number could not be parsed.
-    InvalidRational(Span),
-
-    // -----------------------------------------------------------------------
-    // Structural errors
-    // -----------------------------------------------------------------------
-    InvalidHeader(Span),
-    UnrecognizedHeader(Span),
-    InvalidCarrier(Span),
-    InvalidCarrierOrRail(Span),
-    InvalidOperation(Span),
+    /// A `;;Header:` line appeared after at least one operation line.
+    HeaderAfterOperations(Span),
+    /// An unrecognized extension header `;;X-foo: ...` that does not match any known header.
+    UnrecognizedExtensionHeader(Span),
 }
 
-impl ParseError {
-    /// The source span this error points to.
+/// A recoverable parse error: the `Program<Parsed>` is still produced, but it will contain
+/// `Other(Span)` nodes in places that could not be resolved, and `parsed_to_valid` will
+/// return `None`.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum ParseError {
+    /// No `;!knitout-N` magic line was found anywhere in the file.
+    MagicMissing,
+    /// The version number after `knitout-` could not be parsed as a non-negative integer.
+    BadMagicVersion(Span),
+    /// A header was defined twice with different values.
+    ConflictingHeader {
+        /// Span of the header name+colon in the second (conflicting) occurrence.
+        span: Span,
+        /// Span of the header name+colon in the first occurrence.
+        previous: Span,
+    },
+    /// The required `Carriers:` header was not found.
+    MissingCarriersHeader,
+    /// The opcode token is not a recognised base or extension operation.
+    UnrecognizedOpcode(Span),
+    /// A required positional argument was missing (points to the end of what was present).
+    MissingArgument(Span),
+    /// A direction token was not `+` or `-`.
+    BadDirection(Span),
+    /// A token that was expected to be a needle (`[fb]s?-?[0-9]+`) could not be parsed.
+    BadNeedle(Span),
+    /// The index portion of a needle (the integer part) could not be parsed as `i32`.
+    BadNeedleIndex(Span),
+    /// The bed character of a needle was not `f` or `b`.
+    BadBed(Span),
+    /// A token that should be a `u32` could not be parsed.
+    BadU32(Span),
+    /// A token that should be a decimal number could not be parsed.
+    BadBigDecimal(Span),
+    /// A presser-mode token was not `off`, `auto`, or `on`.
+    BadPresserMode(Span),
+    /// A transfer-style token was not `four-pass` or `two-pass`.
+    BadXferStyle(Span),
+    /// A Position header value was not `Left`, `Center`, `Right`, or `Keep`.
+    BadPositionValue(Span),
+    /// An argument was present where none was expected.
+    TooManyArguments(Span),
+}
+
+impl ParseWarning {
     pub fn span(&self) -> Span {
         match self {
-            Self::UnparsedFile(s)
-            | Self::MissingMagic(s)
-            | Self::InvalidMagic(s)
-            | Self::MissingVersion(s)
-            | Self::InvalidVersion(s)
-            | Self::UnrecognizedBed(s)
-            | Self::UnrecognizedDirection(s)
-            | Self::UnrecognizedPresserMode(s)
-            | Self::UnrecognizedPositionValue(s)
-            | Self::UnrecognizedXferStyle(s)
-            | Self::InvalidInteger(s)
-            | Self::InvalidRational(s)
-            | Self::InvalidHeader(s)
-            | Self::UnrecognizedHeader(s)
-            | Self::InvalidCarrier(s)
-            | Self::InvalidCarrierOrRail(s)
-            | Self::InvalidOperation(s) => *s,
-            Self::MissingField { span, .. } | Self::InvalidField { span, .. } => *span,
+            ParseWarning::MagicNotFirst(s) => *s,
+            ParseWarning::DuplicateHeaderSameValue { span, .. } => *span,
+            ParseWarning::HeaderAfterOperations(s) => *s,
+            ParseWarning::UnrecognizedExtensionHeader(s) => *s,
         }
     }
 }
 
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl ParseError {
+    pub fn span(&self) -> Option<Span> {
         match self {
-            Self::UnparsedFile(_) => write!(f, "file could not be parsed"),
-            Self::MissingMagic(_) => write!(f, "missing `;!knitout-VERSION` magic line"),
-            Self::InvalidMagic(_) => write!(f, "malformed magic line"),
-            Self::MissingVersion(_) => write!(f, "missing version number in magic line"),
-            Self::InvalidVersion(_) => write!(f, "invalid version number in magic line"),
-            Self::MissingField { field, .. } => write!(f, "missing required field `{field}`"),
-            Self::InvalidField { field, .. } => write!(f, "invalid `{field}`"),
-            Self::UnrecognizedBed(_) => write!(f, "unrecognized bed; expected 'f' or 'b'"),
-            Self::UnrecognizedDirection(_) => {
-                write!(f, "unrecognized direction; expected '+' or '-'")
-            }
-            Self::UnrecognizedPresserMode(_) => {
-                write!(
-                    f,
-                    "unrecognized presser mode; expected 'off', 'auto', or 'on'"
-                )
-            }
-            Self::UnrecognizedPositionValue(_) => write!(
-                f,
-                "unrecognized position value; expected 'Left', 'Center', 'Right', or 'Keep'"
-            ),
-            Self::UnrecognizedXferStyle(_) => {
-                write!(
-                    f,
-                    "unrecognized xfer style; expected 'four-pass' or 'two-pass'"
-                )
-            }
-            Self::InvalidInteger(_) => write!(f, "invalid non-negative integer"),
-            Self::InvalidRational(_) => write!(f, "invalid number"),
-            Self::InvalidHeader(_) => write!(f, "invalid header"),
-            Self::UnrecognizedHeader(_) => write!(f, "unrecognized header"),
-            Self::InvalidCarrier(_) => write!(f, "invalid carrier"),
-            Self::InvalidCarrierOrRail(_) => write!(f, "invalid carrier or rail"),
-            Self::InvalidOperation(_) => write!(f, "invalid operation"),
+            ParseError::MagicMissing => None,
+            ParseError::MissingCarriersHeader => None,
+            ParseError::BadMagicVersion(s) => Some(*s),
+            ParseError::ConflictingHeader { span, .. } => Some(*span),
+            ParseError::UnrecognizedOpcode(s) => Some(*s),
+            ParseError::MissingArgument(s) => Some(*s),
+            ParseError::BadDirection(s) => Some(*s),
+            ParseError::BadNeedle(s) => Some(*s),
+            ParseError::BadNeedleIndex(s) => Some(*s),
+            ParseError::BadBed(s) => Some(*s),
+            ParseError::BadU32(s) => Some(*s),
+            ParseError::BadBigDecimal(s) => Some(*s),
+            ParseError::BadPresserMode(s) => Some(*s),
+            ParseError::BadXferStyle(s) => Some(*s),
+            ParseError::BadPositionValue(s) => Some(*s),
+            ParseError::TooManyArguments(s) => Some(*s),
         }
     }
 }

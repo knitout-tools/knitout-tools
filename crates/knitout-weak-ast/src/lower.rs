@@ -1,908 +1,981 @@
-use bigdecimal::BigDecimal;
-use knitout_ast::{Carrier, CarrierTable, IsSlider, Span};
+//! CST → `Program<Parsed>` lowering.
+//!
+//! This module walks the tree-sitter CST for a knitout source file and produces a
+//! `Program<Parsed>` where every AST node is annotated with a `Span` pointing to the
+//! relevant bytes in the source buffer.  Parse errors and warnings are collected into
+//! side-channel `Vec`s and returned alongside the program; they do not abort parsing.
+
 use std::str::FromStr;
-use tree_sitter::Node;
 
-use crate::diagnostics::ParseError;
-use crate::types::*;
+use bigdecimal::BigDecimal;
+use either::Either;
+use knitout_ast::{
+    Annotated, BaseOperation, Bed, CarrierOrRail, CarriersHeaderValue, Direction,
+    ExtensionOperation, Headers, IsSlider, Needle, Operation, PositionHeaderValue,
+    PresserMode, Program, Rail, RailSide, Span, XferStyle,
+};
+use knitout_ast::{CarrierTable, MyBigDecimal, MyString, MyU32};
+use tree_sitter::{Node, Tree};
 
-// ---------------------------------------------------------------------------
-// Public entry point
-// ---------------------------------------------------------------------------
+use crate::{CommentInfo, Parsed};
+use crate::diagnostics::{ParseError, ParseWarning};
 
-/// Walk a tree-sitter CST for a knitout source file and produce a weak AST
-/// plus errors. Never panics; always returns a (possibly incomplete) program.
-pub fn lower_cst(source: &[u8], tree: &tree_sitter::Tree) -> (WeakProgram, Vec<ParseError>) {
-    let mut ctx = LowerCtx {
-        source,
-        errors: Vec::new(),
-        carrier_table: CarrierTable::new(),
-    };
-    let root = tree.root_node();
-    ctx.lower_source_file(root)
+// ─── span helpers ────────────────────────────────────────────────────────────
+
+fn node_span(node: Node<'_>) -> Span {
+    Span::new(node.start_byte() as u32, node.end_byte() as u32)
 }
 
-// ---------------------------------------------------------------------------
-// Context
-// ---------------------------------------------------------------------------
+fn text_of<'s>(node: Node<'_>, source: &'s [u8]) -> &'s [u8] {
+    &source[node.start_byte()..node.end_byte()]
+}
 
-struct LowerCtx<'s> {
-    source: &'s [u8],
-    errors: Vec<ParseError>,
+// ─── lowering context ────────────────────────────────────────────────────────
+
+struct LowerCtx<'src> {
+    source: &'src [u8],
     carrier_table: CarrierTable,
+    warnings: Vec<ParseWarning>,
+    errors: Vec<ParseError>,
+
+    /// Span of the `MagicVersion` annotation if we have already seen the magic line.
+    magic: Option<(u32, (Span, Span))>,
+    /// Whether the magic line was the very first non-blank line in the file.
+    magic_was_first: bool,
+    /// Whether any operation line has been emitted yet.
+    operations_started: bool,
+    /// Span of the first operation, used to anchor missing-header diagnostics.
+    first_op_span: Option<Span>,
+
+    /// Tracked previously-seen header spans for duplicate detection.
+    /// Key = canonical header name, value = span of name+colon.
+    seen_headers: std::collections::HashMap<String, Span>,
+
+    /// Accumulated operations.
+    operations: Vec<Annotated<Operation<Parsed>, (Span, CommentInfo)>>,
+
+    /// Partially-built headers struct (we can't finalise it until we know if `Carriers:` arrived).
+    carriers: Option<(Annotated<CarriersHeaderValue<Parsed>, Span>, Span)>,
+    headers_partial: Headers<Parsed>,
 }
 
-impl<'s> LowerCtx<'s> {
-    fn span_of(&self, node: Node) -> Span {
-        Span::new(node.start_byte() as u32, node.end_byte() as u32)
-    }
-
-    fn text_of(&self, node: Node) -> &str {
-        node.utf8_text(self.source).unwrap_or("")
-    }
-
-    fn push_error(&mut self, e: ParseError) {
-        self.errors.push(e);
-    }
-
-    /// Get a required named field. Emits an error and returns None when the
-    /// field is absent, MISSING, or an ERROR node.
-    fn required_field<'t>(&mut self, parent: Node<'t>, field: &'static str) -> Option<Node<'t>> {
-        match parent.child_by_field_name(field) {
-            None => {
-                self.push_error(ParseError::MissingField {
-                    span: self.span_of(parent),
-                    field,
-                });
-                None
-            }
-            Some(n) if n.is_missing() => {
-                self.push_error(ParseError::MissingField {
-                    span: self.span_of(n),
-                    field,
-                });
-                None
-            }
-            Some(n) if n.is_error() => {
-                self.push_error(ParseError::InvalidField {
-                    span: self.span_of(n),
-                    field,
-                });
-                None
-            }
-            Some(n) => Some(n),
-        }
-    }
-
-    /// Get an optional named field. Returns None silently when absent.
-    /// Emits an error for MISSING or ERROR nodes.
-    fn optional_field<'t>(&mut self, parent: Node<'t>, field: &'static str) -> Option<Node<'t>> {
-        match parent.child_by_field_name(field) {
-            None => None,
-            Some(n) if n.is_missing() => {
-                self.push_error(ParseError::MissingField {
-                    span: self.span_of(n),
-                    field,
-                });
-                None
-            }
-            Some(n) if n.is_error() => {
-                self.push_error(ParseError::InvalidField {
-                    span: self.span_of(n),
-                    field,
-                });
-                None
-            }
-            Some(n) => Some(n),
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Leaf parsers
-    // -----------------------------------------------------------------------
-
-    fn lower_bed(&mut self, node: Node) -> WeakBed {
-        match self.text_of(node) {
-            "f" => WeakBed::Front,
-            "b" => WeakBed::Back,
-            _ => {
-                let span = self.span_of(node);
-                self.push_error(ParseError::UnrecognizedBed(span));
-                WeakBed::Unknown(span)
-            }
-        }
-    }
-
-    fn lower_direction(&mut self, node: Node) -> WeakDirection {
-        match self.text_of(node) {
-            "+" => WeakDirection::Right,
-            "-" => WeakDirection::Left,
-            _ => {
-                let span = self.span_of(node);
-                self.push_error(ParseError::UnrecognizedDirection(span));
-                WeakDirection::Unknown(span)
-            }
-        }
-    }
-
-    fn lower_presser_mode(&mut self, node: Node) -> WeakPresserMode {
-        match self.text_of(node) {
-            "off" => WeakPresserMode::Off,
-            "auto" => WeakPresserMode::Auto,
-            "on" => WeakPresserMode::On,
-            _ => {
-                let span = self.span_of(node);
-                self.push_error(ParseError::UnrecognizedPresserMode(span));
-                WeakPresserMode::Unknown(span)
-            }
-        }
-    }
-
-    fn lower_xfer_style(&mut self, node: Node) -> WeakXferStyle {
-        match self.text_of(node) {
-            "four-pass" => WeakXferStyle::FourPass,
-            "two-pass" => WeakXferStyle::TwoPass,
-            _ => {
-                let span = self.span_of(node);
-                self.push_error(ParseError::UnrecognizedXferStyle(span));
-                WeakXferStyle::Unknown(span)
-            }
-        }
-    }
-
-    fn lower_position_value(&mut self, node: Node) -> WeakPositionValue {
-        match self.text_of(node) {
-            "Left" => WeakPositionValue::Left,
-            "Center" => WeakPositionValue::Center,
-            "Right" => WeakPositionValue::Right,
-            "Keep" => WeakPositionValue::Keep,
-            _ => {
-                let span = self.span_of(node);
-                self.push_error(ParseError::UnrecognizedPositionValue(span));
-                WeakPositionValue::Unknown(span)
-            }
-        }
-    }
-
-    fn lower_rational(&mut self, node: Node) -> Option<BigDecimal> {
-        let text = self.text_of(node);
-        match BigDecimal::from_str(text) {
-            Ok(v) => Some(v),
-            Err(_) => {
-                self.push_error(ParseError::InvalidRational(self.span_of(node)));
-                None
-            }
-        }
-    }
-
-    fn lower_nonneg_integer(&mut self, node: Node) -> Option<u32> {
-        let text = self.text_of(node).trim_start_matches('+');
-        match text.parse::<u32>() {
-            Ok(v) => Some(v),
-            Err(_) => {
-                self.push_error(ParseError::InvalidInteger(self.span_of(node)));
-                None
-            }
-        }
-    }
-
-    fn lower_nonneg_half_integer(&mut self, node: Node) -> Option<u32> {
-        // Grammar: /[+]?\d*(\.5)/  — values like "0.5", "1.5", "10.5"
-        // Encoded as the integer part only (0.5 → 0)
-        let text = self.text_of(node).trim_start_matches('+');
-        let integer_part = if let Some(dot) = text.find('.') {
-            &text[..dot]
-        } else {
-            text
-        };
-        let as_u32: u32 = if integer_part.is_empty() {
-            0
-        } else {
-            match integer_part.parse() {
-                Ok(v) => v,
-                Err(_) => {
-                    self.push_error(ParseError::InvalidInteger(self.span_of(node)));
-                    return None;
-                }
-            }
-        };
-        Some(as_u32)
-    }
-
-    fn lower_needle_index(&mut self, node: Node) -> Option<i32> {
-        match self.text_of(node).parse::<i32>() {
-            Ok(v) => Some(v),
-            Err(_) => {
-                self.push_error(ParseError::InvalidInteger(self.span_of(node)));
-                None
-            }
-        }
-    }
-
-    fn lower_carrier_name(&mut self, node: Node) -> Carrier {
-        let name = self.text_of(node).to_owned();
-        self.carrier_table.make_carrier(&name)
-    }
-
-    // -----------------------------------------------------------------------
-    // Needle
-    // -----------------------------------------------------------------------
-
-    fn lower_needle(&mut self, node: Node) -> WeakNeedle {
-        let span = self.span_of(node);
-
-        let bed = match self.required_field(node, "bed") {
-            Some(n) => self.lower_bed(n),
-            None => WeakBed::Unknown(span),
-        };
-
-        let is_slider = match node.child_by_field_name("slider") {
-            Some(n) if !n.is_missing() && !n.is_error() => IsSlider::Slider,
-            _ => IsSlider::NotSlider,
-        };
-
-        let index = match self.required_field(node, "index") {
-            Some(n) => self.lower_needle_index(n),
-            None => None,
-        };
-
-        WeakNeedle {
-            span,
-            bed,
-            is_slider,
-            index,
-        }
-    }
-
-    fn lower_required_needle(&mut self, parent: Node, field: &'static str) -> Option<WeakNeedle> {
-        self.required_field(parent, field)
-            .map(|n| self.lower_needle(n))
-    }
-
-    // -----------------------------------------------------------------------
-    // Carrier sets
-    // -----------------------------------------------------------------------
-
-    /// Parse a required carrier_set field. Returns None when absent/errored.
-    fn lower_required_carrier_set(
-        &mut self,
-        parent: Node,
-        field: &'static str,
-    ) -> Option<Vec<Carrier>> {
-        let node = self.required_field(parent, field)?;
-        Some(self.lower_carrier_set_node(node))
-    }
-
-    /// Parse an optional carrier_set field. Returns empty vec when absent.
-    fn lower_optional_carrier_set(&mut self, parent: Node, field: &'static str) -> Vec<Carrier> {
-        match self.optional_field(parent, field) {
-            Some(n) => self.lower_carrier_set_node(n),
-            None => Vec::new(),
-        }
-    }
-
-    fn lower_carrier_set_node(&mut self, node: Node) -> Vec<Carrier> {
-        let mut carriers = Vec::new();
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            if child.kind() == "carrier" && !child.is_missing() && !child.is_error() {
-                carriers.push(self.lower_carrier_name(child));
-            } else if child.is_error() || child.is_missing() {
-                self.push_error(ParseError::InvalidCarrier(self.span_of(child)));
-            }
-        }
-        carriers
-    }
-
-    // -----------------------------------------------------------------------
-    // Source file
-    // -----------------------------------------------------------------------
-
-    fn lower_source_file(mut self, root: Node) -> (WeakProgram, Vec<ParseError>) {
-        let span = self.span_of(root);
-
-        if root.is_error() {
-            self.push_error(ParseError::UnparsedFile(span));
-            return (
-                WeakProgram {
-                    span,
-                    magic: None,
-                    headers: Vec::new(),
-                    lines: Vec::new(),
-                    carrier_table: self.carrier_table,
-                },
-                self.errors,
-            );
-        }
-
-        let magic = match root.child_by_field_name("magic") {
-            Some(n) if n.is_missing() => {
-                self.push_error(ParseError::MissingMagic(span));
-                WeakMagic {
-                    span,
-                    version: None,
-                }
-            }
-            Some(n) if n.is_error() => {
-                self.push_error(ParseError::InvalidMagic(self.span_of(n)));
-                WeakMagic {
-                    span: self.span_of(n),
-                    version: None,
-                }
-            }
-            Some(n) => self.lower_magic(n),
-            None => {
-                self.push_error(ParseError::MissingMagic(span));
-                WeakMagic {
-                    span,
-                    version: None,
-                }
-            }
-        };
-
-        let mut headers = Vec::new();
-        let mut lines = Vec::new();
-
-        let mut cursor = root.walk();
-        for child in root.named_children(&mut cursor) {
-            match child.kind() {
-                "magic" => {}
-                "header" => headers.push(self.lower_header(child)),
-                "line" => lines.push(self.lower_line(child)),
-                _ if child.is_error() => {
-                    self.push_error(ParseError::InvalidOperation(self.span_of(child)));
-                }
-                _ => {}
-            }
-        }
-
-        let carrier_table = std::mem::replace(&mut self.carrier_table, CarrierTable::new());
-        WeakProgram {
-            span,
-            magic: Some(magic),
-            headers,
-            lines,
-            carrier_table,
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Magic string
-    // -----------------------------------------------------------------------
-
-    fn lower_magic(&mut self, node: Node) -> WeakMagic {
-        let span = self.span_of(node);
-        let version = match node.child_by_field_name("version") {
-            None => {
-                self.push_error(ParseError::MissingVersion(span));
-                None
-            }
-            Some(n) if n.is_missing() => {
-                self.push_error(ParseError::MissingVersion(self.span_of(n)));
-                None
-            }
-            Some(n) if n.is_error() => {
-                self.push_error(ParseError::InvalidVersion(self.span_of(n)));
-                None
-            }
-            Some(n) => match self.text_of(n).parse::<u32>() {
-                Ok(v) => Some(v),
-                Err(_) => {
-                    self.push_error(ParseError::InvalidVersion(self.span_of(n)));
-                    None
-                }
-            },
-        };
-        WeakMagic { span, version }
-    }
-
-    // -----------------------------------------------------------------------
-    // Headers
-    // -----------------------------------------------------------------------
-
-    fn lower_header(&mut self, node: Node) -> WeakHeader {
-        let span = self.span_of(node);
-
-        if node.is_error() {
-            self.push_error(ParseError::InvalidHeader(span));
-            return WeakHeader {
-                span,
-                kind: WeakHeaderKind::Unknown,
-            };
-        }
-
-        let mut cursor = node.walk();
-        let child = node.named_children(&mut cursor).next();
-
-        match child {
-            None => {
-                self.push_error(ParseError::InvalidHeader(span));
-                WeakHeader {
-                    span,
-                    kind: WeakHeaderKind::Unknown,
-                }
-            }
-            Some(c) if c.is_error() => {
-                self.push_error(ParseError::UnrecognizedHeader(self.span_of(c)));
-                WeakHeader {
-                    span,
-                    kind: WeakHeaderKind::Unknown,
-                }
-            }
-            Some(c) => {
-                let kind = match c.kind() {
-                    "carriers_header" => WeakHeaderKind::Carriers(self.lower_carriers_header(c)),
-                    "gauge_header" => WeakHeaderKind::Gauge(self.lower_gauge_header(c)),
-                    "width_header" => WeakHeaderKind::Width(self.lower_width_header(c)),
-                    "position_header" => WeakHeaderKind::Position(self.lower_position_header(c)),
-                    "machine_header" => WeakHeaderKind::Machine(self.lower_machine_header(c)),
-                    "yarn_header" => WeakHeaderKind::Yarn(self.lower_yarn_header(c)),
-                    "extension_header" => WeakHeaderKind::Extension(self.lower_extension_header(c)),
-                    _ => {
-                        self.push_error(ParseError::UnrecognizedHeader(self.span_of(c)));
-                        WeakHeaderKind::Unknown
-                    }
-                };
-                WeakHeader { span, kind }
-            }
-        }
-    }
-
-    fn lower_carriers_header(&mut self, node: Node) -> WeakCarriersHeader {
-        let value = match node.child_by_field_name("value") {
-            None => None,
-            Some(n) if n.is_missing() => {
-                self.push_error(ParseError::MissingField {
-                    span: self.span_of(n),
-                    field: "value",
-                });
-                None
-            }
-            Some(n) if n.is_error() => {
-                self.push_error(ParseError::InvalidField {
-                    span: self.span_of(n),
-                    field: "value",
-                });
-                None
-            }
-            Some(n) => Some(self.lower_carriers_value(n)),
-        };
-        WeakCarriersHeader { value }
-    }
-
-    fn lower_carriers_value(&mut self, node: Node) -> WeakCarriersValue {
-        let span = self.span_of(node);
-        let mut items = Vec::new();
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            if child.is_error() {
-                self.push_error(ParseError::InvalidCarrierOrRail(self.span_of(child)));
-                items.push(WeakCarrierOrRail::Unknown(self.span_of(child)));
-            } else {
-                match child.kind() {
-                    "carrier" => {
-                        items.push(WeakCarrierOrRail::Carrier(self.lower_carrier_name(child)));
-                    }
-                    "rail_definition" => {
-                        items.push(WeakCarrierOrRail::Rail(self.lower_rail_definition(child)));
-                    }
-                    _ => {
-                        self.push_error(ParseError::InvalidCarrierOrRail(self.span_of(child)));
-                        items.push(WeakCarrierOrRail::Unknown(self.span_of(child)));
-                    }
-                }
-            }
-        }
-        WeakCarriersValue { span, items }
-    }
-
-    fn lower_rail_definition(&mut self, node: Node) -> WeakRail {
-        let span = self.span_of(node);
-        let left = match self.required_field(node, "left") {
-            Some(n) => self.lower_rail_side(n),
-            None => WeakRailSide {
-                span,
-                carriers: Vec::new(),
-            },
-        };
-        let right = match self.required_field(node, "right") {
-            Some(n) => self.lower_rail_side(n),
-            None => WeakRailSide {
-                span,
-                carriers: Vec::new(),
-            },
-        };
-        WeakRail { span, left, right }
-    }
-
-    fn lower_rail_side(&mut self, node: Node) -> WeakRailSide {
-        let span = self.span_of(node);
-        let mut carriers = Vec::new();
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
-            if child.kind() == "carrier" && !child.is_missing() && !child.is_error() {
-                carriers.push(self.lower_carrier_name(child));
-            } else if child.is_error() || child.is_missing() {
-                self.push_error(ParseError::InvalidCarrier(self.span_of(child)));
-            }
-        }
-        WeakRailSide { span, carriers }
-    }
-
-    fn lower_gauge_header(&mut self, node: Node) -> WeakGaugeHeader {
-        let value = self
-            .required_field(node, "value")
-            .and_then(|n| self.lower_nonneg_integer(n));
-        WeakGaugeHeader { value }
-    }
-
-    fn lower_width_header(&mut self, node: Node) -> WeakWidthHeader {
-        let value = self
-            .required_field(node, "value")
-            .and_then(|n| self.lower_nonneg_integer(n));
-        WeakWidthHeader { value }
-    }
-
-    fn lower_position_header(&mut self, node: Node) -> WeakPositionHeader {
-        let value = match self.required_field(node, "value") {
-            Some(n) => self.lower_position_value(n),
-            None => WeakPositionValue::Unknown(self.span_of(node)),
-        };
-        WeakPositionHeader { value }
-    }
-
-    fn lower_machine_header(&mut self, node: Node) -> WeakMachineHeader {
-        let value = self
-            .required_field(node, "value")
-            .map(|n| self.text_of(n).to_owned());
-        WeakMachineHeader { value }
-    }
-
-    fn lower_yarn_header(&mut self, node: Node) -> WeakYarnHeader {
-        let carrier = self
-            .required_field(node, "carrier")
-            .map(|n| self.lower_carrier_name(n));
-        let value = self
-            .required_field(node, "value")
-            .map(|n| self.text_of(n).trim().to_owned());
-        WeakYarnHeader { carrier, value }
-    }
-
-    fn lower_extension_header(&mut self, node: Node) -> WeakExtensionHeader {
-        let name = self
-            .required_field(node, "name")
-            .map(|n| self.text_of(n).to_owned());
-        let value = self
-            .required_field(node, "value")
-            .map(|n| self.text_of(n).trim().to_owned());
-        WeakExtensionHeader { name, value }
-    }
-
-    // -----------------------------------------------------------------------
-    // Lines
-    // -----------------------------------------------------------------------
-
-    fn lower_line(&mut self, node: Node) -> WeakLine {
-        let span = self.span_of(node);
-
-        let operation = match node.child_by_field_name("operation") {
-            None => None,
-            Some(n) if n.is_missing() => {
-                self.push_error(ParseError::MissingField {
-                    span: self.span_of(n),
-                    field: "operation",
-                });
-                None
-            }
-            Some(n) if n.is_error() => {
-                let op_span = self.span_of(n);
-                self.push_error(ParseError::InvalidOperation(op_span));
-                Some(WeakOperation::Unknown(op_span))
-            }
-            Some(n) => Some(self.lower_operation(n)),
-        };
-
-        let comment = node
-            .child_by_field_name("comment")
-            .map(|n| self.lower_comment(n));
-
-        let source = node
-            .child_by_field_name("source_comment")
-            .and_then(|n| self.lower_source_comment(n));
-
-        WeakLine {
-            span,
-            operation,
-            comment,
+impl<'src> LowerCtx<'src> {
+    fn new(source: &'src [u8]) -> Self {
+        Self {
             source,
+            carrier_table: CarrierTable::new(),
+            warnings: Vec::new(),
+            errors: Vec::new(),
+            magic: None,
+            magic_was_first: false,
+            operations_started: false,
+            first_op_span: None,
+            seen_headers: std::collections::HashMap::new(),
+            operations: Vec::new(),
+            // Placeholder headers — will be replaced or patched at the end.
+            carriers: None,
+            headers_partial: Headers::new(Either::Right(Span::new(0, 0))),
         }
     }
 
-    fn lower_comment(&mut self, node: Node) -> WeakComment {
-        let span = self.span_of(node);
-        let text = node
-            .child_by_field_name("text")
-            .filter(|n| !n.is_missing() && !n.is_error())
-            .map(|n| self.text_of(n).to_owned());
-        WeakComment { span, text }
-    }
+    // ── finalise ─────────────────────────────────────────────────────────────
 
-    fn lower_source_comment(&mut self, node: Node) -> Option<String> {
-        node.child_by_field_name("source")
-            .filter(|n| !n.is_missing() && !n.is_error())
-            .map(|n| self.text_of(n).to_owned())
-    }
-
-    // -----------------------------------------------------------------------
-    // Operations (dispatch)
-    // -----------------------------------------------------------------------
-
-    fn lower_operation(&mut self, node: Node) -> WeakOperation {
-        let span = self.span_of(node);
-
-        if node.is_error() {
-            self.push_error(ParseError::InvalidOperation(span));
-            return WeakOperation::Unknown(span);
-        }
-
-        match node.kind() {
-            "in" | "inhook" | "releasehook" | "out" | "outhook" | "stitch" | "rack" | "knit"
-            | "tuck" | "miss" | "split" | "pause" | "drop" | "amiss" | "xfer" => {
-                WeakOperation::Base(self.lower_base_operation(node))
+    fn finish(mut self) -> (Program<Parsed>, Vec<ParseWarning>, Vec<ParseError>) {
+        // Resolve the version
+        let version_either: Either<Annotated<u32, (Span, Span)>, Span> = match self.magic {
+            Some((ver, ann)) => Either::Left(Annotated::new(ver, ann)),
+            None => {
+                self.errors.push(ParseError::MagicMissing);
+                Either::Right(Span::new(0, 0))
             }
-            "extension" => {
-                let mut cursor = node.walk();
-                match node.named_children(&mut cursor).next() {
-                    Some(inner) if !inner.is_error() => {
-                        WeakOperation::Extension(self.lower_extension_operation(inner))
-                    }
-                    Some(inner) => {
-                        let s = self.span_of(inner);
-                        self.push_error(ParseError::InvalidOperation(s));
-                        WeakOperation::Unknown(s)
-                    }
-                    None => {
-                        self.push_error(ParseError::InvalidOperation(span));
-                        WeakOperation::Unknown(span)
+        };
+
+        // Resolve the carriers header
+        let carriers_either: Either<Annotated<CarriersHeaderValue<Parsed>, Span>, Span> =
+            match self.carriers {
+                Some((ann, _name_span)) => Either::Left(ann),
+                None => {
+                    self.errors.push(ParseError::MissingCarriersHeader);
+                    Either::Right(Span::new(0, 0))
+                }
+            };
+
+        let headers = self.headers_partial;
+        // Patch the carriers field — we built headers_partial with a dummy Right, now replace.
+        // We accomplish this by rebuilding: consume the partial headers, reconstruct with carriers.
+        let (_, yarn, machine, gauge, width, position, unknown) = headers.into_components();
+        let mut final_headers: Headers<Parsed> = Headers::new(carriers_either);
+        for (carrier, color_ann) in yarn {
+            final_headers.add_yarn(carrier, color_ann.value, color_ann.annotation);
+        }
+        if let Some(m) = machine {
+            final_headers.set_machine(m);
+        }
+        if let Some(g) = gauge {
+            final_headers.set_gauge(g);
+        }
+        if let Some(w) = width {
+            final_headers.set_width(w);
+        }
+        if let Some(p) = position {
+            final_headers.set_position(p);
+        }
+        for (key, val) in unknown {
+            final_headers.add_unknown(key, val.value, val.annotation);
+        }
+
+        let mut prog = Program::new(version_either, final_headers, self.carrier_table);
+        for op in self.operations {
+            prog.push_operation(op);
+        }
+
+        (prog, self.warnings, self.errors)
+    }
+
+    // ── header helpers ────────────────────────────────────────────────────────
+
+    /// Check for duplicate headers. Returns `true` if this is the first occurrence (proceed),
+    /// `false` if it is a duplicate (do not overwrite).
+    fn check_header_duplicate(&mut self, name: &str, name_span: Span, _value_repr: &str) -> bool {
+        match self.seen_headers.get(name) {
+            None => {
+                self.seen_headers.insert(name.to_owned(), name_span);
+                true
+            }
+            Some(&prev_span) => {
+                // We treat any second definition as a conflict (different value → error,
+                // same value → warning).  We record the error here; the caller may refine.
+                self.errors.push(ParseError::ConflictingHeader {
+                    span: name_span,
+                    previous: prev_span,
+                });
+                false
+            }
+        }
+    }
+
+    fn warn_header_after_ops(&mut self, span: Span) {
+        if self.operations_started {
+            self.warnings.push(ParseWarning::HeaderAfterOperations(span));
+        }
+    }
+
+    // ── line dispatchers ──────────────────────────────────────────────────────
+
+    fn lower_line(&mut self, node: Node<'_>, line_index: &mut usize) {
+        // The grammar's `line` rule is a transparent choice; the named child is the real node.
+        let inner = if node.kind() == "line" {
+            match node.named_child(0) {
+                Some(n) => n,
+                None => return,
+            }
+        } else {
+            node
+        };
+
+        match inner.kind() {
+            "tag_comment" => self.lower_top_tag_comment(inner, *line_index),
+            "header" => self.lower_header(inner),
+            "comment" => {} // plain comment, nothing to do
+            "op_line" => {
+                self.lower_op_line(inner);
+            }
+            _ => {}
+        }
+        *line_index += 1;
+    }
+
+    // ── magic / tag line ──────────────────────────────────────────────────────
+
+    fn lower_top_tag_comment(&mut self, node: Node<'_>, line_index: usize) {
+        let tag_span = node_span(node);
+        let value_node = node.child_by_field_name("value");
+        let value_text = value_node.map(|n| text_of(n, self.source));
+
+        // Is this the magic line?
+        let is_magic = value_text.map_or(false, |t| t.starts_with(b"knitout-"));
+        if is_magic {
+            let value_node = value_node.unwrap();
+            let vstart = value_node.start_byte() as u32;
+            let vend = value_node.end_byte() as u32;
+            let value_text = value_text.unwrap();
+
+            // Span for ";!knitout-" = from tag start to vstart + len("knitout-")
+            let prefix_span = Span::new(tag_span.start(), vstart + 8);
+            // Span for the version digits
+            let ver_text = &value_text[8..]; // after "knitout-"
+            let ver_start = vstart + 8;
+            let ver_end = vend;
+            let ver_span = Span::new(ver_start, ver_end);
+
+            if self.magic.is_some() {
+                // Second magic line → warning (treat as MagicNotFirst of this occurrence)
+                self.warnings.push(ParseWarning::MagicNotFirst(tag_span));
+                return;
+            }
+
+            if line_index > 0 {
+                self.warnings.push(ParseWarning::MagicNotFirst(tag_span));
+            }
+
+            let ver_str = std::str::from_utf8(ver_text).unwrap_or("");
+            match ver_str.parse::<u32>() {
+                Ok(ver) => {
+                    self.magic = Some((ver, (prefix_span, ver_span)));
+                    if line_index == 0 {
+                        self.magic_was_first = true;
                     }
                 }
+                Err(_) => {
+                    self.errors.push(ParseError::BadMagicVersion(ver_span));
+                    // Still record a "version = 0" placeholder so the tree is navigable.
+                    self.magic = Some((0, (prefix_span, ver_span)));
+                }
+            }
+            return;
+        }
+
+        // Source tag at the top level — unusual but we just ignore it (not an error).
+        // Unknown tags are also ignored here since we can't attach them to an operation.
+    }
+
+    // ── header parsing ────────────────────────────────────────────────────────
+
+    fn lower_header(&mut self, node: Node<'_>) {
+        let _header_span = node_span(node);
+
+        let content_node = match node.child_by_field_name("content") {
+            Some(n) => n,
+            None => return, // just ";;" with no content
+        };
+
+        let content_text = text_of(content_node, self.source);
+        let content_start = content_node.start_byte() as u32;
+
+        // Split at the first ':' to get name and value.
+        let colon_pos = content_text.iter().position(|&b| b == b':');
+        let (name_bytes, value_bytes, value_start) = match colon_pos {
+            Some(p) => {
+                let vstart = content_start + p as u32 + 1;
+                (&content_text[..p], &content_text[p + 1..], vstart)
+            }
+            None => {
+                // No colon — treat whole content as name with empty value.
+                (content_text, &b""[..], content_start + content_text.len() as u32)
+            }
+        };
+
+        let name_str = std::str::from_utf8(name_bytes).unwrap_or("").trim();
+        // name+colon span (for P::Header annotation)
+        let name_colon_end = content_start + colon_pos.unwrap_or(name_bytes.len()) as u32 + colon_pos.map_or(0, |_| 1);
+        let name_colon_span = Span::new(content_start, name_colon_end);
+
+        // Trim leading whitespace from value
+        let value_trimmed_offset = value_bytes
+            .iter()
+            .position(|&b| b != b' ' && b != b'\t')
+            .unwrap_or(value_bytes.len());
+        let value_trim_start = value_start + value_trimmed_offset as u32;
+        let value_end = content_start + content_text.len() as u32;
+        let trimmed_value = &value_bytes[value_trimmed_offset..];
+        let value_span = Span::new(value_trim_start, value_end);
+
+        self.warn_header_after_ops(name_colon_span);
+
+        match name_str {
+            "Carriers" => self.lower_carriers_header(name_colon_span, trimmed_value, value_trim_start, value_end),
+            "Machine" => self.lower_string_header("Machine", name_colon_span, trimmed_value, value_trim_start, value_end),
+            "Gauge" => self.lower_u32_header("Gauge", name_colon_span, trimmed_value, value_span),
+            "Width" => self.lower_u32_header("Width", name_colon_span, trimmed_value, value_span),
+            "Position" => self.lower_position_header(name_colon_span, trimmed_value, value_span),
+            s if s.starts_with("Yarn-") => {
+                self.lower_yarn_header(name_colon_span, s, trimmed_value, value_trim_start, value_end)
+            }
+            s if s.len() >= 2 && s[..2].eq_ignore_ascii_case("X-") => {
+                self.warnings.push(ParseWarning::UnrecognizedExtensionHeader(name_colon_span));
+                // Store as an unknown header.
+                let val_str = std::str::from_utf8(trimmed_value).unwrap_or("").trim().to_owned();
+                self.headers_partial.add_unknown(s.to_owned(), val_str, name_colon_span);
             }
             _ => {
-                self.push_error(ParseError::InvalidOperation(span));
-                WeakOperation::Unknown(span)
+                // Completely unknown header — silently store.
+                let val_str = std::str::from_utf8(trimmed_value).unwrap_or("").trim().to_owned();
+                self.headers_partial.add_unknown(name_str.to_owned(), val_str, name_colon_span);
             }
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Base operations
-    // -----------------------------------------------------------------------
+    fn lower_carriers_header(
+        &mut self,
+        name_span: Span,
+        value: &[u8],
+        value_start: u32,
+        value_end: u32,
+    ) {
+        if !self.check_header_duplicate("Carriers", name_span, "") {
+            return;
+        }
+        let _carriers_span = Span::new(value_start, value_end);
+        let chv = self.parse_carriers_header_value(value, value_start, value_end);
+        let ann = Annotated::new(chv, name_span);
+        self.carriers = Some((ann, name_span));
+    }
 
-    fn lower_base_operation(&mut self, node: Node) -> WeakBaseOperation {
-        let span = self.span_of(node);
-        let kind = match node.kind() {
-            "in" => WeakBaseOperationKind::In {
-                carriers: self.lower_required_carrier_set(node, "carriers"),
-            },
-            "inhook" => WeakBaseOperationKind::Inhook {
-                carriers: self.lower_required_carrier_set(node, "carriers"),
-            },
-            "releasehook" => WeakBaseOperationKind::Releasehook {
-                carriers: self.lower_required_carrier_set(node, "carriers"),
-            },
-            "out" => WeakBaseOperationKind::Out {
-                carriers: self.lower_required_carrier_set(node, "carriers"),
-            },
-            "outhook" => WeakBaseOperationKind::Outhook {
-                carriers: self.lower_required_carrier_set(node, "carriers"),
-            },
-            "stitch" => {
-                let before_pull = self
-                    .required_field(node, "before_pull")
-                    .and_then(|n| self.lower_rational(n));
-                let after_pull = self
-                    .required_field(node, "after_pull")
-                    .and_then(|n| self.lower_rational(n));
-                WeakBaseOperationKind::Stitch {
-                    before_pull,
-                    after_pull,
+    fn lower_string_header(
+        &mut self,
+        key: &str,
+        name_span: Span,
+        value: &[u8],
+        value_start: u32,
+        value_end: u32,
+    ) {
+        let val_str = std::str::from_utf8(value).unwrap_or("").trim().to_owned();
+        if !self.check_header_duplicate(key, name_span, &val_str) {
+            return;
+        }
+        let value_span = Span::new(value_start, value_end);
+        let my_string = MyString::new(Either::Left(Annotated::new(val_str, value_span)));
+        self.headers_partial.set_machine(Annotated::new(my_string, name_span));
+    }
+
+    fn lower_u32_header(&mut self, key: &str, name_span: Span, value: &[u8], value_span: Span) {
+        let val_str = std::str::from_utf8(value).unwrap_or("").trim();
+        if !self.check_header_duplicate(key, name_span, val_str) {
+            return;
+        }
+        let my_u32 = match val_str.parse::<u32>() {
+            Ok(n) => MyU32::new(Either::Left(Annotated::new(n, value_span))),
+            Err(_) => {
+                self.errors.push(ParseError::BadU32(value_span));
+                MyU32::new(Either::Right(value_span))
+            }
+        };
+        if key == "Gauge" {
+            self.headers_partial.set_gauge(Annotated::new(my_u32, name_span));
+        } else {
+            self.headers_partial.set_width(Annotated::new(my_u32, name_span));
+        }
+    }
+
+    fn lower_position_header(&mut self, name_span: Span, value: &[u8], value_span: Span) {
+        let val_str = std::str::from_utf8(value).unwrap_or("").trim();
+        if !self.check_header_duplicate("Position", name_span, val_str) {
+            return;
+        }
+        let pos = match val_str {
+            "Left" => PositionHeaderValue::Left(value_span),
+            "Center" => PositionHeaderValue::Center(value_span),
+            "Right" => PositionHeaderValue::Right(value_span),
+            "Keep" => PositionHeaderValue::Keep(value_span),
+            _ => {
+                self.errors.push(ParseError::BadPositionValue(value_span));
+                PositionHeaderValue::Other(value_span)
+            }
+        };
+        self.headers_partial.set_position(Annotated::new(pos, name_span));
+    }
+
+    fn lower_yarn_header(
+        &mut self,
+        name_span: Span,
+        name_str: &str,
+        value: &[u8],
+        value_start: u32,
+        value_end: u32,
+    ) {
+        // "Yarn-A" → carrier name is "A"
+        let carrier_name = &name_str["Yarn-".len()..];
+        let carrier = self.carrier_table.make_carrier(carrier_name, name_span);
+        let val_str = std::str::from_utf8(value).unwrap_or("").trim().to_owned();
+        let value_span = Span::new(value_start, value_end);
+        let my_string = MyString::new(Either::Left(Annotated::new(val_str, value_span)));
+        self.headers_partial.add_yarn(carrier, my_string, name_span);
+    }
+
+    // ── carriers header value parsing ─────────────────────────────────────────
+
+    fn parse_carriers_header_value(
+        &mut self,
+        text: &[u8],
+        text_start: u32,
+        text_end: u32,
+    ) -> CarriersHeaderValue<Parsed> {
+        let annotation_span = Span::new(text_start, text_end);
+        let mut items: Vec<CarrierOrRail<Parsed>> = Vec::new();
+
+        let mut i = 0usize;
+        while i < text.len() {
+            // Skip spaces
+            while i < text.len() && (text[i] == b' ' || text[i] == b'\t') {
+                i += 1;
+            }
+            if i >= text.len() {
+                break;
+            }
+            // Collect token (no whitespace)
+            let token_start = i;
+            while i < text.len() && text[i] != b' ' && text[i] != b'\t' {
+                i += 1;
+            }
+            let token = &text[token_start..i];
+            let abs_start = text_start + token_start as u32;
+            let abs_end = text_start + i as u32;
+            let token_span = Span::new(abs_start, abs_end);
+
+            if let Some(semi_pos) = token.iter().position(|&b| b == b';') {
+                // Rail: "left;right"
+                let left_bytes = &token[..semi_pos];
+                let right_bytes = &token[semi_pos + 1..];
+                let left_start = abs_start;
+                let left_end = abs_start + semi_pos as u32;
+                let right_start = abs_start + semi_pos as u32 + 1;
+                let right_end = abs_end;
+
+                let left_side = self.parse_rail_side(left_bytes, left_start, left_end);
+                let right_side = self.parse_rail_side(right_bytes, right_start, right_end);
+
+                items.push(CarrierOrRail::Rail(Rail::new(
+                    Either::Left(left_side),
+                    Either::Left(right_side),
+                    token_span,
+                )));
+            } else {
+                // Single carrier
+                let name = std::str::from_utf8(token).unwrap_or("").trim();
+                if !name.is_empty() {
+                    let carrier = self.carrier_table.make_carrier(name, token_span);
+                    items.push(CarrierOrRail::Carrier(carrier));
                 }
+            }
+        }
+
+        CarriersHeaderValue::new(Either::Left(items), annotation_span)
+    }
+
+    fn parse_rail_side(
+        &mut self,
+        text: &[u8],
+        text_start: u32,
+        text_end: u32,
+    ) -> RailSide<Parsed> {
+        let side_span = Span::new(text_start, text_end);
+        let mut carriers = Vec::new();
+        let mut pos = 0u32;
+
+        for part in text.split(|&b| b == b',') {
+            let part_start = text_start + pos;
+            let part_len = part.len() as u32;
+            let part_span = Span::new(part_start, part_start + part_len);
+            pos += part_len + 1; // +1 for ','
+
+            let name = std::str::from_utf8(part).unwrap_or("").trim();
+            if !name.is_empty() {
+                let carrier = self.carrier_table.make_carrier(name, part_span);
+                carriers.push(carrier);
+            }
+        }
+
+        RailSide::new(carriers, side_span)
+    }
+
+    // ── operation line ────────────────────────────────────────────────────────
+
+    fn lower_op_line(&mut self, node: Node<'_>) {
+        let op_node = match node.child_by_field_name("operation") {
+            Some(n) => n,
+            None => return,
+        };
+
+        // Trailing comment
+        let comment_info = if let Some(tag) = node.child_by_field_name("tag_comment") {
+            let tag_span = node_span(tag);
+            let value_text = tag
+                .child_by_field_name("value")
+                .map(|v| text_of(v, self.source));
+            if value_text.map_or(false, |t| t.starts_with(b"source: ")) {
+                CommentInfo::SourceTag(tag_span)
+            } else {
+                CommentInfo::UnknownTag(tag_span)
+            }
+        } else if let Some(comment) = node.child_by_field_name("comment") {
+            CommentInfo::Comment(node_span(comment))
+        } else {
+            CommentInfo::NoComment
+        };
+
+        let op_span = node_span(op_node);
+
+        let opcode_node = match op_node.child_by_field_name("opcode") {
+            Some(n) => n,
+            None => return,
+        };
+        let opcode_text = text_of(opcode_node, self.source);
+        let opcode_span = node_span(opcode_node);
+
+        // Collect argument nodes
+        let mut args: Vec<(Span, &[u8])> = Vec::new();
+        let mut cursor = op_node.walk();
+        for arg in op_node.children_by_field_name("argument", &mut cursor) {
+            args.push((node_span(arg), text_of(arg, self.source)));
+        }
+
+        let op = self.parse_operation(opcode_text, opcode_span, &args);
+        self.operations.push(Annotated::new(op, (op_span, comment_info)));
+
+        if !self.operations_started {
+            self.operations_started = true;
+            self.first_op_span = Some(op_span);
+        }
+    }
+
+    // ── argument helpers ──────────────────────────────────────────────────────
+
+    fn parse_direction(&mut self, text: &[u8], span: Span) -> Direction<Parsed> {
+        match text {
+            b"+" => Direction::Right(span),
+            b"-" => Direction::Left(span),
+            _ => {
+                self.errors.push(ParseError::BadDirection(span));
+                Direction::Other(span)
+            }
+        }
+    }
+
+    fn parse_needle(&mut self, text: &[u8], span: Span) -> Either<Needle<Parsed>, Span> {
+        if text.is_empty() {
+            self.errors.push(ParseError::BadNeedle(span));
+            return Either::Right(span);
+        }
+
+        let bed_byte = text[0];
+        let bed_span = Span::new(span.start(), span.start() + 1);
+        let bed = match bed_byte {
+            b'f' => Bed::Front(bed_span),
+            b'b' => Bed::Back(bed_span),
+            _ => {
+                self.errors.push(ParseError::BadBed(bed_span));
+                Bed::Other(bed_span)
+            }
+        };
+
+        let mut pos = 1usize;
+        let is_slider = if pos < text.len() && text[pos] == b's' {
+            let s_span = Span::new(span.start() + 1, span.start() + 2);
+            pos += 1;
+            IsSlider::Slider(s_span)
+        } else {
+            let empty = Span::new(span.start() + 1, span.start() + 1);
+            IsSlider::NotSlider(empty)
+        };
+
+        let index_bytes = &text[pos..];
+        let index_start = span.start() + pos as u32;
+        let index_end = span.end();
+        let index_span = Span::new(index_start, index_end);
+
+        let index_str = std::str::from_utf8(index_bytes).unwrap_or("");
+        match index_str.parse::<i32>() {
+            Ok(idx) => {
+                let needle = Needle::new(
+                    bed,
+                    is_slider,
+                    Either::Left(Annotated::new(idx, index_span)),
+                    span,
+                );
+                Either::Left(needle)
+            }
+            Err(_) => {
+                self.errors.push(ParseError::BadNeedleIndex(index_span));
+                // Return a needle with Other index, keeping bed/slider for partial info.
+                let needle = Needle::new(bed, is_slider, Either::Right(index_span), span);
+                Either::Left(needle)
+            }
+        }
+    }
+
+    fn parse_big_decimal(&mut self, text: &[u8], span: Span) -> MyBigDecimal<Parsed> {
+        let s = std::str::from_utf8(text).unwrap_or("");
+        match BigDecimal::from_str(s) {
+            Ok(bd) => MyBigDecimal::new(Either::Left(Annotated::new(bd, span))),
+            Err(_) => {
+                self.errors.push(ParseError::BadBigDecimal(span));
+                MyBigDecimal::new(Either::Right(span))
+            }
+        }
+    }
+
+    fn parse_u32(&mut self, text: &[u8], span: Span) -> MyU32<Parsed> {
+        let s = std::str::from_utf8(text).unwrap_or("");
+        match s.parse::<u32>() {
+            Ok(n) => MyU32::new(Either::Left(Annotated::new(n, span))),
+            Err(_) => {
+                self.errors.push(ParseError::BadU32(span));
+                MyU32::new(Either::Right(span))
+            }
+        }
+    }
+
+    fn parse_my_string(&self, text: &[u8], span: Span) -> MyString<Parsed> {
+        let s = std::str::from_utf8(text).unwrap_or("").to_owned();
+        MyString::new(Either::Left(Annotated::new(s, span)))
+    }
+
+    fn parse_carrier(&mut self, text: &[u8], span: Span) -> knitout_ast::Carrier<Parsed> {
+        let name = std::str::from_utf8(text).unwrap_or("").trim();
+        self.carrier_table.make_carrier(name, span)
+    }
+
+    /// Consume `args[at]` as a direction.  If absent, emits `MissingArgument` and returns Other.
+    fn take_direction(
+        &mut self,
+        args: &[(Span, &[u8])],
+        at: usize,
+        opcode_span: Span,
+    ) -> Direction<Parsed> {
+        match args.get(at) {
+            Some(&(span, text)) => self.parse_direction(text, span),
+            None => {
+                self.errors.push(ParseError::MissingArgument(opcode_span));
+                Direction::Other(opcode_span)
+            }
+        }
+    }
+
+    /// Consume `args[at]` as a needle.  If absent, emits `MissingArgument` and returns Right.
+    fn take_needle(
+        &mut self,
+        args: &[(Span, &[u8])],
+        at: usize,
+        opcode_span: Span,
+    ) -> Either<Needle<Parsed>, Span> {
+        match args.get(at) {
+            Some(&(span, text)) => self.parse_needle(text, span),
+            None => {
+                self.errors.push(ParseError::MissingArgument(opcode_span));
+                Either::Right(opcode_span)
+            }
+        }
+    }
+
+    /// Consume `args[at]` as a BigDecimal.  If absent, emits `MissingArgument`.
+    fn take_big_decimal(
+        &mut self,
+        args: &[(Span, &[u8])],
+        at: usize,
+        opcode_span: Span,
+    ) -> MyBigDecimal<Parsed> {
+        match args.get(at) {
+            Some(&(span, text)) => self.parse_big_decimal(text, span),
+            None => {
+                self.errors.push(ParseError::MissingArgument(opcode_span));
+                MyBigDecimal::new(Either::Right(opcode_span))
+            }
+        }
+    }
+
+    /// Consume `args[at]` as a u32.  If absent, emits `MissingArgument`.
+    fn take_u32(
+        &mut self,
+        args: &[(Span, &[u8])],
+        at: usize,
+        opcode_span: Span,
+    ) -> MyU32<Parsed> {
+        match args.get(at) {
+            Some(&(span, text)) => self.parse_u32(text, span),
+            None => {
+                self.errors.push(ParseError::MissingArgument(opcode_span));
+                MyU32::new(Either::Right(opcode_span))
+            }
+        }
+    }
+
+    /// Consume `args[at]` as a string.  If absent, emits `MissingArgument`.
+    fn take_string(
+        &mut self,
+        args: &[(Span, &[u8])],
+        at: usize,
+        opcode_span: Span,
+    ) -> MyString<Parsed> {
+        match args.get(at) {
+            Some(&(span, text)) => self.parse_my_string(text, span),
+            None => {
+                self.errors.push(ParseError::MissingArgument(opcode_span));
+                MyString::new(Either::Right(opcode_span))
+            }
+        }
+    }
+
+    /// All args from `from` onwards as carriers.
+    fn take_carriers(&mut self, args: &[(Span, &[u8])], from: usize) -> Vec<knitout_ast::Carrier<Parsed>> {
+        args[from.min(args.len())..]
+            .iter()
+            .map(|&(span, text)| self.parse_carrier(text, span))
+            .collect()
+    }
+
+    fn warn_extra_args(&mut self, args: &[(Span, &[u8])], from: usize) {
+        for &(span, _) in &args[from.min(args.len())..] {
+            self.errors.push(ParseError::TooManyArguments(span));
+        }
+    }
+
+    // ── operation parsers ─────────────────────────────────────────────────────
+
+    fn parse_operation(
+        &mut self,
+        opcode: &[u8],
+        opcode_span: Span,
+        args: &[(Span, &[u8])],
+    ) -> Operation<Parsed> {
+        let opcode_str = std::str::from_utf8(opcode).unwrap_or("");
+        match opcode_str {
+            // ── carrier-list operations ───────────────────────────────────────
+            "in" => Operation::BaseOperation(BaseOperation::In {
+                carriers: self.take_carriers(args, 0),
+            }),
+            "inhook" => Operation::BaseOperation(BaseOperation::Inhook {
+                carriers: self.take_carriers(args, 0),
+            }),
+            "releasehook" => Operation::BaseOperation(BaseOperation::Releasehook {
+                carriers: self.take_carriers(args, 0),
+            }),
+            "out" => Operation::BaseOperation(BaseOperation::Out {
+                carriers: self.take_carriers(args, 0),
+            }),
+            "outhook" => Operation::BaseOperation(BaseOperation::Outhook {
+                carriers: self.take_carriers(args, 0),
+            }),
+
+            // ── stitch / rack ─────────────────────────────────────────────────
+            "stitch" => {
+                let before_pull = self.take_big_decimal(args, 0, opcode_span);
+                let after_pull = self.take_big_decimal(args, 1, opcode_span);
+                self.warn_extra_args(args, 2);
+                Operation::BaseOperation(BaseOperation::Stitch { before_pull, after_pull })
             }
             "rack" => {
-                let offset = self
-                    .required_field(node, "offset")
-                    .and_then(|n| self.lower_rational(n));
-                WeakBaseOperationKind::Rack { offset }
+                let offset = self.take_big_decimal(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                Operation::BaseOperation(BaseOperation::Rack { offset })
             }
+
+            // ── direction + needle + carriers ─────────────────────────────────
             "knit" => {
-                let direction = self.lower_direction_field(node);
-                let needle = self.lower_required_needle(node, "needle");
-                let carriers = self.lower_optional_carrier_set(node, "carriers");
-                WeakBaseOperationKind::Knit {
-                    direction,
-                    needle,
-                    carriers,
-                }
+                let direction = self.take_direction(args, 0, opcode_span);
+                let needle = self.take_needle(args, 1, opcode_span);
+                let carriers = self.take_carriers(args, 2);
+                Operation::BaseOperation(BaseOperation::Knit { direction, needle, carriers })
             }
             "tuck" => {
-                let direction = self.lower_direction_field(node);
-                let needle = self.lower_required_needle(node, "needle");
-                let carriers = self.lower_optional_carrier_set(node, "carriers");
-                WeakBaseOperationKind::Tuck {
-                    direction,
-                    needle,
-                    carriers,
-                }
+                let direction = self.take_direction(args, 0, opcode_span);
+                let needle = self.take_needle(args, 1, opcode_span);
+                let carriers = self.take_carriers(args, 2);
+                Operation::BaseOperation(BaseOperation::Tuck { direction, needle, carriers })
             }
             "miss" => {
-                let direction = self.lower_direction_field(node);
-                let needle = self.lower_required_needle(node, "needle");
-                let carriers = self.lower_optional_carrier_set(node, "carriers");
-                WeakBaseOperationKind::Miss {
-                    direction,
-                    needle,
-                    carriers,
-                }
+                let direction = self.take_direction(args, 0, opcode_span);
+                let needle = self.take_needle(args, 1, opcode_span);
+                let carriers = self.take_carriers(args, 2);
+                Operation::BaseOperation(BaseOperation::Miss { direction, needle, carriers })
             }
             "split" => {
-                let direction = self.lower_direction_field(node);
-                let source = self.lower_required_needle(node, "source");
-                let destination = self.lower_required_needle(node, "destination");
-                let carriers = self.lower_optional_carrier_set(node, "carriers");
-                WeakBaseOperationKind::Split {
-                    direction,
-                    source,
-                    destination,
-                    carriers,
-                }
+                let direction = self.take_direction(args, 0, opcode_span);
+                let source = self.take_needle(args, 1, opcode_span);
+                let destination = self.take_needle(args, 2, opcode_span);
+                let carriers = self.take_carriers(args, 3);
+                Operation::BaseOperation(BaseOperation::Split { direction, source, destination, carriers })
             }
-            "pause" => WeakBaseOperationKind::Pause,
-            "drop" => WeakBaseOperationKind::Drop {
-                needle: self.lower_required_needle(node, "needle"),
-            },
-            "amiss" => WeakBaseOperationKind::Amiss {
-                needle: self.lower_required_needle(node, "needle"),
-            },
-            "xfer" => WeakBaseOperationKind::Xfer {
-                source: self.lower_required_needle(node, "source"),
-                destination: self.lower_required_needle(node, "destination"),
-            },
-            other => unreachable!("lower_base_operation called with non-base node `{other}`"),
-        };
-        WeakBaseOperation { span, kind }
-    }
 
-    fn lower_direction_field(&mut self, parent: Node) -> WeakDirection {
-        match self.required_field(parent, "direction") {
-            Some(n) => self.lower_direction(n),
-            None => WeakDirection::Unknown(self.span_of(parent)),
+            // ── no-arg / single-needle ────────────────────────────────────────
+            "pause" => {
+                self.warn_extra_args(args, 0);
+                Operation::BaseOperation(BaseOperation::Pause)
+            }
+            "drop" => {
+                let needle = self.take_needle(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                Operation::BaseOperation(BaseOperation::Drop { needle })
+            }
+            "amiss" => {
+                let needle = self.take_needle(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                Operation::BaseOperation(BaseOperation::Amiss { needle })
+            }
+            "xfer" => {
+                let source = self.take_needle(args, 0, opcode_span);
+                let destination = self.take_needle(args, 1, opcode_span);
+                self.warn_extra_args(args, 2);
+                Operation::BaseOperation(BaseOperation::Xfer { source, destination })
+            }
+
+            // ── extension operations ──────────────────────────────────────────
+            s if s.starts_with("x-") => self.parse_extension_op(s, opcode_span, args),
+
+            // ── unknown ───────────────────────────────────────────────────────
+            _ => {
+                self.errors.push(ParseError::UnrecognizedOpcode(opcode_span));
+                Operation::Other(opcode_span)
+            }
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Extension operations
-    // -----------------------------------------------------------------------
-
-    fn lower_extension_operation(&mut self, node: Node) -> WeakExtensionOperation {
-        let span = self.span_of(node);
-        let kind = match node.kind() {
-            "x_stitch_number" => WeakExtensionOperationKind::XStitchNumber {
-                value: self
-                    .required_field(node, "number")
-                    .and_then(|n| self.lower_nonneg_integer(n)),
-            },
-            "x_speed_number" => WeakExtensionOperationKind::XSpeedNumber {
-                value: self
-                    .required_field(node, "number")
-                    .and_then(|n| self.lower_nonneg_integer(n)),
-            },
-            "x_sub_roller_number" => WeakExtensionOperationKind::XSubRollerNumber {
-                value: self
-                    .required_field(node, "number")
-                    .and_then(|n| self.lower_nonneg_integer(n)),
-            },
-            "x_presser_mode" => {
-                let mode = match self.required_field(node, "mode") {
-                    Some(n) => self.lower_presser_mode(n),
-                    None => WeakPresserMode::Unknown(span),
-                };
-                WeakExtensionOperationKind::XPresserMode { mode }
+    fn parse_extension_op(
+        &mut self,
+        opcode_str: &str,
+        opcode_span: Span,
+        args: &[(Span, &[u8])],
+    ) -> Operation<Parsed> {
+        let ext = match opcode_str {
+            "x-stitch-number" => {
+                let value = self.take_u32(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XStitchNumber { value }
             }
-            "x_xfer_stitch_number" => WeakExtensionOperationKind::XXferStitchNumber {
-                value: self
-                    .required_field(node, "number")
-                    .and_then(|n| self.lower_nonneg_integer(n)),
-            },
-            "x_end_pass" => WeakExtensionOperationKind::XEndPass,
-            "x_vis_color" => {
-                let color = self
-                    .required_field(node, "color")
-                    .map(|n| self.text_of(n).to_owned());
-                let carriers = self.lower_required_carrier_set(node, "carriers");
-                WeakExtensionOperationKind::XVisColor { color, carriers }
+            "x-speed-number" => {
+                let value = self.take_u32(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XSpeedNumber { value }
             }
-            "x_loop_in" => {
-                let direction = self.lower_direction_field(node);
-                let needle = self.lower_required_needle(node, "needle");
-                let carriers = self.lower_required_carrier_set(node, "carriers");
-                WeakExtensionOperationKind::XLoopIn {
-                    direction,
-                    needle,
-                    carriers,
-                }
+            "x-sub-roller-number" => {
+                let value = self.take_u32(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XSubRollerNumber { value }
             }
-            "x_yarn_in" => {
-                let direction = self.lower_direction_field(node);
-                let needle = self.lower_required_needle(node, "needle");
-                let carriers = self.lower_required_carrier_set(node, "carriers");
-                WeakExtensionOperationKind::XYarnIn {
-                    direction,
-                    needle,
-                    carriers,
-                }
+            "x-presser-mode" => {
+                let mode = self.parse_presser_mode_arg(args, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XPresserMode { mode }
             }
-            "x_yarn_out" => {
-                let direction = self.lower_direction_field(node);
-                let needle = self.lower_required_needle(node, "needle");
-                let carriers = self.lower_required_carrier_set(node, "carriers");
-                WeakExtensionOperationKind::XYarnOut {
-                    direction,
-                    needle,
-                    carriers,
-                }
+            "x-xfer-stitch-number" => {
+                let value = self.take_u32(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XXferStitchNumber { value }
             }
-            "x_end" => WeakExtensionOperationKind::XEnd,
-            "x_roller_advance" => WeakExtensionOperationKind::XRollerAdvance {
-                value: self
-                    .required_field(node, "amount")
-                    .and_then(|n| self.lower_rational(n)),
-            },
-            "x_add_roller_advance" => WeakExtensionOperationKind::XAddRollerAdvance {
-                value: self
-                    .required_field(node, "amount")
-                    .and_then(|n| self.lower_rational(n)),
-            },
-            "x_carrier_spacing" => WeakExtensionOperationKind::XCarrierSpacing {
-                value: self
-                    .required_field(node, "amount")
-                    .and_then(|n| self.lower_nonneg_integer(n)),
-            },
-            "x_carrier_stopping_distance" => WeakExtensionOperationKind::XCarrierStoppingDistance {
-                value: self
-                    .required_field(node, "amount")
-                    .and_then(|n| self.lower_nonneg_half_integer(n)),
-            },
-            "x_xfer_style" => {
-                let style = match self.required_field(node, "style") {
-                    Some(n) => self.lower_xfer_style(n),
-                    None => WeakXferStyle::Unknown(span),
-                };
-                WeakExtensionOperationKind::XXferStyle { style }
+            "x-end-pass" => {
+                self.warn_extra_args(args, 0);
+                ExtensionOperation::XEndPass
             }
-            "unknown_extension" => {
-                let name = self
-                    .required_field(node, "name")
-                    .map(|n| self.text_of(n).to_owned());
-                let mut arguments = Vec::new();
-                let mut cursor = node.walk();
-                for child in node.named_children(&mut cursor) {
-                    if child.kind() == "extension_argument"
-                        && !child.is_missing()
-                        && !child.is_error()
-                    {
-                        arguments.push(self.text_of(child).to_owned());
-                    }
-                }
-                WeakExtensionOperationKind::UnknownExtension { name, arguments }
+            "x-vis-color" => {
+                let color = self.take_string(args, 0, opcode_span);
+                let carriers = self.take_carriers(args, 1);
+                ExtensionOperation::XVisColor { color, carriers }
+            }
+            "x-loop-in" => {
+                let direction = self.take_direction(args, 0, opcode_span);
+                let needle = self.take_needle(args, 1, opcode_span);
+                let carriers = self.take_carriers(args, 2);
+                ExtensionOperation::XLoopIn { direction, needle, carriers }
+            }
+            "x-yarn-in" => {
+                let direction = self.take_direction(args, 0, opcode_span);
+                let needle = self.take_needle(args, 1, opcode_span);
+                let carriers = self.take_carriers(args, 2);
+                ExtensionOperation::XYarnIn { direction, needle, carriers }
+            }
+            "x-yarn-out" => {
+                let direction = self.take_direction(args, 0, opcode_span);
+                let needle = self.take_needle(args, 1, opcode_span);
+                let carriers = self.take_carriers(args, 2);
+                ExtensionOperation::XYarnOut { direction, needle, carriers }
+            }
+            "x-end" => {
+                self.warn_extra_args(args, 0);
+                ExtensionOperation::XEnd
+            }
+            "x-roller-advance" => {
+                let value = self.take_big_decimal(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XRollerAdvance { value }
+            }
+            "x-add-roller-advance" => {
+                let value = self.take_big_decimal(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XAddRollerAdvance { value }
+            }
+            "x-carrier-spacing" => {
+                let value = self.take_u32(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XCarrierSpacing { value }
+            }
+            "x-carrier-stopping-distance" => {
+                let value = self.take_u32(args, 0, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XCarrierStoppingDistance { value }
+            }
+            "x-xfer-style" => {
+                let style = self.parse_xfer_style_arg(args, opcode_span);
+                self.warn_extra_args(args, 1);
+                ExtensionOperation::XXferStyle { style }
             }
             _ => {
-                self.push_error(ParseError::InvalidOperation(span));
-                WeakExtensionOperationKind::UnknownExtension {
-                    name: None,
-                    arguments: Vec::new(),
-                }
+                // Unknown x- extension — store name + all args as strings.
+                let name = self.parse_my_string(opcode_str.as_bytes(), opcode_span);
+                let arguments = args
+                    .iter()
+                    .map(|&(span, text)| self.parse_my_string(text, span))
+                    .collect();
+                ExtensionOperation::UnknownExtension { name, arguments }
             }
         };
-        WeakExtensionOperation { span, kind }
+        Operation::ExtensionOperation(ext)
     }
+
+    fn parse_presser_mode_arg(&mut self, args: &[(Span, &[u8])], opcode_span: Span) -> PresserMode<Parsed> {
+        match args.get(0) {
+            Some(&(span, text)) => match text {
+                b"off" => PresserMode::Off(span),
+                b"auto" => PresserMode::Auto(span),
+                b"on" => PresserMode::On(span),
+                _ => {
+                    self.errors.push(ParseError::BadPresserMode(span));
+                    PresserMode::Other(span)
+                }
+            },
+            None => {
+                self.errors.push(ParseError::MissingArgument(opcode_span));
+                PresserMode::Other(opcode_span)
+            }
+        }
+    }
+
+    fn parse_xfer_style_arg(&mut self, args: &[(Span, &[u8])], opcode_span: Span) -> XferStyle<Parsed> {
+        match args.get(0) {
+            Some(&(span, text)) => match text {
+                b"four-pass" => XferStyle::FourPass(span),
+                b"two-pass" => XferStyle::TwoPass(span),
+                _ => {
+                    self.errors.push(ParseError::BadXferStyle(span));
+                    XferStyle::Other(span)
+                }
+            },
+            None => {
+                self.errors.push(ParseError::MissingArgument(opcode_span));
+                XferStyle::Other(opcode_span)
+            }
+        }
+    }
+}
+
+// ─── public entry point ───────────────────────────────────────────────────────
+
+/// Lower a tree-sitter CST for a knitout source file into a `Program<Parsed>`.
+///
+/// Returns the program together with any parse warnings and errors encountered.  Errors are
+/// recoverable: the program is always produced, but may contain `Other(Span)` nodes where
+/// parsing failed.  Call `parsed_to_valid` to check whether the program is error-free and
+/// produce a `Program<Validated>`.
+pub fn cst_to_program(
+    source: &[u8],
+    tree: &Tree,
+) -> (Program<Parsed>, Vec<ParseWarning>, Vec<ParseError>) {
+    let mut ctx = LowerCtx::new(source);
+    let root = tree.root_node();
+
+    let mut line_index = 0usize;
+    let mut cursor = root.walk();
+    for child in root.named_children(&mut cursor) {
+        ctx.lower_line(child, &mut line_index);
+    }
+
+    ctx.finish()
 }

@@ -1,1187 +1,1024 @@
 mod convert;
 mod diagnostics;
 mod lower;
-mod types;
 
-pub use diagnostics::ParseError;
-pub use lower::lower_cst;
-pub use types::{
-    WeakBaseOperation, WeakBaseOperationKind, WeakBed, WeakCarrierOrRail, WeakCarriersHeader,
-    WeakCarriersValue, WeakComment, WeakDirection, WeakExtensionHeader, WeakExtensionOperation,
-    WeakExtensionOperationKind, WeakGaugeHeader, WeakHeader, WeakHeaderKind, WeakLine,
-    WeakMachineHeader, WeakMagic, WeakNeedle, WeakOperation, WeakPositionHeader, WeakPositionValue,
-    WeakPresserMode, WeakProgram, WeakRail, WeakRailSide, WeakWidthHeader, WeakXferStyle,
-    WeakYarnHeader,
-};
+pub use convert::{parsed_to_valid, transform_program, ParsedToValidated, PhaseTransform};
+pub use diagnostics::{ParseError, ParseWarning};
+pub use lower::cst_to_program;
 
-// Re-export knitout-ast types used in the public surface
-pub use knitout_ast::{Carrier, CarrierTable, IsSlider, Span};
+pub use knitout_ast::{Phase, Provenance, Span};
+
+// ─── CommentInfo ─────────────────────────────────────────────────────────────
+
+/// Information about a trailing comment on an operation line.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum CommentInfo {
+    /// No trailing comment.
+    NoComment,
+    /// An ordinary `; text` comment. The span covers the full comment including `;`.
+    Comment(Span),
+    /// A `;!source: …` tag. The span covers the whole tag.
+    SourceTag(Span),
+    /// A `;!foo` tag that is not a recognised knitout tag. The span covers the whole tag.
+    UnknownTag(Span),
+}
+
+// ─── Parsed phase ─────────────────────────────────────────────────────────────
+
+/// The `Parsed` phase: every AST node is annotated with a `Span` pointing to the
+/// corresponding bytes in the source buffer. Unrecognised constructs are represented
+/// as `Other(Span)` rather than aborting parsing.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum Parsed {}
+
+impl Phase for Parsed {
+    /// Unrecognised constructs.
+    type Other = Span;
+
+    /// `(prefix_span, version_span)`: e.g. `";!knitout-"` and `"2"`.
+    type MagicVersion = (Span, Span);
+
+    /// Not used at the `Headers` level for `Parsed`; headers are stored field-by-field.
+    type Headers = ();
+
+    /// `(op_span, CommentInfo)`: the span of the whole operation (excluding any comment)
+    /// plus information about any trailing comment.
+    type Operation = (Span, CommentInfo);
+
+    /// Span of the `"Name:"` portion of a header line.
+    type Header = Span;
+
+    /// Span of the `"Name:"` portion of an unknown header.
+    type UnknownHeader = Span;
+
+    /// Span of the position-value token (e.g. `"Left"`).
+    type PositionHeaderValue = Span;
+
+    /// Span of the whole carriers value (e.g. `"1 2,3;4,5"`).
+    type CarriersHeaderValue = Span;
+
+    /// Not used individually; carriers/rails share a common annotation at the item level.
+    type CarrierOrRail = ();
+
+    /// Span of a `"left;right"` rail token.
+    type Rail = Span;
+
+    /// Span of one rail side (`"2,3"`).
+    type RailSide = Span;
+
+    /// Span of a single carrier name token.
+    type Carrier = Span;
+
+    /// Span of the direction token (`"+"` or `"-"`).
+    type Direction = Span;
+
+    /// Span of the bed character (`"f"` or `"b"`).
+    type Bed = Span;
+
+    /// Span of the optional slider character (`"s"`), or a zero-length span if absent.
+    type IsSlider = Span;
+
+    /// Span of the integer index portion of a needle.
+    type Index = Span;
+
+    /// Span of the entire needle token (e.g. `"fs-3"`).
+    type Needle = Span;
+
+    /// Span of the decimal-number token.
+    type MyBigDecimal = Span;
+
+    /// Span of the unsigned-integer token.
+    type MyU32 = Span;
+
+    /// Span of the string token.
+    type MyString = Span;
+
+    /// Span of the presser-mode token.
+    type PresserMode = Span;
+
+    /// Span of the transfer-style token.
+    type XferStyle = Span;
+}
+
+// ─── tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
+    use knitout_ast::{
+        Annotated, BaseOperation, CarrierOrRail, Direction, ExtensionOperation, Operation,
+        PositionHeaderValue, PresserMode, Program, XferStyle,
+    };
+    use either::Either;
+
     use super::*;
 
-    fn parse(source: &str) -> (WeakProgram, Vec<ParseError>) {
+    // ── parser helper ─────────────────────────────────────────────────────────
+
+    fn parse(source: &str) -> (Program<Parsed>, Vec<ParseWarning>, Vec<ParseError>) {
         let mut parser = tree_sitter::Parser::new();
         parser
             .set_language(&tree_sitter_knitout::LANGUAGE.into())
             .expect("failed to load grammar");
         let tree = parser.parse(source, None).expect("parse returned None");
-        lower_cst(source.as_bytes(), &tree)
+        cst_to_program(source.as_bytes(), &tree)
     }
 
-    /// Build a minimal WeakProgram with the given lines, for conversion tests.
-    fn make_prog(lines: Vec<WeakLine>) -> WeakProgram {
-        let span = Span::new(0, 0);
-        WeakProgram {
-            span,
-            magic: WeakMagic {
-                span,
-                version: Some(2),
-            },
-            headers: vec![],
-            lines,
-            carrier_table: CarrierTable::new(),
-        }
+    fn parse_ok(source: &str) -> Program<Parsed> {
+        let (prog, warnings, errors) = parse(source);
+        assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
+        assert!(errors.is_empty(), "unexpected errors: {errors:?}");
+        prog
     }
 
-    fn make_line(op: WeakOperation) -> WeakLine {
-        WeakLine {
-            span: Span::new(0, 0),
-            operation: Some(op),
-            comment: None,
-            source: None,
-        }
+    // ── span helpers ──────────────────────────────────────────────────────────
+
+    fn span_within(span: Span, source: &str) -> bool {
+        (span.end() as usize) <= source.len()
     }
 
-    fn make_base(kind: WeakBaseOperationKind) -> WeakOperation {
-        WeakOperation::Base(WeakBaseOperation {
-            span: Span::new(0, 0),
-            kind,
-        })
-    }
-
-    fn make_needle(bed: WeakBed, index: i32) -> WeakNeedle {
-        WeakNeedle {
-            span: Span::new(0, 0),
-            bed,
-            is_slider: IsSlider::NotSlider,
-            index: Some(index),
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Happy-path lowering tests
-    // -----------------------------------------------------------------------
+    // ─── magic / version tests ────────────────────────────────────────────────
 
     #[test]
-    fn valid_minimal_program_has_no_diagnostics() {
-        let (prog, diags) = parse(";!knitout-2\n");
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        assert_eq!(prog.magic.version, Some(2));
+    fn valid_minimal_program_no_diagnostics() {
+        let (_, warnings, errors) = parse(";!knitout-2\n;;Carriers: A\n");
+        assert!(warnings.is_empty(), "{warnings:?}");
+        assert!(errors.is_empty(), "{errors:?}");
     }
 
     #[test]
-    fn valid_program_converts_to_strong() {
-        let source = ";!knitout-2\n;;Carriers: A B\nknit + f5 A\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        let strong = prog.try_into_strong().expect("conversion should succeed");
-        assert_eq!(strong.version(), 2);
-        assert_eq!(strong.operations().len(), 1);
-    }
-
-    #[test]
-    fn knit_operation_fully_parsed() {
-        let source = ";!knitout-2\n;;Carriers: A\nknit + fs3 A\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        assert_eq!(prog.lines.len(), 1);
-        let line = &prog.lines[0];
-        match line.operation.as_ref().unwrap() {
-            WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Knit {
-                    direction,
-                    needle,
-                    carriers,
-                } => {
-                    assert_eq!(*direction, WeakDirection::Right);
-                    let n = needle.as_ref().unwrap();
-                    assert_eq!(n.bed, WeakBed::Front);
-                    assert_eq!(n.is_slider, IsSlider::Slider);
-                    assert_eq!(n.index, Some(3));
-                    assert_eq!(carriers.len(), 1);
-                }
-                other => panic!("expected Knit, got {other:?}"),
-            },
-            other => panic!("expected Base, got {other:?}"),
+    fn magic_version_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n");
+        let (version, _headers, _ops, _ct) = prog.into_components();
+        match version {
+            Either::Left(ann) => assert_eq!(ann.value, 2),
+            Either::Right(_) => panic!("expected version, got Other"),
         }
     }
 
     #[test]
-    fn presser_mode_parsed() {
-        let source = ";!knitout-2\nx-presser-mode auto\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        match prog.lines[0].operation.as_ref().unwrap() {
-            WeakOperation::Extension(e) => match &e.kind {
-                WeakExtensionOperationKind::XPresserMode { mode } => {
-                    assert_eq!(*mode, WeakPresserMode::Auto);
-                }
-                other => panic!("expected XPresserMode, got {other:?}"),
-            },
-            other => panic!("expected Extension, got {other:?}"),
-        }
+    fn magic_version_18() {
+        let prog = parse_ok(";!knitout-18\n;;Carriers: A\n");
+        let (version, _, _, _) = prog.into_components();
+        assert_eq!(version.left().unwrap().value, 18);
     }
 
     #[test]
-    fn source_comment_extracted() {
-        let source = ";!knitout-2\nknit + f1 ;!source: myfile.js:5\n";
-        let (prog, diags) = parse(source);
-        let line = &prog.lines[0];
-        assert_eq!(line.source.as_deref(), Some("myfile.js:5"));
-        let _ = diags;
-    }
-
-    #[test]
-    fn program_with_all_headers_converts() {
-        let source = concat!(
-            ";!knitout-18\n",
-            ";;Carriers: A B\n",
-            ";;Gauge: 15\n",
-            ";;Width: 250\n",
-            ";;Position: Left\n",
-            ";;Machine: MyMachine\n",
+    fn missing_magic_emits_error() {
+        let (_, _, errors) = parse(";;Carriers: A\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::MagicMissing)),
+            "expected MagicMissing, got {errors:?}"
         );
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        let strong = prog.try_into_strong().expect("conversion failed");
-        assert_eq!(strong.version(), 18);
-        assert_eq!(strong.headers().gauge(), Some(15));
-        assert_eq!(strong.headers().width(), Some(250));
     }
 
     #[test]
-    fn stitch_and_rack_parsed() {
-        let source = ";!knitout-2\nstitch -2 3\nrack 0.5\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        assert_eq!(prog.lines.len(), 2);
+    fn bad_magic_version_emits_error() {
+        let (_, _, errors) = parse(";!knitout-xyz\n;;Carriers: A\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadMagicVersion(_))),
+            "expected BadMagicVersion, got {errors:?}"
+        );
+    }
+
+    #[test]
+    fn magic_not_first_emits_warning() {
+        let (_, warnings, _) = parse(";;Carriers: A\n;!knitout-2\n");
+        assert!(
+            warnings.iter().any(|w| matches!(w, ParseWarning::MagicNotFirst(_))),
+            "expected MagicNotFirst, got {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn magic_version_span_within_source() {
+        let source = ";!knitout-2\n;;Carriers: A\n";
+        let (prog, _, _) = parse(source);
+        let (version, _, _, _) = prog.into_components();
+        if let Either::Left(ann) = version {
+            let (prefix_span, ver_span) = ann.annotation;
+            assert!(span_within(prefix_span, source));
+            assert!(span_within(ver_span, source));
+        }
+    }
+
+    // ─── carriers header tests ────────────────────────────────────────────────
+
+    #[test]
+    fn missing_carriers_header_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::MissingCarriersHeader)),
+            "expected MissingCarriersHeader, got {errors:?}"
+        );
+    }
+
+    fn carriers_items(prog: Program<Parsed>) -> Vec<CarrierOrRail<Parsed>> {
+        let (_, headers, _, _) = prog.into_components();
+        let (carriers_field, _, _, _, _, _, _) = headers.into_components();
+        let ann = carriers_field.left().expect("expected carriers");
+        let (items_either, _) = ann.value.into_inner();
+        items_either.left().expect("expected items list")
+    }
+
+    #[test]
+    fn single_carrier_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n");
+        assert_eq!(carriers_items(prog).len(), 1);
+    }
+
+    #[test]
+    fn multiple_carriers_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: 1 2 3\n");
+        assert_eq!(carriers_items(prog).len(), 3);
+    }
+
+    #[test]
+    fn rail_carrier_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A;B\n");
+        let items = carriers_items(prog);
+        assert_eq!(items.len(), 1);
+        match items.into_iter().next().unwrap() {
+            CarrierOrRail::Rail(rail) => {
+                let (left, right, _) = rail.into_parts();
+                let (left_carriers, _) = left.left().unwrap().into_parts();
+                let (right_carriers, _) = right.left().unwrap().into_parts();
+                assert_eq!(left_carriers.len(), 1);
+                assert_eq!(right_carriers.len(), 1);
+            }
+            other => panic!("expected Rail, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn multi_carrier_rail_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A,C;B,D\n");
+        let items = carriers_items(prog);
+        assert_eq!(items.len(), 1);
+        match items.into_iter().next().unwrap() {
+            CarrierOrRail::Rail(rail) => {
+                let (left, right, _) = rail.into_parts();
+                let (lc, _) = left.left().unwrap().into_parts();
+                let (rc, _) = right.left().unwrap().into_parts();
+                assert_eq!(lc.len(), 2);
+                assert_eq!(rc.len(), 2);
+            }
+            other => panic!("expected Rail, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn duplicate_carriers_header_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Carriers: B\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::ConflictingHeader { .. })),
+            "expected ConflictingHeader, got {errors:?}"
+        );
+    }
+
+    // ─── other header tests ───────────────────────────────────────────────────
+
+    #[test]
+    fn gauge_header_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Gauge: 15\n");
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, _, gauge, _, _, _) = headers.into_components();
+        let gauge_ann = gauge.expect("expected gauge");
+        let val = gauge_ann.value.value().clone().left().expect("expected u32").value;
+        assert_eq!(val, 15);
+    }
+
+    #[test]
+    fn width_header_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Width: 250\n");
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, _, _, width, _, _) = headers.into_components();
+        let val = width.unwrap().value.value().clone().left().unwrap().value;
+        assert_eq!(val, 250);
+    }
+
+    #[test]
+    fn position_left_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Left\n");
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, _, _, _, position, _) = headers.into_components();
+        assert!(matches!(position.unwrap().value, PositionHeaderValue::Left(_)));
+    }
+
+    #[test]
+    fn position_center_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Center\n");
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, _, _, _, position, _) = headers.into_components();
+        assert!(matches!(position.unwrap().value, PositionHeaderValue::Center(_)));
+    }
+
+    #[test]
+    fn position_right_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Right\n");
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, _, _, _, position, _) = headers.into_components();
+        assert!(matches!(position.unwrap().value, PositionHeaderValue::Right(_)));
+    }
+
+    #[test]
+    fn position_keep_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Position: Keep\n");
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, _, _, _, position, _) = headers.into_components();
+        assert!(matches!(position.unwrap().value, PositionHeaderValue::Keep(_)));
+    }
+
+    #[test]
+    fn bad_position_value_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Position: Bogus\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadPositionValue(_))),
+            "expected BadPositionValue, got {errors:?}"
+        );
+    }
+
+    #[test]
+    fn machine_header_parsed() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Machine: SWG091N2\n");
+        let (_, headers, _, _) = prog.into_components();
+        let (_, _, machine, _, _, _, _) = headers.into_components();
+        let s = machine.unwrap().value.value().clone().left().unwrap().value;
+        assert_eq!(s, "SWG091N2");
+    }
+
+    #[test]
+    fn unrecognized_extension_header_emits_warning() {
+        let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\n;;X-foo: bar\n");
+        assert!(
+            warnings.iter().any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
+            "expected UnrecognizedExtensionHeader, got {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn header_after_operations_emits_warning() {
+        let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\npause\n;;Gauge: 15\n");
+        assert!(
+            warnings.iter().any(|w| matches!(w, ParseWarning::HeaderAfterOperations(_))),
+            "expected HeaderAfterOperations, got {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn bad_gauge_value_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\n;;Gauge: notanumber\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadU32(_))),
+            "expected BadU32, got {errors:?}"
+        );
+    }
+
+    // ─── operation tests ──────────────────────────────────────────────────────
+
+    fn get_ops(source: &str) -> Vec<Annotated<Operation<Parsed>, (Span, CommentInfo)>> {
+        let prog = parse_ok(source);
+        let (_, _, ops, _) = prog.into_components();
+        ops
+    }
+
+    #[test]
+    fn pause_op_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\npause\n");
+        assert_eq!(ops.len(), 1);
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Pause)));
+    }
+
+    #[test]
+    fn knit_plus_front_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nknit + f5 A\n");
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Knit { direction, needle, carriers }) => {
+                assert!(matches!(direction, Direction::Right(_)));
+                let needle = needle.as_ref().left().expect("expected needle");
+                assert!(matches!(needle.bed(), knitout_ast::Bed::Front(_)));
+                assert!(!matches!(needle.is_slider(), knitout_ast::IsSlider::Slider(_)));
+                assert_eq!(needle.index().as_ref().left().unwrap().value, 5);
+                assert_eq!(carriers.len(), 1);
+            }
+            other => panic!("expected Knit, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn knit_minus_back_slider_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nknit - bs-3 A\n");
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Knit { direction, needle, .. }) => {
+                assert!(matches!(direction, Direction::Left(_)));
+                let n = needle.as_ref().left().unwrap();
+                assert!(matches!(n.bed(), knitout_ast::Bed::Back(_)));
+                assert!(matches!(n.is_slider(), knitout_ast::IsSlider::Slider(_)));
+                assert_eq!(n.index().as_ref().left().unwrap().value, -3);
+            }
+            other => panic!("expected Knit, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn tuck_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\ntuck + f1 A\n");
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Tuck { .. })));
+    }
+
+    #[test]
+    fn miss_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nmiss + f1 A\n");
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Miss { .. })));
+    }
+
+    #[test]
+    fn split_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nsplit + f1 b1 A\n");
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Split { .. })));
+    }
+
+    #[test]
+    fn drop_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\ndrop f1\n");
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Drop { needle }) => {
+                assert!(needle.as_ref().left().is_some());
+            }
+            other => panic!("expected Drop, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn amiss_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\namiss b5\n");
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Amiss { .. })));
     }
 
     #[test]
     fn xfer_parsed() {
-        let source = ";!knitout-2\nxfer f5 b5\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        match prog.lines[0].operation.as_ref().unwrap() {
-            WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Xfer {
-                    source,
-                    destination,
-                } => {
-                    assert!(source.is_some());
-                    assert!(destination.is_some());
-                }
-                other => panic!("expected Xfer, got {other:?}"),
-            },
-            other => panic!("expected Base, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn in_out_carriers_parsed() {
-        let source = ";!knitout-2\n;;Carriers: 1 2\nin 1 2\nout 1 2\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        assert_eq!(prog.lines.len(), 2);
-        let strong = prog.try_into_strong().expect("conversion failed");
-        assert_eq!(strong.operations().len(), 2);
-    }
-
-    // -----------------------------------------------------------------------
-    // Direction and bed variant tests
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn knit_left_direction_and_back_bed() {
-        let source = ";!knitout-2\nknit - b5\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        match prog.lines[0].operation.as_ref().unwrap() {
-            WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Knit {
-                    direction, needle, ..
-                } => {
-                    assert_eq!(*direction, WeakDirection::Left);
-                    assert_eq!(needle.as_ref().unwrap().bed, WeakBed::Back);
-                }
-                other => panic!("expected Knit, got {other:?}"),
-            },
-            other => panic!("expected Base, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn knit_no_carriers_gives_empty_vec() {
-        let source = ";!knitout-2\nknit + f5\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        match prog.lines[0].operation.as_ref().unwrap() {
-            WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Knit { carriers, .. } => {
-                    assert!(
-                        carriers.is_empty(),
-                        "expected no carriers, got {carriers:?}"
-                    );
-                }
-                other => panic!("expected Knit, got {other:?}"),
-            },
-            other => panic!("expected Base, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn all_presser_modes_parsed() {
-        for (mode_str, expected) in [
-            ("off", WeakPresserMode::Off),
-            ("auto", WeakPresserMode::Auto),
-            ("on", WeakPresserMode::On),
-        ] {
-            let source = format!(";!knitout-2\nx-presser-mode {mode_str}\n");
-            let (prog, diags) = parse(&source);
-            assert!(
-                diags.is_empty(),
-                "mode={mode_str}: unexpected diags: {diags:?}"
-            );
-            match prog.lines[0].operation.as_ref().unwrap() {
-                WeakOperation::Extension(e) => match &e.kind {
-                    WeakExtensionOperationKind::XPresserMode { mode } => {
-                        assert_eq!(*mode, expected, "mode={mode_str}");
-                    }
-                    other => panic!("expected XPresserMode, got {other:?}"),
-                },
-                other => panic!("expected Extension, got {other:?}"),
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nxfer f5 b5\n");
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Xfer { source, destination }) => {
+                assert!(source.as_ref().left().is_some());
+                assert!(destination.as_ref().left().is_some());
             }
+            other => panic!("expected Xfer, got {other:?}"),
         }
     }
 
     #[test]
-    fn stitch_values_parsed_correctly() {
+    fn stitch_parsed() {
         use bigdecimal::BigDecimal;
         use std::str::FromStr;
-        let source = ";!knitout-2\nstitch -2 3\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diagnostics: {diags:?}");
-        match prog.lines[0].operation.as_ref().unwrap() {
-            WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Stitch {
-                    before_pull,
-                    after_pull,
-                } => {
-                    assert_eq!(
-                        *before_pull.as_ref().unwrap(),
-                        BigDecimal::from_str("-2").unwrap()
-                    );
-                    assert_eq!(
-                        *after_pull.as_ref().unwrap(),
-                        BigDecimal::from_str("3").unwrap()
-                    );
-                }
-                other => panic!("expected Stitch, got {other:?}"),
-            },
-            other => panic!("expected Base, got {other:?}"),
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nstitch -2 3\n");
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Stitch { before_pull, after_pull }) => {
+                let bp = before_pull.value().clone().left().unwrap().value;
+                let ap = after_pull.value().clone().left().unwrap().value;
+                assert_eq!(bp, BigDecimal::from_str("-2").unwrap());
+                assert_eq!(ap, BigDecimal::from_str("3").unwrap());
+            }
+            other => panic!("expected Stitch, got {other:?}"),
         }
     }
 
-    // -----------------------------------------------------------------------
-    // MISSING-node lowering tests (tree-sitter partially parses these)
-    // -----------------------------------------------------------------------
-
-    /// `stitch -2` has one argument; tree-sitter produces a MISSING after_pull.
     #[test]
-    fn stitch_missing_after_pull_produces_missing_field_diagnostic() {
-        let source = ";!knitout-2\nstitch -2\n";
-        let (prog, diags) = parse(source);
-        match prog.lines[0].operation.as_ref().unwrap() {
-            WeakOperation::Base(b) => match &b.kind {
-                WeakBaseOperationKind::Stitch { after_pull, .. } => {
-                    assert!(after_pull.is_none(), "expected after_pull=None");
-                }
-                other => panic!("expected Stitch, got {other:?}"),
-            },
-            other => panic!("expected Base, got {other:?}"),
-        }
-        assert!(
-            diags.iter().any(|d| matches!(
-                d,
-                ParseError::MissingField {
-                    field: "after_pull",
-                    ..
-                }
-            )),
-            "expected MissingField{{after_pull}}, got: {diags:?}"
-        );
-    }
-
-    /// When the input has no valid magic line, lower_cst emits a file-level diagnostic
-    /// (UnparsedFile when the root is an ERROR node, or MissingMagic when the root
-    /// is otherwise valid but lacks a magic field).
-    #[test]
-    fn no_magic_line_produces_file_level_diagnostic() {
-        let source = ";\n";
-        let (prog, diags) = parse(source);
-        assert!(prog.magic.version.is_none(), "version should be None");
-        assert!(
-            diags
-                .iter()
-                .any(|d| matches!(d, ParseError::MissingMagic(_) | ParseError::UnparsedFile(_))),
-            "expected a file-level diagnostic, got: {diags:?}"
-        );
-    }
-
-    /// Completely invalid syntax produces some diagnostic — the exact kind
-    /// depends on tree-sitter's error recovery.
-    #[test]
-    fn completely_invalid_syntax_produces_diagnostics() {
-        let source = ";!knitout-2\nthis_is_not_valid!!!\n";
-        let (prog, diags) = parse(source);
-        assert!(
-            !diags.is_empty(),
-            "expected at least one diagnostic for garbage input"
-        );
-        let _ = prog;
-    }
-
-    /// For inputs that produce tree-sitter ERROR nodes, an InvalidOperation
-    /// diagnostic is emitted.
-    #[test]
-    fn error_node_emits_invalid_operation_diagnostic() {
-        let source = ";!knitout-2\nthis_is_not_valid!!!\n";
-        let (_prog, diags) = parse(source);
-        assert!(
-            diags
-                .iter()
-                .any(|d| matches!(d, ParseError::InvalidOperation(_))),
-            "expected InvalidOperation diagnostic, got: {diags:?}"
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // Span sanity checks
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn parse_error_spans_are_within_source() {
-        let source = ";!knitout-2\nknit +\n";
-        let (_prog, diags) = parse(source);
-        for d in &diags {
-            let s = d.span();
-            assert!(
-                (s.end() as usize) <= source.len(),
-                "span end {} > source len {}",
-                s.end(),
-                source.len()
-            );
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Leaf converter tests
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn convert_unknown_bed_fails_with_unrecognized_bed() {
-        let span = Span::new(0, 1);
-        let result = WeakBed::Unknown(span).try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::UnrecognizedBed(_))),
-            "expected UnrecognizedBed, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_front_bed_succeeds() {
-        assert!(matches!(
-            WeakBed::Front.try_into_strong(),
-            Ok(knitout_ast::Bed::Front)
-        ));
-    }
-
-    #[test]
-    fn convert_back_bed_succeeds() {
-        assert!(matches!(
-            WeakBed::Back.try_into_strong(),
-            Ok(knitout_ast::Bed::Back)
-        ));
-    }
-
-    #[test]
-    fn convert_unknown_direction_fails_with_unrecognized_direction() {
-        let span = Span::new(0, 1);
-        let result = WeakDirection::Unknown(span).try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::UnrecognizedDirection(_))),
-            "expected UnrecognizedDirection, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_left_direction_succeeds() {
-        assert!(matches!(
-            WeakDirection::Left.try_into_strong(),
-            Ok(knitout_ast::Direction::Left)
-        ));
-    }
-
-    #[test]
-    fn convert_right_direction_succeeds() {
-        assert!(matches!(
-            WeakDirection::Right.try_into_strong(),
-            Ok(knitout_ast::Direction::Right)
-        ));
-    }
-
-    #[test]
-    fn convert_unknown_presser_mode_fails() {
-        let span = Span::new(0, 1);
-        let result = WeakPresserMode::Unknown(span).try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::UnrecognizedPresserMode(_))),
-            "expected UnrecognizedPresserMode, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_presser_mode_off_succeeds() {
-        assert!(matches!(
-            WeakPresserMode::Off.try_into_strong(),
-            Ok(knitout_ast::PresserMode::Off)
-        ));
-    }
-
-    #[test]
-    fn convert_presser_mode_auto_succeeds() {
-        assert!(matches!(
-            WeakPresserMode::Auto.try_into_strong(),
-            Ok(knitout_ast::PresserMode::Auto)
-        ));
-    }
-
-    #[test]
-    fn convert_presser_mode_on_succeeds() {
-        assert!(matches!(
-            WeakPresserMode::On.try_into_strong(),
-            Ok(knitout_ast::PresserMode::On)
-        ));
-    }
-
-    #[test]
-    fn convert_unknown_xfer_style_fails() {
-        let span = Span::new(0, 1);
-        let result = WeakXferStyle::Unknown(span).try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::UnrecognizedXferStyle(_))),
-            "expected UnrecognizedXferStyle, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_four_pass_succeeds() {
-        assert!(matches!(
-            WeakXferStyle::FourPass.try_into_strong(),
-            Ok(knitout_ast::XferStyle::FourPass)
-        ));
-    }
-
-    #[test]
-    fn convert_two_pass_succeeds() {
-        assert!(matches!(
-            WeakXferStyle::TwoPass.try_into_strong(),
-            Ok(knitout_ast::XferStyle::TwoPass)
-        ));
-    }
-
-    #[test]
-    fn convert_unknown_position_value_fails() {
-        let span = Span::new(0, 1);
-        let result = WeakPositionValue::Unknown(span).try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::UnrecognizedPositionValue(_))),
-            "expected UnrecognizedPositionValue, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_position_values_succeed() {
-        use knitout_ast::PositionHeaderValue;
-        assert!(matches!(
-            WeakPositionValue::Left.try_into_strong(),
-            Ok(PositionHeaderValue::Left)
-        ));
-        assert!(matches!(
-            WeakPositionValue::Center.try_into_strong(),
-            Ok(PositionHeaderValue::Center)
-        ));
-        assert!(matches!(
-            WeakPositionValue::Right.try_into_strong(),
-            Ok(PositionHeaderValue::Right)
-        ));
-        assert!(matches!(
-            WeakPositionValue::Keep.try_into_strong(),
-            Ok(PositionHeaderValue::Keep)
-        ));
-    }
-
-    // -----------------------------------------------------------------------
-    // WeakProgram conversion-path tests (constructed directly, no parser)
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn convert_missing_version_fails() {
-        let span = Span::new(0, 0);
-        let prog = WeakProgram {
-            span,
-            magic: WeakMagic {
-                span,
-                version: None,
-            },
-            headers: vec![],
-            lines: vec![],
-            carrier_table: CarrierTable::new(),
-        };
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::MissingVersion(_))),
-            "expected MissingVersion, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_unknown_operation_fails_with_invalid_operation() {
-        let span = Span::new(0, 4);
-        let prog = make_prog(vec![make_line(WeakOperation::Unknown(span))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::InvalidOperation(_))),
-            "expected InvalidOperation, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_rack_missing_offset_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Rack {
-            offset: None,
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "offset",
-                    ..
-                })
-            ),
-            "expected MissingField{{offset}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_stitch_missing_before_pull_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Stitch {
-            before_pull: None,
-            after_pull: None,
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "before_pull",
-                    ..
-                })
-            ),
-            "expected MissingField{{before_pull}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_stitch_missing_after_pull_fails() {
+    fn rack_parsed() {
         use bigdecimal::BigDecimal;
         use std::str::FromStr;
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Stitch {
-            before_pull: Some(BigDecimal::from_str("-2").unwrap()),
-            after_pull: None,
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "after_pull",
-                    ..
-                })
-            ),
-            "expected MissingField{{after_pull}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_in_missing_carriers_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::In {
-            carriers: None,
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "carriers",
-                    ..
-                })
-            ),
-            "expected MissingField{{carriers}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_out_missing_carriers_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Out {
-            carriers: None,
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "carriers",
-                    ..
-                })
-            ),
-            "expected MissingField{{carriers}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_knit_missing_needle_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Knit {
-            direction: WeakDirection::Right,
-            needle: None,
-            carriers: vec![],
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "needle",
-                    ..
-                })
-            ),
-            "expected MissingField{{needle}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_tuck_missing_needle_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Tuck {
-            direction: WeakDirection::Left,
-            needle: None,
-            carriers: vec![],
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "needle",
-                    ..
-                })
-            ),
-            "expected MissingField{{needle}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_xfer_missing_source_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Xfer {
-            source: None,
-            destination: Some(make_needle(WeakBed::Back, 5)),
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "source",
-                    ..
-                })
-            ),
-            "expected MissingField{{source}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_xfer_missing_destination_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Xfer {
-            source: Some(make_needle(WeakBed::Front, 5)),
-            destination: None,
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "destination",
-                    ..
-                })
-            ),
-            "expected MissingField{{destination}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_drop_missing_needle_fails() {
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Drop {
-            needle: None,
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(
-                result,
-                Err(ParseError::MissingField {
-                    field: "needle",
-                    ..
-                })
-            ),
-            "expected MissingField{{needle}}, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_knit_unknown_direction_fails() {
-        let span = Span::new(0, 1);
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Knit {
-            direction: WeakDirection::Unknown(span),
-            needle: Some(make_needle(WeakBed::Front, 3)),
-            carriers: vec![],
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::UnrecognizedDirection(_))),
-            "expected UnrecognizedDirection, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_knit_unknown_bed_fails() {
-        let span = Span::new(0, 1);
-        let prog = make_prog(vec![make_line(make_base(WeakBaseOperationKind::Knit {
-            direction: WeakDirection::Right,
-            needle: Some(WeakNeedle {
-                span,
-                bed: WeakBed::Unknown(span),
-                is_slider: IsSlider::NotSlider,
-                index: Some(3),
-            }),
-            carriers: vec![],
-        }))]);
-        let result = prog.try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::UnrecognizedBed(_))),
-            "expected UnrecognizedBed, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn convert_needle_missing_index_fails() {
-        let span = Span::new(0, 2);
-        let result = WeakNeedle {
-            span,
-            bed: WeakBed::Front,
-            is_slider: IsSlider::NotSlider,
-            index: None,
-        }
-        .try_into_strong();
-        assert!(
-            matches!(result, Err(ParseError::MissingField { field: "index", .. })),
-            "expected MissingField{{index}}, got {result:?}"
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // Lowering: xfer_style (catches delete-arm mutants 144-145)
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn lower_xfer_style_four_pass() {
-        let source = ";!knitout-2\nx-xfer-style four-pass\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
-        match prog.lines[0].operation.as_ref().unwrap() {
-            WeakOperation::Extension(e) => match &e.kind {
-                WeakExtensionOperationKind::XXferStyle { style } => {
-                    assert_eq!(*style, WeakXferStyle::FourPass);
-                }
-                other => panic!("expected XXferStyle, got {other:?}"),
-            },
-            other => panic!("expected Extension, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn lower_xfer_style_two_pass() {
-        let source = ";!knitout-2\nx-xfer-style two-pass\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
-        match prog.lines[0].operation.as_ref().unwrap() {
-            WeakOperation::Extension(e) => match &e.kind {
-                WeakExtensionOperationKind::XXferStyle { style } => {
-                    assert_eq!(*style, WeakXferStyle::TwoPass);
-                }
-                other => panic!("expected XXferStyle, got {other:?}"),
-            },
-            other => panic!("expected Extension, got {other:?}"),
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Lowering: position header values (catches delete-arm mutants 157-159)
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn lower_position_center() {
-        let source = ";!knitout-2\n;;Position: Center\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
-        match &prog.headers[0].kind {
-            WeakHeaderKind::Position(ph) => assert_eq!(ph.value, WeakPositionValue::Center),
-            other => panic!("expected Position header, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn lower_position_right() {
-        let source = ";!knitout-2\n;;Position: Right\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
-        match &prog.headers[0].kind {
-            WeakHeaderKind::Position(ph) => assert_eq!(ph.value, WeakPositionValue::Right),
-            other => panic!("expected Position header, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn lower_position_keep() {
-        let source = ";!knitout-2\n;;Position: Keep\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
-        match &prog.headers[0].kind {
-            WeakHeaderKind::Position(ph) => assert_eq!(ph.value, WeakPositionValue::Keep),
-            other => panic!("expected Position header, got {other:?}"),
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Lowering: comment text (catches ! deletion mutants 624:25 and 624:44)
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn lower_comment_text_extracted() {
-        // The comment text is " hello" — with guards deleted, valid nodes would
-        // be filtered out and text would become None.
-        let source = ";!knitout-2\nknit + f5 ; hello\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
-        let line = &prog.lines[0];
-        let comment = line.comment.as_ref().expect("expected comment");
-        assert!(
-            comment.text.is_some(),
-            "expected comment text to be Some, got None"
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // Lowering: magic with MISSING version (catches is_missing guard 377)
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn lower_magic_missing_version_produces_missing_version_diagnostic() {
-        // ";!knitout-" followed immediately by newline — version token is MISSING.
-        // With is_missing→false mutation, MISSING version flows to the parse arm,
-        // text_of(MISSING) = "" → fails → InvalidVersion pushed instead of MissingVersion.
-        let source = ";!knitout-\n";
-        let (prog, diags) = parse(source);
-        assert!(prog.magic.version.is_none(), "version should be None");
-        assert!(
-            diags
-                .iter()
-                .any(|d| matches!(d, ParseError::MissingVersion(_))),
-            "expected MissingVersion diagnostic, got: {diags:?}"
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // Lowering: extension operations (catches delete-arm mutants 788-881)
-    // -----------------------------------------------------------------------
-
-    fn get_extension_kind(source: &str) -> WeakExtensionOperationKind {
-        let (prog, diags) = parse(source);
-        assert!(
-            diags.is_empty(),
-            "unexpected diags for {source:?}: {diags:?}"
-        );
-        match prog.lines[0]
-            .operation
-            .as_ref()
-            .expect("expected operation")
-        {
-            WeakOperation::Extension(e) => e.kind.clone(),
-            other => panic!("expected Extension, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn lower_x_stitch_number() {
-        match get_extension_kind(";!knitout-2\nx-stitch-number 5\n") {
-            WeakExtensionOperationKind::XStitchNumber { value } => {
-                assert_eq!(value, Some(5));
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nrack 0.5\n");
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Rack { offset }) => {
+                let v = offset.value().clone().left().unwrap().value;
+                assert_eq!(v, BigDecimal::from_str("0.5").unwrap());
             }
-            other => panic!("expected XStitchNumber, got {other:?}"),
+            other => panic!("expected Rack, got {other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_speed_number() {
-        match get_extension_kind(";!knitout-2\nx-speed-number 3\n") {
-            WeakExtensionOperationKind::XSpeedNumber { value } => {
-                assert_eq!(value, Some(3));
+    fn in_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A B\nin A B\n");
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::In { carriers }) => {
+                assert_eq!(carriers.len(), 2);
             }
-            other => panic!("expected XSpeedNumber, got {other:?}"),
+            other => panic!("expected In, got {other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_sub_roller_number() {
-        match get_extension_kind(";!knitout-2\nx-sub-roller-number 2\n") {
-            WeakExtensionOperationKind::XSubRollerNumber { value } => {
-                assert_eq!(value, Some(2));
+    fn inhook_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\ninhook A\n");
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Inhook { .. })));
+    }
+
+    #[test]
+    fn releasehook_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nreleasehook A\n");
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Releasehook { .. })));
+    }
+
+    #[test]
+    fn out_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nout A\n");
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Out { .. })));
+    }
+
+    #[test]
+    fn outhook_parsed() {
+        let ops = get_ops(";!knitout-2\n;;Carriers: A\nouthook A\n");
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Outhook { .. })));
+    }
+
+    // ─── extension operations ─────────────────────────────────────────────────
+
+    fn get_ext(source: &str) -> ExtensionOperation<Parsed> {
+        let ops = get_ops(source);
+        match ops.into_iter().next().unwrap().value {
+            Operation::ExtensionOperation(ext) => ext,
+            other => panic!("expected ExtensionOperation, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn x_presser_mode_off() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-presser-mode off\n") {
+            ExtensionOperation::XPresserMode { mode } => assert!(matches!(mode, PresserMode::Off(_))),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn x_presser_mode_auto() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-presser-mode auto\n") {
+            ExtensionOperation::XPresserMode { mode } => assert!(matches!(mode, PresserMode::Auto(_))),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn x_presser_mode_on() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-presser-mode on\n") {
+            ExtensionOperation::XPresserMode { mode } => assert!(matches!(mode, PresserMode::On(_))),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn bad_presser_mode_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nx-presser-mode bogus\n");
+        assert!(errors.iter().any(|e| matches!(e, ParseError::BadPresserMode(_))));
+    }
+
+    #[test]
+    fn x_xfer_style_four_pass() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-xfer-style four-pass\n") {
+            ExtensionOperation::XXferStyle { style } => assert!(matches!(style, XferStyle::FourPass(_))),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn x_xfer_style_two_pass() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-xfer-style two-pass\n") {
+            ExtensionOperation::XXferStyle { style } => assert!(matches!(style, XferStyle::TwoPass(_))),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn bad_xfer_style_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nx-xfer-style bogus\n");
+        assert!(errors.iter().any(|e| matches!(e, ParseError::BadXferStyle(_))));
+    }
+
+    #[test]
+    fn x_stitch_number() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-stitch-number 5\n") {
+            ExtensionOperation::XStitchNumber { value } => {
+                assert_eq!(value.value().clone().left().unwrap().value, 5);
             }
-            other => panic!("expected XSubRollerNumber, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_xfer_stitch_number() {
-        match get_extension_kind(";!knitout-2\nx-xfer-stitch-number 4\n") {
-            WeakExtensionOperationKind::XXferStitchNumber { value } => {
-                assert_eq!(value, Some(4));
+    fn x_speed_number() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-speed-number 3\n") {
+            ExtensionOperation::XSpeedNumber { value } => {
+                assert_eq!(value.value().clone().left().unwrap().value, 3);
             }
-            other => panic!("expected XXferStitchNumber, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_end_pass() {
-        match get_extension_kind(";!knitout-2\nx-end-pass\n") {
-            WeakExtensionOperationKind::XEndPass => {}
-            other => panic!("expected XEndPass, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn lower_x_vis_color() {
-        match get_extension_kind(";!knitout-2\nx-vis-color 0xff0000 1\n") {
-            WeakExtensionOperationKind::XVisColor { color, carriers } => {
-                assert_eq!(color.as_deref(), Some("0xff0000"));
-                assert!(carriers.is_some());
+    fn x_sub_roller_number() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-sub-roller-number 2\n") {
+            ExtensionOperation::XSubRollerNumber { value } => {
+                assert_eq!(value.value().clone().left().unwrap().value, 2);
             }
-            other => panic!("expected XVisColor, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_loop_in() {
-        match get_extension_kind(";!knitout-2\nx-loop-in + f3 1\n") {
-            WeakExtensionOperationKind::XLoopIn {
-                direction,
-                needle,
-                carriers,
-            } => {
-                assert_eq!(direction, WeakDirection::Right);
-                assert!(needle.is_some());
-                assert!(carriers.is_some());
+    fn x_xfer_stitch_number() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-xfer-stitch-number 4\n") {
+            ExtensionOperation::XXferStitchNumber { value } => {
+                assert_eq!(value.value().clone().left().unwrap().value, 4);
             }
-            other => panic!("expected XLoopIn, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_yarn_in() {
-        match get_extension_kind(";!knitout-2\nx-yarn-in + f3 1\n") {
-            WeakExtensionOperationKind::XYarnIn {
-                direction,
-                needle,
-                carriers,
-            } => {
-                assert_eq!(direction, WeakDirection::Right);
-                assert!(needle.is_some());
-                assert!(carriers.is_some());
+    fn x_end_pass() {
+        assert!(matches!(
+            get_ext(";!knitout-2\n;;Carriers: A\nx-end-pass\n"),
+            ExtensionOperation::XEndPass
+        ));
+    }
+
+    #[test]
+    fn x_end() {
+        assert!(matches!(
+            get_ext(";!knitout-2\n;;Carriers: A\nx-end\n"),
+            ExtensionOperation::XEnd
+        ));
+    }
+
+    #[test]
+    fn x_vis_color() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-vis-color 0xff0000 A\n") {
+            ExtensionOperation::XVisColor { color, carriers } => {
+                let s = color.value().clone().left().unwrap().value;
+                assert_eq!(s, "0xff0000");
+                assert_eq!(carriers.len(), 1);
             }
-            other => panic!("expected XYarnIn, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_yarn_out() {
-        match get_extension_kind(";!knitout-2\nx-yarn-out + f3 1\n") {
-            WeakExtensionOperationKind::XYarnOut {
-                direction,
-                needle,
-                carriers,
-            } => {
-                assert_eq!(direction, WeakDirection::Right);
-                assert!(needle.is_some());
-                assert!(carriers.is_some());
+    fn x_roller_advance() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-roller-advance 1.5\n") {
+            ExtensionOperation::XRollerAdvance { value } => {
+                assert!(value.value().clone().left().is_some());
             }
-            other => panic!("expected XYarnOut, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_end() {
-        match get_extension_kind(";!knitout-2\nx-end\n") {
-            WeakExtensionOperationKind::XEnd => {}
-            other => panic!("expected XEnd, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn lower_x_roller_advance() {
-        match get_extension_kind(";!knitout-2\nx-roller-advance 1.5\n") {
-            WeakExtensionOperationKind::XRollerAdvance { value } => {
-                assert!(value.is_some());
+    fn x_add_roller_advance() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-add-roller-advance 0.5\n") {
+            ExtensionOperation::XAddRollerAdvance { value } => {
+                assert!(value.value().clone().left().is_some());
             }
-            other => panic!("expected XRollerAdvance, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_add_roller_advance() {
-        match get_extension_kind(";!knitout-2\nx-add-roller-advance 0.5\n") {
-            WeakExtensionOperationKind::XAddRollerAdvance { value } => {
-                assert!(value.is_some());
+    fn x_carrier_spacing() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-carrier-spacing 5\n") {
+            ExtensionOperation::XCarrierSpacing { value } => {
+                assert_eq!(value.value().clone().left().unwrap().value, 5);
             }
-            other => panic!("expected XAddRollerAdvance, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_x_carrier_spacing() {
-        match get_extension_kind(";!knitout-2\nx-carrier-spacing 5\n") {
-            WeakExtensionOperationKind::XCarrierSpacing { value } => {
-                assert_eq!(value, Some(5));
+    fn unknown_extension_op() {
+        match get_ext(";!knitout-2\n;;Carriers: A\nx-my-custom arg1 arg2\n") {
+            ExtensionOperation::UnknownExtension { name, arguments } => {
+                let n = name.value().clone().left().unwrap().value;
+                assert_eq!(n, "x-my-custom");
+                assert_eq!(arguments.len(), 2);
+                let a0 = arguments[0].value().clone().left().unwrap().value;
+                let a1 = arguments[1].value().clone().left().unwrap().value;
+                assert_eq!(a0, "arg1");
+                assert_eq!(a1, "arg2");
             }
-            other => panic!("expected XCarrierSpacing, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Lowering: unknown_extension name and arguments (catches 888-890)
-    // -----------------------------------------------------------------------
+    // ─── unrecognized opcode ──────────────────────────────────────────────────
 
     #[test]
-    fn lower_unknown_extension_name_extracted() {
-        // Name must be distinct from all known x- extensions.
-        match get_extension_kind(";!knitout-2\nx-my-custom arg1\n") {
-            WeakExtensionOperationKind::UnknownExtension { name, .. } => {
-                assert_eq!(name.as_deref(), Some("x-my-custom"));
-            }
-            other => panic!("expected UnknownExtension, got {other:?}"),
-        }
+    fn unrecognized_opcode_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nfoobar\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::UnrecognizedOpcode(_))),
+            "expected UnrecognizedOpcode, got {errors:?}"
+        );
     }
 
     #[test]
-    fn lower_unknown_extension_arguments_extracted() {
-        // With kind()=="extension_argument" → kind()!="extension_argument" mutation:
-        // the name node (kind "extension_name") would be included as an argument instead.
-        match get_extension_kind(";!knitout-2\nx-my-custom arg1 arg2\n") {
-            WeakExtensionOperationKind::UnknownExtension { arguments, .. } => {
-                assert_eq!(
-                    arguments.as_slice(),
-                    &["arg1", "arg2"],
-                    "arguments should be [arg1, arg2], got {arguments:?}"
+    fn unrecognized_opcode_produces_other_node() {
+        let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\nfoobar\n");
+        let (_, _, ops, _) = prog.into_components();
+        assert_eq!(ops.len(), 1);
+        assert!(matches!(ops[0].value, Operation::Other(_)));
+    }
+
+    // ─── missing arguments ────────────────────────────────────────────────────
+
+    #[test]
+    fn missing_direction_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nknit\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::MissingArgument(_))),
+            "expected MissingArgument, got {errors:?}"
+        );
+    }
+
+    #[test]
+    fn bad_direction_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nknit x f5\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadDirection(_))),
+            "expected BadDirection, got {errors:?}"
+        );
+    }
+
+    #[test]
+    fn bad_needle_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\ndrop x5\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadBed(_) | ParseError::BadNeedle(_))),
+            "expected BadBed or BadNeedle, got {errors:?}"
+        );
+    }
+
+    #[test]
+    fn bad_needle_index_does_not_make_whole_op_other() {
+        // A bad needle index should produce a Needle with Other index, but the
+        // enclosing operation should NOT become Other.
+        let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\ndrop fxyz\n");
+        let (_, _, ops, _) = prog.into_components();
+        assert_eq!(ops.len(), 1);
+        // The op is Drop (not Other), even though the needle index is bad.
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::Drop { .. })));
+    }
+
+    #[test]
+    fn bad_stitch_value_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\nstitch abc def\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::BadBigDecimal(_))),
+            "expected BadBigDecimal, got {errors:?}"
+        );
+    }
+
+    #[test]
+    fn too_many_arguments_emits_error() {
+        let (_, _, errors) = parse(";!knitout-2\n;;Carriers: A\npause extra\n");
+        assert!(
+            errors.iter().any(|e| matches!(e, ParseError::TooManyArguments(_))),
+            "expected TooManyArguments, got {errors:?}"
+        );
+    }
+
+    // ─── comment info tests ───────────────────────────────────────────────────
+
+    #[test]
+    fn no_comment_info() {
+        let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause\n");
+        let (_, _, ops, _) = prog.into_components();
+        let (_, comment) = ops[0].annotation;
+        assert_eq!(comment, CommentInfo::NoComment);
+    }
+
+    #[test]
+    fn plain_comment_info() {
+        let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ; hello\n");
+        let (_, _, ops, _) = prog.into_components();
+        let (_, comment) = ops[0].annotation;
+        assert!(matches!(comment, CommentInfo::Comment(_)));
+    }
+
+    #[test]
+    fn source_tag_info() {
+        let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ;!source: myfile.js:5\n");
+        let (_, _, ops, _) = prog.into_components();
+        let (_, comment) = ops[0].annotation;
+        assert!(matches!(comment, CommentInfo::SourceTag(_)));
+    }
+
+    #[test]
+    fn unknown_tag_info() {
+        let (prog, _, _) = parse(";!knitout-2\n;;Carriers: A\npause ;!foo\n");
+        let (_, _, ops, _) = prog.into_components();
+        let (_, comment) = ops[0].annotation;
+        assert!(matches!(comment, CommentInfo::UnknownTag(_)));
+    }
+
+    // ─── op span within source ────────────────────────────────────────────────
+
+    #[test]
+    fn op_span_within_source() {
+        let source = ";!knitout-2\n;;Carriers: A\nknit + f5 A\n";
+        let (prog, _, _) = parse(source);
+        let (_, _, ops, _) = prog.into_components();
+        let (op_span, _) = ops[0].annotation;
+        assert!(span_within(op_span, source));
+    }
+
+    #[test]
+    fn all_error_spans_within_source() {
+        let source = ";!knitout-2\n;;Carriers: A\nknit x badneedle\n";
+        let (_, _, errors) = parse(source);
+        for e in &errors {
+            if let Some(span) = e.span() {
+                assert!(
+                    span_within(span, source),
+                    "span {span:?} out of bounds for source len {}",
+                    source.len()
                 );
             }
-            other => panic!("expected UnknownExtension, got {other:?}"),
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Rail definition tests
-    // -----------------------------------------------------------------------
+    // ─── parsed_to_valid ──────────────────────────────────────────────────────
 
     #[test]
-    fn lower_rail_definition_carriers_extracted() {
-        let source = ";!knitout-2\n;;Carriers: A;B\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
-        match &prog.headers[0].kind {
-            WeakHeaderKind::Carriers(ch) => {
-                let items = &ch.value.as_ref().unwrap().items;
-                assert_eq!(items.len(), 1, "expected 1 item (a rail)");
-                match &items[0] {
-                    WeakCarrierOrRail::Rail(rail) => {
-                        assert_eq!(
-                            rail.left.carriers.len(),
-                            1,
-                            "left should have 1 carrier, got {:?}",
-                            rail.left.carriers
-                        );
-                        assert_eq!(
-                            rail.right.carriers.len(),
-                            1,
-                            "right should have 1 carrier, got {:?}",
-                            rail.right.carriers
-                        );
-                    }
-                    other => panic!("expected Rail, got {other:?}"),
-                }
+    fn valid_program_converts_to_validated() {
+        let source = ";!knitout-2\n;;Carriers: A\nknit + f5 A\n";
+        let (prog, warnings, errors) = parse(source);
+        assert!(warnings.is_empty());
+        assert!(errors.is_empty());
+        let validated = parsed_to_valid(prog);
+        assert!(validated.is_some(), "expected Some(Program<Validated>)");
+        let v = validated.unwrap();
+        let ver = v.version().as_ref().left().unwrap().value;
+        assert_eq!(ver, 2);
+        assert_eq!(v.operations().len(), 1);
+    }
+
+    #[test]
+    fn program_with_errors_does_not_convert() {
+        let (prog, _, errors) = parse(";!knitout-2\n;;Carriers: A\nfoobar\n");
+        assert!(!errors.is_empty());
+        let validated = parsed_to_valid(prog);
+        assert!(validated.is_none(), "expected None due to errors");
+    }
+
+    #[test]
+    fn missing_magic_program_does_not_convert() {
+        let (prog, _, _) = parse(";;Carriers: A\n");
+        let validated = parsed_to_valid(prog);
+        assert!(validated.is_none());
+    }
+
+    #[test]
+    fn missing_carriers_program_does_not_convert() {
+        let (prog, _, _) = parse(";!knitout-2\n");
+        let validated = parsed_to_valid(prog);
+        assert!(validated.is_none());
+    }
+
+    #[test]
+    fn validated_version_correct() {
+        let source = ";!knitout-18\n;;Carriers: A B\n";
+        let (prog, _, _) = parse(source);
+        let v = parsed_to_valid(prog).unwrap();
+        let ver = v.version().as_ref().left().unwrap().value;
+        assert_eq!(ver, 18);
+    }
+
+    #[test]
+    fn validated_has_all_operations() {
+        let source = ";!knitout-2\n;;Carriers: A\nknit + f1 A\ntuck - b2 A\ndrop f3\n";
+        let (prog, _, errors) = parse(source);
+        assert!(errors.is_empty(), "{errors:?}");
+        let v = parsed_to_valid(prog).unwrap();
+        assert_eq!(v.operations().len(), 3);
+    }
+
+    // ─── transform_program ───────────────────────────────────────────────────
+
+    #[test]
+    fn transform_program_identity_via_parsed_to_validated() {
+        let source = ";!knitout-2\n;;Carriers: 1 2\nknit + f5 1\n";
+        let (prog, _, _) = parse(source);
+        let result = transform_program::<Parsed, knitout_ast::Validated, ParsedToValidated>(prog);
+        assert!(result.is_some());
+    }
+
+    // ─── ParseError::span ─────────────────────────────────────────────────────
+
+    #[test]
+    fn parse_error_span_missing_magic_is_none() {
+        assert_eq!(ParseError::MagicMissing.span(), None);
+    }
+
+    #[test]
+    fn parse_error_span_missing_carriers_is_none() {
+        assert_eq!(ParseError::MissingCarriersHeader.span(), None);
+    }
+
+    #[test]
+    fn parse_error_span_bad_direction_is_some() {
+        let s = Span::new(0, 1);
+        assert_eq!(ParseError::BadDirection(s).span(), Some(s));
+    }
+
+    // ─── ParseWarning::span ───────────────────────────────────────────────────
+
+    #[test]
+    fn parse_warning_span_magic_not_first() {
+        let s = Span::new(5, 15);
+        assert_eq!(ParseWarning::MagicNotFirst(s).span(), s);
+    }
+
+    #[test]
+    fn parse_warning_span_header_after_ops() {
+        let s = Span::new(3, 9);
+        assert_eq!(ParseWarning::HeaderAfterOperations(s).span(), s);
+    }
+
+    #[test]
+    fn parse_warning_span_unrecognized_extension() {
+        let s = Span::new(0, 5);
+        assert_eq!(ParseWarning::UnrecognizedExtensionHeader(s).span(), s);
+    }
+
+    #[test]
+    fn parse_warning_span_duplicate_same_value() {
+        let s = Span::new(10, 15);
+        let p = Span::new(0, 5);
+        assert_eq!(ParseWarning::DuplicateHeaderSameValue { span: s, previous: p }.span(), s);
+    }
+
+    // ─── needle annotation ────────────────────────────────────────────────────
+
+    #[test]
+    fn needle_annotation_span_covers_whole_needle() {
+        let source = ";!knitout-2\n;;Carriers: A\ndrop f5\n";
+        let source_bytes = source.as_bytes();
+        let (prog, _, _) = parse(source);
+        let (_, _, ops, _) = prog.into_components();
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Drop { needle }) => {
+                let n = needle.as_ref().left().unwrap();
+                let ann = n.annotation();
+                // The needle span should point to "f5" in the source
+                let text = &source_bytes[ann.start() as usize..ann.end() as usize];
+                assert_eq!(text, b"f5");
             }
-            other => panic!("expected Carriers header, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
     #[test]
-    fn lower_rail_definition_multi_carrier_rail() {
-        // Rail with 2 carriers on each side: "A,C;B,D"
-        let source = ";!knitout-2\n;;Carriers: A,C;B,D\n";
-        let (prog, diags) = parse(source);
-        assert!(diags.is_empty(), "unexpected diags: {diags:?}");
-        match &prog.headers[0].kind {
-            WeakHeaderKind::Carriers(ch) => {
-                let items = &ch.value.as_ref().unwrap().items;
-                assert_eq!(items.len(), 1, "expected 1 rail item");
-                match &items[0] {
-                    WeakCarrierOrRail::Rail(rail) => {
-                        assert_eq!(rail.left.carriers.len(), 2, "left should have 2 carriers");
-                        assert_eq!(rail.right.carriers.len(), 2, "right should have 2 carriers");
-                    }
-                    other => panic!("expected Rail, got {other:?}"),
-                }
+    fn bad_needle_index_keeps_needle_with_other_index() {
+        // "fxyz" — bed is 'f', no slider, index bytes are "xyz" which fail to parse as i32
+        let (prog, _, errors) = parse(";!knitout-2\n;;Carriers: A\ndrop fxyz\n");
+        assert!(errors.iter().any(|e| matches!(e, ParseError::BadNeedleIndex(_))));
+        let (_, _, ops, _) = prog.into_components();
+        match &ops[0].value {
+            Operation::BaseOperation(BaseOperation::Drop { needle }) => {
+                let n = needle.as_ref().left().unwrap();
+                // index should be Other
+                assert!(n.index().as_ref().right().is_some(), "expected Other index");
+                // bed should still be Front
+                assert!(matches!(n.bed(), knitout_ast::Bed::Front(_)));
             }
-            other => panic!("expected Carriers header, got {other:?}"),
+            other => panic!("{other:?}"),
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Regression / smoke tests
-    // -----------------------------------------------------------------------
+    // ─── multi-op programs ────────────────────────────────────────────────────
 
     #[test]
-    fn conversion_fails_on_incomplete_weak_ast() {
-        let source = ";!knitout-2\nknit\n";
-        let (prog, _diags) = parse(source);
-        let _ = prog.try_into_strong();
+    fn multiple_ops_in_order() {
+        let source = ";!knitout-2\n;;Carriers: A\nin A\nknit + f1 A\nout A\n";
+        let prog = parse_ok(source);
+        let (_, _, ops, _) = prog.into_components();
+        assert_eq!(ops.len(), 3);
+        assert!(matches!(ops[0].value, Operation::BaseOperation(BaseOperation::In { .. })));
+        assert!(matches!(ops[1].value, Operation::BaseOperation(BaseOperation::Knit { .. })));
+        assert!(matches!(ops[2].value, Operation::BaseOperation(BaseOperation::Out { .. })));
+    }
+
+    #[test]
+    fn empty_program_with_only_headers() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Gauge: 7\n");
+        let (_, _, ops, _) = prog.into_components();
+        assert!(ops.is_empty());
+    }
+
+    // ─── yarn header ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn yarn_header_stored() {
+        let prog = parse_ok(";!knitout-2\n;;Carriers: A\n;;Yarn-A: 50/50 Wool/Nylon Natural\n");
+        let (_, headers, _, _) = prog.into_components();
+        assert_eq!(headers.yarn().len(), 1);
     }
 }

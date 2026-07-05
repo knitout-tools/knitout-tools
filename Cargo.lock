@@ -94,6 +94,7 @@ name = "knitout-weak-ast"
 version = "0.1.0"
 dependencies = [
  "bigdecimal",
+ "either",
  "indexmap",
  "knitout-ast",
  "tree-sitter",

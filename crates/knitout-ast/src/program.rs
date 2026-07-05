@@ -72,6 +72,23 @@ impl<P: Phase> Program<P> {
     pub fn carrier_table_mut(&mut self) -> &mut CarrierTable {
         &mut self.carrier_table
     }
+
+    /// Destructure into all components, for use when mapping between phases.
+    pub fn into_components(
+        self,
+    ) -> (
+        Either<Annotated<u32, P::MagicVersion>, P::Other>,
+        Headers<P>,
+        Vec<Annotated<Operation<P>, P::Operation>>,
+        CarrierTable,
+    ) {
+        (
+            self.version,
+            self.headers,
+            self.operations,
+            self.carrier_table,
+        )
+    }
 }
 
 /// A table that stores carrier names once. Use `CarrierTable::make_carrier` to create `Carrier`s.
@@ -220,13 +237,13 @@ mod tests {
         let carrier_a = carrier_table.make_carrier("A", ());
         let carrier_b = carrier_table.make_carrier("B", ());
 
-        let headers = Headers::new(Annotated::unit(CarriersHeaderValue::new(
+        let headers = Headers::new(Either::Left(Annotated::unit(CarriersHeaderValue::new(
             Either::Left(vec![
                 CarrierOrRail::Carrier(carrier_a),
                 CarrierOrRail::Carrier(carrier_b),
             ]),
             (),
-        )));
+        ))));
         let mut program =
             Program::<Validated>::new(Either::Left(Annotated::unit(18u32)), headers, carrier_table);
 
@@ -252,7 +269,7 @@ mod tests {
                 needle: Either::Left(Needle::new(
                     Bed::Front(()),
                     IsSlider::NotSlider(()),
-                    Annotated::unit(5i32),
+                    Either::Left(Annotated::unit(5i32)),
                     (),
                 )),
                 carriers: vec![carrier_a],
@@ -269,13 +286,13 @@ mod tests {
         let carrier_a = carrier_table.make_carrier("A", ());
         let carrier_b = carrier_table.make_carrier("B", ());
 
-        let headers = Headers::new(Annotated::unit(CarriersHeaderValue::new(
+        let headers = Headers::new(Either::Left(Annotated::unit(CarriersHeaderValue::new(
             Either::Left(vec![
                 CarrierOrRail::Carrier(carrier_a),
                 CarrierOrRail::Carrier(carrier_b),
             ]),
             (),
-        )));
+        ))));
         let mut program =
             Program::<Validated>::new(Either::Left(Annotated::unit(18u32)), headers, carrier_table);
         program
@@ -292,7 +309,7 @@ mod tests {
                 needle: Either::Left(Needle::new(
                     Bed::Front(()),
                     IsSlider::NotSlider(()),
-                    Annotated::unit(5i32),
+                    Either::Left(Annotated::unit(5i32)),
                     (),
                 )),
                 carriers: vec![carrier_a],

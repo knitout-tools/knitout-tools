@@ -39,6 +39,16 @@ impl<P: Phase> Carrier<P> {
     pub(crate) fn table_id(&self) -> u32 {
         self.table_id
     }
+
+    /// Create a carrier with the same id and table_id but a different annotation, for use when
+    /// mapping between phases.
+    pub fn map_annotation<Q: Phase>(&self, annotation: Q::Carrier) -> Carrier<Q> {
+        Carrier {
+            id: self.id,
+            annotation,
+            table_id: self.table_id,
+        }
+    }
 }
 
 // Manual impls so the bounds are `P: Phase` (not the spurious `P: Hash + Eq` that
@@ -124,7 +134,9 @@ impl Display for IsSlider<Validated> {
 pub struct Needle<P: Phase> {
     bed: Bed<P>,
     is_slider: IsSlider<P>,
-    index: Annotated<i32, P::Index>,
+    /// The index is wrapped in Either so that a parse error in just the index part does not
+    /// force the whole needle to become Other.
+    index: Either<Annotated<i32, P::Index>, P::Other>,
     annotation: P::Needle,
 }
 
@@ -132,7 +144,7 @@ impl<P: Phase> Needle<P> {
     pub fn new(
         bed: Bed<P>,
         is_slider: IsSlider<P>,
-        index: Annotated<i32, P::Index>,
+        index: Either<Annotated<i32, P::Index>, P::Other>,
         annotation: P::Needle,
     ) -> Self {
         Self {
@@ -151,14 +163,33 @@ impl<P: Phase> Needle<P> {
         &self.is_slider
     }
 
-    pub fn index(&self) -> &Annotated<i32, P::Index> {
+    pub fn index(&self) -> &Either<Annotated<i32, P::Index>, P::Other> {
         &self.index
+    }
+
+    pub fn annotation(&self) -> &P::Needle {
+        &self.annotation
+    }
+
+    /// Destructure into `(bed, is_slider, index, annotation)`.
+    pub fn into_parts(
+        self,
+    ) -> (
+        Bed<P>,
+        IsSlider<P>,
+        Either<Annotated<i32, P::Index>, P::Other>,
+        P::Needle,
+    ) {
+        (self.bed, self.is_slider, self.index, self.annotation)
     }
 }
 
 impl Display for Needle<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}{}{}", self.bed, self.is_slider, self.index.value)
+        match &self.index {
+            Either::Left(idx) => write!(f, "{}{}{}", self.bed, self.is_slider, idx.value),
+            Either::Right(x) => match *x {},
+        }
     }
 }
 
@@ -234,12 +265,12 @@ mod tests {
         let needle = Needle::<Validated>::new(
             Bed::Front(()),
             IsSlider::Slider(()),
-            Annotated::unit(5i32),
+            Either::Left(Annotated::unit(5i32)),
             (),
         );
         assert_eq!(*needle.bed(), Bed::Front(()));
         assert_eq!(*needle.is_slider(), IsSlider::Slider(()));
-        assert_eq!(*needle.index(), Annotated::unit(5i32));
+        assert_eq!(*needle.index(), Either::Left(Annotated::unit(5i32)));
     }
 
     #[test]
@@ -287,7 +318,7 @@ mod tests {
         let needle = Needle::<Validated>::new(
             Bed::Front(()),
             IsSlider::Slider(()),
-            Annotated::unit(5i32),
+            Either::Left(Annotated::unit(5i32)),
             (),
         );
         assert_eq!(needle.to_string(), "fs5");

@@ -33,6 +33,17 @@ impl<P: Phase> CarriersHeaderValue<P> {
             Either::Right(x) => Either::Right(x),
         }
     }
+
+    pub fn annotation(&self) -> &P::CarriersHeaderValue {
+        &self.annotation
+    }
+
+    /// Consume self, returning the inner carriers-and-rails and the annotation.
+    pub fn into_inner(
+        self,
+    ) -> (Either<Vec<CarrierOrRail<P>>, P::Other>, P::CarriersHeaderValue) {
+        (self.carriers_and_rails, self.annotation)
+    }
 }
 
 /// Either a carrier or a rail.
@@ -75,6 +86,16 @@ impl<P: Phase> Rail<P> {
     pub fn annotation(&self) -> &P::Rail {
         &self.annotation
     }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        Either<RailSide<P>, P::Other>,
+        Either<RailSide<P>, P::Other>,
+        P::Rail,
+    ) {
+        (self.left, self.right, self.annotation)
+    }
 }
 
 /// The left or right side of a rail, which has an ordered list of carriers separated by commas.
@@ -98,6 +119,10 @@ impl<P: Phase> RailSide<P> {
 
     pub fn annotation(&self) -> &P::RailSide {
         &self.annotation
+    }
+
+    pub fn into_parts(self) -> (Vec<Carrier<P>>, P::RailSide) {
+        (self.carriers, self.annotation)
     }
 }
 
@@ -143,9 +168,10 @@ pub struct Headers<P: Phase> {
 }
 
 impl<P: Phase> Headers<P> {
-    pub fn new(carriers: Annotated<CarriersHeaderValue<P>, P::Header>) -> Self {
+    /// Create a new Headers with the given carriers value (which may be Other if missing).
+    pub fn new(carriers: Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>) -> Self {
         Self {
-            carriers: Either::Left(carriers),
+            carriers,
             yarn: IndexMap::new(),
             machine: None,
             gauge: None,
@@ -153,6 +179,29 @@ impl<P: Phase> Headers<P> {
             position: None,
             unknown: IndexMap::new(),
         }
+    }
+
+    /// Destructure into all component fields, for use when mapping between phases.
+    pub fn into_components(
+        self,
+    ) -> (
+        Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>,
+        IndexMap<Carrier<P>, Annotated<MyString<P>, P::Header>>,
+        Option<Annotated<MyString<P>, P::Header>>,
+        Option<Annotated<MyU32<P>, P::Header>>,
+        Option<Annotated<MyU32<P>, P::Header>>,
+        Option<Annotated<PositionHeaderValue<P>, P::Header>>,
+        IndexMap<String, Annotated<String, P::UnknownHeader>>,
+    ) {
+        (
+            self.carriers,
+            self.yarn,
+            self.machine,
+            self.gauge,
+            self.width,
+            self.position,
+            self.unknown,
+        )
     }
 
     pub fn carriers(&self) -> &Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other> {
@@ -340,7 +389,7 @@ mod tests {
             ]),
             (),
         ));
-        let mut header = Headers::<Validated>::new(carriers.clone());
+        let mut header = Headers::<Validated>::new(Either::Left(carriers.clone()));
         assert_eq!(header.carriers().as_ref(), Either::Left(&carriers));
 
         let color = MyString::new(Either::Left(Annotated::unit("Red".to_string())));
