@@ -263,7 +263,7 @@ impl<'src> LowerCtx<'src> {
             s if s.starts_with("Yarn-") => {
                 self.lower_yarn_header(header_span, s, value_trimmed, value_span)
             }
-            s if s.get(..2).is_some_and(|p| p.eq_ignore_ascii_case("X-")) => {
+            s if s.get(..2) == Some("X-") => {
                 self.warnings
                     .push(ParseWarning::UnrecognizedExtensionHeader(header_span));
                 self.headers_partial.add_unknown(

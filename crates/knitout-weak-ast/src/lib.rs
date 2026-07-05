@@ -1445,14 +1445,14 @@ mod tests {
 
     #[test]
     fn lowercase_x_header_triggers_unrecognized_warning() {
-        // ";;x-foo: bar" uses lowercase 'x'. The guard uses eq_ignore_ascii_case,
-        // so this must still emit UnrecognizedExtensionHeader.
+        // ";;x-foo: bar" uses lowercase 'x'. The guard does not ignore case,
+        // so this should not emit UnrecognizedExtensionHeader.
         let (_, warnings, _) = parse(";!knitout-2\n;;Carriers: A\n;;x-foo: bar\n");
         assert!(
-            warnings
+            !warnings
                 .iter()
                 .any(|w| matches!(w, ParseWarning::UnrecognizedExtensionHeader(_))),
-            "expected UnrecognizedExtensionHeader for lowercase x-header, got {warnings:?}"
+            "expected no UnrecognizedExtensionHeader for lowercase x-header, got {warnings:?}"
         );
     }
 
