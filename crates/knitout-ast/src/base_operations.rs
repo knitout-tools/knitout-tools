@@ -1,17 +1,19 @@
-use std::convert::Infallible;
 use std::fmt::{Formatter, Result};
 
 use either::Either;
+use serde::{Deserialize, Serialize};
 
+use crate::phase::Never;
 use crate::{
     knitting_types::{Carrier, Direction, MyBigDecimal, Needle},
-    phase::{Phase, Validated, valid},
+    phase::{Phase, SerdePhase, Validated, valid},
     program::{CarrierTable, DisplayCarrierTable},
 };
 
 /// A basic knitout operation. Excludes extension operations, which are a different enum. Also
 /// excludes syntactic sugar operations; faux constructors are provided.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
 pub enum BaseOperation<P: Phase> {
     In {
         carriers: Vec<Either<Carrier<P>, P::Other>>,
@@ -72,7 +74,7 @@ pub enum BaseOperation<P: Phase> {
 /// Writes a leading space in front of every carrier, including the first one
 pub(crate) fn fmt_carriers(
     f: &mut Formatter<'_>,
-    carriers: &[Either<Carrier<Validated>, Infallible>],
+    carriers: &[Either<Carrier<Validated>, Never>],
     table: &CarrierTable,
 ) -> Result {
     for carrier in carriers.iter() {
@@ -175,7 +177,7 @@ mod tests {
 
     // A throwaway wrapper so we can drive a real Formatter through the standard machinery.
     struct FmtCarriersHarness<'a> {
-        carriers: &'a [Either<Carrier<Validated>, Infallible>],
+        carriers: &'a [Either<Carrier<Validated>, Never>],
         table: &'a CarrierTable,
     }
 
@@ -185,7 +187,7 @@ mod tests {
         }
     }
 
-    fn render(carriers: &[Either<Carrier<Validated>, Infallible>], table: &CarrierTable) -> String {
+    fn render(carriers: &[Either<Carrier<Validated>, Never>], table: &CarrierTable) -> String {
         FmtCarriersHarness { carriers, table }.to_string()
     }
 

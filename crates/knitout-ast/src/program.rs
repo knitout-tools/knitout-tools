@@ -8,17 +8,19 @@ use std::sync::atomic::{AtomicU32, Ordering};
 static NEXT_CARRIER_TABLE_ID: AtomicU32 = AtomicU32::new(0);
 
 use either::Either;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     Carrier,
     base_operations::BaseOperation,
     extension_operations::ExtensionOperation,
     header_types::Headers,
-    phase::{Annotated, Phase, Validated, valid},
+    phase::{Annotated, Phase, SerdePhase, Validated, valid},
 };
 
 /// A knitout program, complete with headers and magic string
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
 pub struct Program<P: Phase> {
     /// The ;!knitout-`version` at the top
     pub(crate) version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
@@ -75,13 +77,20 @@ impl<P: Phase> Program<P> {
 }
 
 /// A table that stores carrier names once. Use `CarrierTable::make_carrier` to create `Carrier`s.
-#[derive(Eq, Debug)]
+///
+/// Only `id_to_name` is serialized; `name_to_id` is redundant with it and `id` is a run-local
+/// value. Both are excluded so serialized output is deterministic, and both default to
+/// empty/`0` on deserialization (which keeps a deserialized table's `id` in sync with its
+/// carriers' skipped `table_id`, so name lookups still work).
+#[derive(Eq, Debug, Serialize, Deserialize)]
 pub struct CarrierTable {
     /// The map from carrier u32 IDs to their names in the source
     id_to_name: Vec<String>,
     /// The reverse map, taking a name and returning the carrier ID if it exists
+    #[serde(skip)]
     name_to_id: HashMap<String, u32>,
     /// A unique ID for this carrier table, passed along to its carriers
+    #[serde(skip)]
     id: u32,
 }
 
@@ -139,7 +148,8 @@ impl CarrierTable {
 }
 
 /// An operation in a knitout program: either a base operation or an extension operation
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
 pub enum Operation<P: Phase> {
     BaseOperation(BaseOperation<P>),
     ExtensionOperation(ExtensionOperation<P>),

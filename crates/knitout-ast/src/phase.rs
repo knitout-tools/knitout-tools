@@ -1,14 +1,82 @@
-use std::convert::Infallible;
 use std::fmt::Debug;
 use std::hash::Hash;
 
 use either::Either;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 use crate::Provenance;
 
 pub trait PhaseType: Debug + Hash + PartialEq + Eq + Clone {}
 
 impl<T> PhaseType for T where T: Debug + Hash + PartialEq + Eq + Clone {}
+
+/// An uninhabited stand-in for `Infallible` that also derives serde, used as the `Other` type of a
+/// fully-validated program (where no `Other` node can exist).
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum Never {}
+
+impl std::fmt::Display for Never {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {}
+    }
+}
+
+/// A `Phase` whose associated types are all serde-(de)serializable. Deriving `Serialize` /
+/// `Deserialize` on the phase-generic AST types only requires `P: SerdePhase` thanks to this alias.
+pub trait SerdePhase:
+    Phase<
+        Other: Serialize + DeserializeOwned,
+        MagicVersion: Serialize + DeserializeOwned,
+        Operation: Serialize + DeserializeOwned,
+        Header: Serialize + DeserializeOwned,
+        UnknownHeader: Serialize + DeserializeOwned,
+        PositionHeaderValue: Serialize + DeserializeOwned,
+        CarriersHeaderValue: Serialize + DeserializeOwned,
+        Rail: Serialize + DeserializeOwned,
+        RailSide: Serialize + DeserializeOwned,
+        Carrier: Serialize + DeserializeOwned,
+        Direction: Serialize + DeserializeOwned,
+        Bed: Serialize + DeserializeOwned,
+        IsSlider: Serialize + DeserializeOwned,
+        Index: Serialize + DeserializeOwned,
+        Needle: Serialize + DeserializeOwned,
+        MyBigDecimal: Serialize + DeserializeOwned,
+        MyU32: Serialize + DeserializeOwned,
+        MyI32: Serialize + DeserializeOwned,
+        MyString: Serialize + DeserializeOwned,
+        PresserMode: Serialize + DeserializeOwned,
+        XferStyle: Serialize + DeserializeOwned,
+    >
+{
+}
+
+impl<P> SerdePhase for P where
+    P: Phase<
+            Other: Serialize + DeserializeOwned,
+            MagicVersion: Serialize + DeserializeOwned,
+            Operation: Serialize + DeserializeOwned,
+            Header: Serialize + DeserializeOwned,
+            UnknownHeader: Serialize + DeserializeOwned,
+            PositionHeaderValue: Serialize + DeserializeOwned,
+            CarriersHeaderValue: Serialize + DeserializeOwned,
+            Rail: Serialize + DeserializeOwned,
+            RailSide: Serialize + DeserializeOwned,
+            Carrier: Serialize + DeserializeOwned,
+            Direction: Serialize + DeserializeOwned,
+            Bed: Serialize + DeserializeOwned,
+            IsSlider: Serialize + DeserializeOwned,
+            Index: Serialize + DeserializeOwned,
+            Needle: Serialize + DeserializeOwned,
+            MyBigDecimal: Serialize + DeserializeOwned,
+            MyU32: Serialize + DeserializeOwned,
+            MyI32: Serialize + DeserializeOwned,
+            MyString: Serialize + DeserializeOwned,
+            PresserMode: Serialize + DeserializeOwned,
+            XferStyle: Serialize + DeserializeOwned,
+        >
+{
+}
 
 /// Trees that grow
 pub trait Phase {
@@ -45,7 +113,7 @@ pub trait Phase {
 pub enum Validated {}
 
 impl Phase for Validated {
-    type Other = Infallible;
+    type Other = Never;
 
     type MagicVersion = ();
     type Operation = Provenance;
@@ -75,14 +143,14 @@ impl Phase for Validated {
 }
 
 /// Quick helper function to say "nope, it's been validated; gimme!"
-pub fn valid<T>(val: &Either<T, Infallible>) -> &T {
+pub fn valid<T>(val: &Either<T, Never>) -> &T {
     match val {
         Either::Left(v) => v,
         Either::Right(i) => match *i {},
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct Annotated<T, A> {
     pub value: T,
     pub annotation: A,

@@ -1,6 +1,6 @@
 /// Byte offsets into source code. Start is inclusive, end is exclusive. For example, a span of [0,
 /// 5) covers the first five bytes of the source code.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Span {
     start: usize,
     end: usize,
@@ -53,7 +53,7 @@ impl Span {
 }
 
 /// A record of where a program's operation came from
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Provenance {
     span: Option<Span>,
     source: Option<String>,

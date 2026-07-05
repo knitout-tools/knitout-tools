@@ -1,0 +1,6524 @@
+{
+  "version": {
+    "Left": {
+      "value": 2,
+      "annotation": null
+    }
+  },
+  "headers": {
+    "Left": {
+      "carriers": {
+        "Left": {
+          "value": {
+            "carriers_and_rails": {
+              "Left": [
+                {
+                  "Carrier": {
+                    "id": 0,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 1,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 2,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 3,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 4,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 5,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 6,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 7,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 8,
+                    "annotation": null
+                  }
+                },
+                {
+                  "Carrier": {
+                    "id": 9,
+                    "annotation": null
+                  }
+                }
+              ]
+            },
+            "annotation": null
+          },
+          "annotation": null
+        }
+      },
+      "yarn": [],
+      "machine": {
+        "value": {
+          "value": {
+            "Left": "SWG091N2"
+          },
+          "annotation": null
+        },
+        "annotation": null
+      },
+      "gauge": {
+        "value": {
+          "value": {
+            "Left": 15
+          },
+          "annotation": null
+        },
+        "annotation": null
+      },
+      "width": null,
+      "position": null,
+      "unknown": {}
+    }
+  },
+  "operations": [
+    {
+      "value": {
+        "ExtensionOperation": {
+          "XStitchNumber": {
+            "value": {
+              "value": {
+                "Left": 85
+              },
+              "annotation": null
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 78,
+          "end": 96
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Inhook": {
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 98,
+          "end": 106
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 108,
+          "end": 120
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 121,
+          "end": 132
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 133,
+          "end": 144
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 145,
+          "end": 156
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 157,
+          "end": 168
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Miss": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 169,
+          "end": 180
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 182,
+          "end": 193
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 194,
+          "end": 205
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 206,
+          "end": 217
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 218,
+          "end": 229
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Tuck": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 230,
+          "end": 241
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Miss": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 242,
+          "end": 254
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Stitch": {
+            "before_pull": {
+              "value": {
+                "Left": "25"
+              },
+              "annotation": null
+            },
+            "after_pull": {
+              "value": {
+                "Left": "40"
+              },
+              "annotation": null
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 256,
+          "end": 268
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 270,
+          "end": 282
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 283,
+          "end": 294
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 295,
+          "end": 306
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 307,
+          "end": 318
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 319,
+          "end": 330
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 331,
+          "end": 342
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 343,
+          "end": 354
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 355,
+          "end": 366
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 367,
+          "end": 378
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 379,
+          "end": 390
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 392,
+          "end": 403
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 404,
+          "end": 415
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 416,
+          "end": 427
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 428,
+          "end": 439
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 440,
+          "end": 451
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 452,
+          "end": 463
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 464,
+          "end": 475
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 476,
+          "end": 487
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 488,
+          "end": 499
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 500,
+          "end": 512
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Releasehook": {
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 514,
+          "end": 527
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 529,
+          "end": 541
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 542,
+          "end": 553
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 554,
+          "end": 565
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 566,
+          "end": 577
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 578,
+          "end": 589
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 590,
+          "end": 601
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 602,
+          "end": 613
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 614,
+          "end": 625
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 626,
+          "end": 637
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 638,
+          "end": 649
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 651,
+          "end": 662
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 663,
+          "end": 674
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 675,
+          "end": 686
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 687,
+          "end": 698
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 699,
+          "end": 710
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 711,
+          "end": 722
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 723,
+          "end": 734
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 735,
+          "end": 746
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 747,
+          "end": 758
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 759,
+          "end": 771
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 773,
+          "end": 785
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 786,
+          "end": 797
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 798,
+          "end": 809
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 810,
+          "end": 821
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 822,
+          "end": 833
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 835,
+          "end": 845
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 846,
+          "end": 856
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 857,
+          "end": 867
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 868,
+          "end": 878
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 879,
+          "end": 889
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 890,
+          "end": 900
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Rack": {
+            "offset": {
+              "value": {
+                "Left": "-2"
+              },
+              "annotation": null
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 902,
+          "end": 909
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 911,
+          "end": 921
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 922,
+          "end": 932
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 933,
+          "end": 943
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 944,
+          "end": 954
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 955,
+          "end": 965
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Xfer": {
+            "source": {
+              "Left": {
+                "bed": {
+                  "Back": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "destination": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            }
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 966,
+          "end": 976
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 978,
+          "end": 989
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 990,
+          "end": 1001
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1002,
+          "end": 1013
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1014,
+          "end": 1025
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1026,
+          "end": 1037
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1039,
+          "end": 1050
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1051,
+          "end": 1062
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1063,
+          "end": 1074
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1075,
+          "end": 1086
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1087,
+          "end": 1098
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1099,
+          "end": 1110
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1111,
+          "end": 1122
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1123,
+          "end": 1134
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1135,
+          "end": 1146
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1147,
+          "end": 1159
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1161,
+          "end": 1173
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1174,
+          "end": 1185
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1186,
+          "end": 1197
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1198,
+          "end": 1209
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1210,
+          "end": 1221
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1222,
+          "end": 1233
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1234,
+          "end": 1245
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1246,
+          "end": 1257
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1258,
+          "end": 1269
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1270,
+          "end": 1281
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1283,
+          "end": 1294
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1295,
+          "end": 1306
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1307,
+          "end": 1318
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1319,
+          "end": 1330
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1331,
+          "end": 1342
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1343,
+          "end": 1354
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1355,
+          "end": 1366
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1367,
+          "end": 1378
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1379,
+          "end": 1390
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1391,
+          "end": 1403
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1405,
+          "end": 1417
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1418,
+          "end": 1429
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1430,
+          "end": 1441
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1442,
+          "end": 1453
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1454,
+          "end": 1465
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1466,
+          "end": 1477
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1478,
+          "end": 1489
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1490,
+          "end": 1501
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1502,
+          "end": 1513
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1514,
+          "end": 1525
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1527,
+          "end": 1538
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1539,
+          "end": 1550
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1551,
+          "end": 1562
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1563,
+          "end": 1574
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1575,
+          "end": 1586
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1587,
+          "end": 1598
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1599,
+          "end": 1610
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1611,
+          "end": 1622
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1623,
+          "end": 1634
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1635,
+          "end": 1647
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1649,
+          "end": 1661
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1662,
+          "end": 1673
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1674,
+          "end": 1685
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1686,
+          "end": 1697
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1698,
+          "end": 1709
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1710,
+          "end": 1721
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1722,
+          "end": 1733
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1734,
+          "end": 1745
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1746,
+          "end": 1757
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Left": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1758,
+          "end": 1769
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 1
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1771,
+          "end": 1782
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 2
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1783,
+          "end": 1794
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 3
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1795,
+          "end": 1806
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 4
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1807,
+          "end": 1818
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 5
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1819,
+          "end": 1830
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 6
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1831,
+          "end": 1842
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 7
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1843,
+          "end": 1854
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 8
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1855,
+          "end": 1866
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 9
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1867,
+          "end": 1878
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Knit": {
+            "direction": {
+              "Right": null
+            },
+            "needle": {
+              "Left": {
+                "bed": {
+                  "Front": null
+                },
+                "is_slider": {
+                  "NotSlider": null
+                },
+                "index": {
+                  "value": {
+                    "Left": 10
+                  },
+                  "annotation": null
+                },
+                "annotation": null
+              }
+            },
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1879,
+          "end": 1891
+        },
+        "source": null
+      }
+    },
+    {
+      "value": {
+        "BaseOperation": {
+          "Outhook": {
+            "carriers": [
+              {
+                "Left": {
+                  "id": 4,
+                  "annotation": null
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotation": {
+        "span": {
+          "start": 1893,
+          "end": 1902
+        },
+        "source": null
+      }
+    }
+  ],
+  "carrier_table": {
+    "id_to_name": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ]
+  }
+}
