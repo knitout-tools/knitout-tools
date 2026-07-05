@@ -23,11 +23,7 @@ use crate::{CommentInfo, Parsed};
 // ─── span helpers ────────────────────────────────────────────────────────────
 
 fn node_span(node: Node<'_>) -> Span {
-    Span::new(node.start_byte() as u32, node.end_byte() as u32)
-}
-
-fn text_of<'s>(node: Node<'_>, source: &'s [u8]) -> &'s [u8] {
-    &source[node.start_byte()..node.end_byte()]
+    Span::new(node.start_byte(), node.end_byte())
 }
 
 // ─── lowering context ────────────────────────────────────────────────────────
@@ -45,15 +41,14 @@ struct LowerCtx<'src> {
     /// Span of the first operation, used to anchor missing-header diagnostics.
     first_op_span: Option<Span>,
 
-    /// Tracked previously-seen header spans for duplicate detection.
-    /// Key = canonical header name, value = span of name+colon.
+    /// Tracked previously-seen header spans for duplicate detection. Key = canonical header name,
+    /// value = span of last whole header declaration (name+colon+value).
     seen_headers: std::collections::HashMap<String, Span>,
 
     /// Accumulated operations.
     operations: Vec<Annotated<Operation<Parsed>, (Span, CommentInfo)>>,
 
     /// Partially-built headers struct (we can't finalise it until we know if `Carriers:` arrived).
-    carriers: Option<(Annotated<CarriersHeaderValue<Parsed>, Span>, Span)>,
     headers_partial: Headers<Parsed>,
 }
 
@@ -69,8 +64,7 @@ impl<'src> LowerCtx<'src> {
             first_op_span: None,
             seen_headers: std::collections::HashMap::new(),
             operations: Vec::new(),
-            // Placeholder headers — will be replaced or patched at the end.
-            carriers: None,
+            // Span::new(0, 0) is a dummy value
             headers_partial: Headers::new(Either::Right(Span::new(0, 0))),
         }
     }
@@ -88,16 +82,9 @@ impl<'src> LowerCtx<'src> {
         };
 
         // Resolve the carriers header
-        let carriers_either: Either<Annotated<CarriersHeaderValue<Parsed>, Span>, Span> =
-            match self.carriers {
-                Some((ann, _name_span)) => Either::Left(ann),
-                None => {
-                    self.errors.push(ParseError::MissingCarriersHeader);
-                    Either::Right(Span::new(0, 0))
-                }
-            };
-
-        self.headers_partial.set_carriers(carriers_either);
+        if self.headers_partial.carriers().is_right() {
+            self.errors.push(ParseError::MissingCarriersHeader);
+        }
 
         let prog = Program::new(
             version_either,
@@ -109,29 +96,37 @@ impl<'src> LowerCtx<'src> {
         (prog, self.warnings, self.errors)
     }
 
-    // ── header helpers ────────────────────────────────────────────────────────
-
-    /// Check for duplicate headers. Returns `true` if this is the first occurrence (proceed),
-    /// `false` if it is a duplicate (do not overwrite).
-    fn check_header_duplicate(&mut self, name: &str, name_span: Span, _value_repr: &str) -> bool {
-        match self.seen_headers.get(name) {
-            None => {
-                self.seen_headers.insert(name.to_owned(), name_span);
-                true
-            }
-            Some(&prev_span) => {
-                // We treat any second definition as a conflict (different value → error,
-                // same value → warning).  We record the error here; the caller may refine.
-                self.errors.push(ParseError::ConflictingHeader {
-                    span: name_span,
-                    previous: prev_span,
-                });
-                false
+    fn text_of(&mut self, span: Span) -> Option<&str> {
+        match std::str::from_utf8(&self.source[span.start()..span.end()]) {
+            Ok(s) => Some(s),
+            Err(_) => {
+                self.errors.push(ParseError::BadUtf8(span));
+                None
             }
         }
     }
 
-    fn warn_header_after_ops(&mut self, span: Span) {
+    // ── header helpers ────────────────────────────────────────────────────────
+
+    /// Check for duplicate headers. Returns `false` if this is the first occurrence, `true` if it
+    /// is a duplicate (while pushing a warning). Span should be the whole header.
+    fn header_already_defined(&mut self, name: &str, span: Span) -> bool {
+        match self.seen_headers.insert(name.to_owned(), span) {
+            None => false,
+            Some(prev_span) => {
+                // We treat any second definition as a conflict (different value → error,
+                // same value → warning).  We record the error here; the caller may refine.
+                self.warnings.push(ParseWarning::DuplicateHeader {
+                    span,
+                    previous: prev_span,
+                });
+                true
+            }
+        }
+    }
+
+    /// Pushes a warning if operations have been seen. Span should be the whole header.
+    fn check_header_after_ops(&mut self, span: Span) {
         if self.operations_started {
             self.warnings
                 .push(ParseWarning::HeaderAfterOperations(span));
@@ -140,6 +135,8 @@ impl<'src> LowerCtx<'src> {
 
     // ── line dispatchers ──────────────────────────────────────────────────────
 
+    /// Keeps track of line_index for magic header. Increments line index after. Does not increment
+    /// line index for empty lines. Increments on tag, header, comment, and op.
     fn lower_line(&mut self, node: Node<'_>, line_index: &mut usize) {
         // The grammar's `line` rule is a transparent choice; the named child is the real node.
         let inner = if node.kind() == "line" {
@@ -154,7 +151,7 @@ impl<'src> LowerCtx<'src> {
         match inner.kind() {
             "tag_comment" => self.lower_top_tag_comment(inner, *line_index),
             "header" => self.lower_header(inner),
-            "comment" => {} // plain comment, nothing to do
+            "comment" => {} // plain unassociated comment, nothing to do
             "op_line" => {
                 self.lower_op_line(inner);
             }
@@ -165,49 +162,54 @@ impl<'src> LowerCtx<'src> {
 
     // ── magic / tag line ──────────────────────────────────────────────────────
 
-    fn lower_top_tag_comment(&mut self, node: Node<'_>, line_index: usize) {
+    /// line_index is the number of preceding nonempty lines.
+    fn lower_top_tag_comment(&mut self, node: Node<'_>, line_index: usize) -> Option<()> {
         let tag_span = node_span(node);
-        let value_node = node.child_by_field_name("value");
-        let value_text = value_node.map(|n| text_of(n, self.source));
+        let value_span = node_span(node.child_by_field_name("value")?);
+        let value_text = self.text_of(value_span)?;
 
         // Is this the magic line?
-        let is_magic = value_text.is_some_and(|t| t.starts_with(b"knitout-"));
+        const MAGIC_PREFIX: &str = "knitout-";
+        let is_magic = value_text.starts_with(MAGIC_PREFIX);
         if is_magic {
-            let value_node = value_node.unwrap();
-            let vstart = value_node.start_byte() as u32;
-            let vend = value_node.end_byte() as u32;
-            let value_text = value_text.unwrap();
+            // Span for ";!knitout-"
+            let (prefix_span, ver_span) = tag_span.split(value_span.start() + MAGIC_PREFIX.len());
 
-            // Span for ";!knitout-" = from tag start to vstart + len("knitout-")
-            let prefix_span = Span::new(tag_span.start(), vstart + 8);
-            // Span for the version digits
-            let ver_text = &value_text[8..]; // after "knitout-"
-            let ver_start = vstart + 8;
-            let ver_end = vend;
-            let ver_span = Span::new(ver_start, ver_end);
-
-            if self.magic.is_some() {
-                // Second magic line → warning (treat as MagicNotFirst of this occurrence)
-                self.warnings.push(ParseWarning::MagicNotFirst(tag_span));
-                return;
-            }
+            // if self.magic.is_some_and(|(ver, _)|) {
+            //     // Second magic line → warning (treat as MagicNotFirst of this occurrence)
+            //     self.warnings.push(ParseWarning::MagicNotFirst(tag_span));
+            //     return;
+            // }
 
             if line_index > 0 {
                 self.warnings.push(ParseWarning::MagicNotFirst(tag_span));
             }
 
-            let ver_str = std::str::from_utf8(ver_text).unwrap_or("");
-            match ver_str.parse::<u32>() {
+            match self.text_of(ver_span)?.parse::<u32>() {
                 Ok(ver) => {
-                    self.magic = Some((ver, (prefix_span, ver_span)));
+                    match self.magic {
+                        // Conflicting magic versions -> error
+                        Some((prev_ver, (prev_prefix, prev_ver_span))) if prev_ver != ver => {
+                            self.errors.push(ParseError::ConflictingMagicVersion {
+                                span: prefix_span.union(&ver_span),
+                                previous: prev_prefix.union(&prev_ver_span),
+                            });
+                        }
+                        // Non-conflicting -> no action (already warned MagicNotFirst)
+                        Some(_) => {}
+                        // First magic: record it
+                        None => {
+                            self.magic = Some((ver, (prefix_span, ver_span)));
+                        }
+                    }
                 }
                 Err(_) => {
                     self.errors.push(ParseError::BadMagicVersion(ver_span));
-                    // Still record a "version = 0" placeholder so the tree is navigable.
-                    self.magic = Some((0, (prefix_span, ver_span)));
                 }
-            }
+            };
         }
+
+        Some(())
 
         // Source tag at the top level — unusual but we just ignore it (not an error).
         // Unknown tags are also ignored here since we can't attach them to an operation.
@@ -216,7 +218,7 @@ impl<'src> LowerCtx<'src> {
     // ── header parsing ────────────────────────────────────────────────────────
 
     fn lower_header(&mut self, node: Node<'_>) {
-        let _header_span = node_span(node);
+        let header_span = node_span(node);
 
         let content_node = match node.child_by_field_name("content") {
             Some(n) => n,
@@ -234,16 +236,12 @@ impl<'src> LowerCtx<'src> {
                 (&content_text[..p], &content_text[p + 1..], vstart)
             }
             None => {
-                // No colon — treat whole content as name with empty value.
-                (
-                    content_text,
-                    &b""[..],
-                    content_start + content_text.len() as u32,
-                )
+                // No colon — treat as a comment
+                return;
             }
         };
 
-        let name_str = std::str::from_utf8(name_bytes).unwrap_or("").trim();
+        let name_str = trim_from_bytes(name_bytes);
         // name+colon span (for P::Header annotation)
         let name_colon_end = content_start
             + colon_pos.unwrap_or(name_bytes.len()) as u32
@@ -260,7 +258,7 @@ impl<'src> LowerCtx<'src> {
         let trimmed_value = &value_bytes[value_trimmed_offset..];
         let value_span = Span::new(value_trim_start, value_end);
 
-        self.warn_header_after_ops(name_colon_span);
+        self.check_header_after_ops(name_colon_span);
 
         match name_str {
             "Carriers" => self.lower_carriers_header(
@@ -309,18 +307,11 @@ impl<'src> LowerCtx<'src> {
         }
     }
 
-    fn lower_carriers_header(
-        &mut self,
-        name_span: Span,
-        value: &[u8],
-        value_start: u32,
-        value_end: u32,
-    ) {
-        if !self.check_header_duplicate("Carriers", name_span, "") {
+    fn lower_carriers_header(&mut self, name_span: Span, value: &[u8], value_span: Span) {
+        if self.header_already_defined("Carriers", name_span) {
             return;
         }
-        let _carriers_span = Span::new(value_start, value_end);
-        let chv = self.parse_carriers_header_value(value, value_start, value_end);
+        let chv = self.parse_carriers_header_value(value, value_span);
         let ann = Annotated::new(chv, name_span);
         self.carriers = Some((ann, name_span));
     }
@@ -334,7 +325,7 @@ impl<'src> LowerCtx<'src> {
         value_end: u32,
     ) {
         let val_str = std::str::from_utf8(value).unwrap_or("").trim().to_owned();
-        if !self.check_header_duplicate(key, name_span, &val_str) {
+        if self.header_already_defined(key, name_span, &val_str) {
             return;
         }
         let value_span = Span::new(value_start, value_end);
@@ -345,7 +336,7 @@ impl<'src> LowerCtx<'src> {
 
     fn lower_u32_header(&mut self, key: &str, name_span: Span, value: &[u8], value_span: Span) {
         let val_str = std::str::from_utf8(value).unwrap_or("").trim();
-        if !self.check_header_duplicate(key, name_span, val_str) {
+        if self.header_already_defined(key, name_span, val_str) {
             return;
         }
         let my_u32 = match val_str.parse::<u32>() {
@@ -366,7 +357,7 @@ impl<'src> LowerCtx<'src> {
 
     fn lower_position_header(&mut self, name_span: Span, value: &[u8], value_span: Span) {
         let val_str = std::str::from_utf8(value).unwrap_or("").trim();
-        if !self.check_header_duplicate("Position", name_span, val_str) {
+        if self.header_already_defined("Position", name_span, val_str) {
             return;
         }
         let pos = match val_str {

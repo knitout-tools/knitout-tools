@@ -2,21 +2,53 @@
 /// 5) covers the first five bytes of the source code.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Span {
-    start: u32,
-    end: u32,
+    start: usize,
+    end: usize,
 }
 impl Span {
     /// Only checks validity in debug builds. In release builds, the caller is responsible for
     /// ensuring that start <= end.
-    pub fn new(start: u32, end: u32) -> Self {
+    pub fn new(start: usize, end: usize) -> Self {
         debug_assert!(start <= end, "Span start must be <= end");
         Self { start, end }
     }
-    pub fn start(&self) -> u32 {
+    pub fn start(&self) -> usize {
         self.start
     }
-    pub fn end(&self) -> u32 {
+    pub fn end(&self) -> usize {
         self.end
+    }
+
+    /// A Span that covers the regions of both. If the spans are disjoint, the returned span will
+    /// cover the gap between them as well.
+    pub fn union(&self, other: &Span) -> Span {
+        let start = self.start.min(other.start);
+        let end = self.end.max(other.end);
+        Span::new(start, end)
+    }
+
+    /// Split the span at the given index. The index will be included in the second span. The index
+    /// needs to be within the span, this is debug asserted.
+    pub fn split(&self, index: usize) -> (Span, Span) {
+        debug_assert!(
+            self.start <= index && index <= self.end,
+            "Index out of bounds for span"
+        );
+        let first = Span::new(self.start, index);
+        let second = Span::new(index, self.end);
+        (first, second)
+    }
+
+    /// Split the span at the given index, removing the index from both spans. The index needs to be
+    /// within the span; this is debug asserted.
+    pub fn split_remove(&self, index: usize) -> (Span, Span) {
+        debug_assert!(
+            self.start <= index && index < self.end,
+            "Index out of bounds for span"
+        );
+        let first = Span::new(self.start, index);
+        let second = Span::new(index + 1, self.end);
+        (first, second)
     }
 }
 

@@ -6,11 +6,12 @@ use knitout_ast::Span;
 pub enum ParseWarning {
     /// A `;!knitout-N` line appeared but was not the first non-blank line in the file.
     MagicNotFirst(Span),
-    /// A header was defined more than once with the same value (duplicate but not conflicting).
-    DuplicateHeaderSameValue {
-        /// Span of the header name+colon in the second occurrence (e.g., `"Gauge:"`).
+    /// A header was defined more than once (if not conflicting, not an error; raised even if the
+    /// values are conflicting too).
+    DuplicateHeader {
+        /// Span of the header name+colon in the most recent occurrence (e.g., "Gauge: 15").
         span: Span,
-        /// Span of the header name+colon in the first occurrence.
+        /// Span of the header name+colon in the second-to-last occurrence.
         previous: Span,
     },
     /// A `;;Header:` line appeared after at least one operation line.
@@ -19,15 +20,22 @@ pub enum ParseWarning {
     UnrecognizedExtensionHeader(Span),
 }
 
-/// A recoverable parse error: the `Program<Parsed>` is still produced, but it will contain
-/// `Other(Span)` nodes in places that could not be resolved, and `parsed_to_valid` will
-/// return `None`.
+/// An unrecoverable parse error: the `Program<Parsed>` is still produced, but it will contain
+/// `Other(Span)` nodes in places that could not be resolved, and `parsed_to_valid` will return
+/// `None`.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ParseError {
     /// No `;!knitout-N` magic line was found anywhere in the file.
     MagicMissing,
     /// The version number after `knitout-` could not be parsed as a non-negative integer.
     BadMagicVersion(Span),
+    /// Conflicting magic versions
+    ConflictingMagicVersion {
+        /// Span of the magic version in the second (conflicting) occurrence.
+        span: Span,
+        /// Span of the magic version in the first occurrence.
+        previous: Span,
+    },
     /// A header was defined twice with different values.
     ConflictingHeader {
         /// Span of the header name+colon in the second (conflicting) occurrence.
@@ -61,13 +69,15 @@ pub enum ParseError {
     BadPositionValue(Span),
     /// An argument was present where none was expected.
     TooManyArguments(Span),
+    /// Couldn't read the source as UTF-8.
+    BadUtf8(Span),
 }
 
 impl ParseWarning {
     pub fn span(&self) -> Span {
         match self {
             ParseWarning::MagicNotFirst(s) => *s,
-            ParseWarning::DuplicateHeaderSameValue { span, .. } => *span,
+            ParseWarning::DuplicateHeader { span, .. } => *span,
             ParseWarning::HeaderAfterOperations(s) => *s,
             ParseWarning::UnrecognizedExtensionHeader(s) => *s,
         }

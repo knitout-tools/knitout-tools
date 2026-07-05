@@ -1052,7 +1052,7 @@ mod tests {
         let s = Span::new(10, 15);
         let p = Span::new(0, 5);
         assert_eq!(
-            ParseWarning::DuplicateHeaderSameValue {
+            ParseWarning::DuplicateHeader {
                 span: s,
                 previous: p
             }
