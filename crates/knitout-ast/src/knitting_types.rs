@@ -1,4 +1,5 @@
 use std::fmt::{Display, Error, Formatter, Result};
+use std::hash::{Hash, Hasher};
 
 use bigdecimal::BigDecimal;
 use either::Either;
@@ -11,7 +12,7 @@ use crate::{
 /// A carrier, which is essentially a variable in knitout. Use a `CarrierTable` to construct
 /// carriers. Don't mix carriers from different tables; you will get undefined behavior or panic! if
 /// so. One table, one program, many carriers.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Carrier<P: Phase> {
     id: u32,
     annotation: P::Carrier,
@@ -37,6 +38,25 @@ impl<P: Phase> Carrier<P> {
 
     pub(crate) fn table_id(&self) -> u32 {
         self.table_id
+    }
+}
+
+// Manual impls so the bounds are `P: Phase` (not the spurious `P: Hash + Eq` that
+// `#[derive]` would generate, since it conservatively adds bounds on the type parameter
+// rather than on the associated type `P::Carrier`).
+impl<P: Phase> PartialEq for Carrier<P> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.annotation == other.annotation && self.table_id == other.table_id
+    }
+}
+
+impl<P: Phase> Eq for Carrier<P> {}
+
+impl<P: Phase> Hash for Carrier<P> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.annotation.hash(state);
+        self.table_id.hash(state);
     }
 }
 
@@ -148,6 +168,16 @@ pub struct MyBigDecimal<P: Phase> {
     value: Either<Annotated<BigDecimal, P::MyBigDecimal>, P::Other>,
 }
 
+impl<P: Phase> MyBigDecimal<P> {
+    pub fn new(value: Either<Annotated<BigDecimal, P::MyBigDecimal>, P::Other>) -> Self {
+        Self { value }
+    }
+
+    pub fn value(&self) -> &Either<Annotated<BigDecimal, P::MyBigDecimal>, P::Other> {
+        &self.value
+    }
+}
+
 impl Display for MyBigDecimal<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.value {
@@ -160,6 +190,16 @@ impl Display for MyBigDecimal<Validated> {
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MyU32<P: Phase> {
     value: Either<Annotated<u32, P::MyU32>, P::Other>,
+}
+
+impl<P: Phase> MyU32<P> {
+    pub fn new(value: Either<Annotated<u32, P::MyU32>, P::Other>) -> Self {
+        Self { value }
+    }
+
+    pub fn value(&self) -> &Either<Annotated<u32, P::MyU32>, P::Other> {
+        &self.value
+    }
 }
 
 impl Display for MyU32<Validated> {
@@ -176,6 +216,16 @@ pub struct MyString<P: Phase> {
     value: Either<Annotated<String, P::MyString>, P::Other>,
 }
 
+impl<P: Phase> MyString<P> {
+    pub fn new(value: Either<Annotated<String, P::MyString>, P::Other>) -> Self {
+        Self { value }
+    }
+
+    pub fn value(&self) -> &Either<Annotated<String, P::MyString>, P::Other> {
+        &self.value
+    }
+}
+
 impl Display for MyString<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.value {
@@ -189,11 +239,14 @@ impl Display for MyString<Validated> {
 mod tests {
     use super::*;
 
+    use crate::phase::{Annotated, Validated};
+
     #[test]
     fn test_needle_getters() {
-        let needle = Needle::new(Bed::Front, IsSlider::Slider, 5);
-        assert_eq!(needle.bed(), Bed::Front);
-        assert_eq!(needle.is_slider(), IsSlider::Slider);
-        assert_eq!(needle.index(), 5);
+        let needle =
+            Needle::<Validated>::new(Bed::Front(()), IsSlider::Slider(()), Annotated::unit(5i32), ());
+        assert_eq!(*needle.bed(), Bed::Front(()));
+        assert_eq!(*needle.is_slider(), IsSlider::Slider(()));
+        assert_eq!(*needle.index(), Annotated::unit(5i32));
     }
 }

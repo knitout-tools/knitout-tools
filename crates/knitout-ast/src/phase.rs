@@ -42,6 +42,7 @@ pub trait Phase {
     type XferStyle: PhaseType;
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Validated {}
 
 impl Phase for Validated {
