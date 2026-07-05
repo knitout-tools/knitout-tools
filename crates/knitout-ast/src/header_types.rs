@@ -1,115 +1,151 @@
 use std::fmt::{Display, Formatter, Result};
 
+use either::Either;
 use indexmap::IndexMap;
 
 use crate::{
-    knitting_types::Carrier,
+    knitting_types::{Carrier, MyString, MyU32},
+    phase::{Annotated, Phase, Validated, valid},
     program::{CarrierTable, DisplayCarrierTable},
 };
 
 /// The value of the `Carriers:` header, which is a list of carriers and rails.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct CarriersHeaderValue {
-    carriers_and_rails: Vec<CarrierOrRail>,
+pub struct CarriersHeaderValue<P: Phase> {
+    carriers_and_rails: Either<Vec<CarrierOrRail<P>>, P::Other>,
+    annotation: P::CarriersHeaderValue,
 }
 
-impl CarriersHeaderValue {
-    pub fn new(carriers_and_rails: Vec<CarrierOrRail>) -> Self {
-        Self { carriers_and_rails }
+impl<P: Phase> CarriersHeaderValue<P> {
+    pub fn new(
+        carriers_and_rails: Either<Vec<CarrierOrRail<P>>, P::Other>,
+        annotation: P::CarriersHeaderValue,
+    ) -> Self {
+        Self {
+            carriers_and_rails,
+            annotation,
+        }
     }
 
-    pub fn carriers_and_rails(&self) -> &[CarrierOrRail] {
-        &self.carriers_and_rails
+    pub fn carriers_and_rails(&self) -> Either<&[CarrierOrRail<P>], &P::Other> {
+        match &self.carriers_and_rails {
+            Either::Left(v) => Either::Left(&v[..]),
+            Either::Right(x) => Either::Right(x),
+        }
     }
 }
 
 /// Either a carrier or a rail.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum CarrierOrRail {
-    Carrier(Carrier),
-    Rail(Rail),
+pub enum CarrierOrRail<P: Phase> {
+    Carrier(Carrier<P>),
+    Rail(Rail<P>),
+    Other(P::Other),
 }
 
 /// A rail, which has a left and right side, each of which has a list of carriers.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct Rail {
-    left: RailSide,
-    right: RailSide,
+pub struct Rail<P: Phase> {
+    left: Either<RailSide<P>, P::Other>,
+    right: Either<RailSide<P>, P::Other>,
+    annotation: P::Rail,
 }
 
-impl Rail {
-    pub fn new(left: RailSide, right: RailSide) -> Self {
-        Self { left, right }
+impl<P: Phase> Rail<P> {
+    pub fn new(
+        left: Either<RailSide<P>, P::Other>,
+        right: Either<RailSide<P>, P::Other>,
+        annotation: P::Rail,
+    ) -> Self {
+        Self {
+            left,
+            right,
+            annotation,
+        }
     }
 
-    pub fn left(&self) -> &RailSide {
+    pub fn left(&self) -> &Either<RailSide<P>, P::Other> {
         &self.left
     }
 
-    pub fn right(&self) -> &RailSide {
+    pub fn right(&self) -> &Either<RailSide<P>, P::Other> {
         &self.right
     }
+
+    pub fn annotation(&self) -> &P::Rail {
+        &self.annotation
+    }
 }
 
-/// The left or right side of a rail, which has an ordered list of carriers.
+/// The left or right side of a rail, which has an ordered list of carriers separated by commas.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct RailSide {
-    carriers: Vec<Carrier>,
+pub struct RailSide<P: Phase> {
+    carriers: Vec<Carrier<P>>,
+    annotation: P::RailSide,
 }
 
-impl RailSide {
-    pub fn new(carriers: Vec<Carrier>) -> Self {
-        Self { carriers }
+impl<P: Phase> RailSide<P> {
+    pub fn new(carriers: Vec<Carrier<P>>, annotation: P::RailSide) -> Self {
+        Self {
+            carriers,
+            annotation,
+        }
     }
 
-    pub fn carriers(&self) -> &[Carrier] {
+    pub fn carriers(&self) -> &[Carrier<P>] {
         &self.carriers
+    }
+
+    pub fn annotation(&self) -> &P::RailSide {
+        &self.annotation
     }
 }
 
 /// Acceptable values for the `Position:` header.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum PositionHeaderValue {
-    Left,
-    Center,
-    Right,
-    Keep,
+pub enum PositionHeaderValue<P: Phase> {
+    Left(P::PositionHeaderValue),
+    Center(P::PositionHeaderValue),
+    Right(P::PositionHeaderValue),
+    Keep(P::PositionHeaderValue),
+    Other(P::Other),
 }
 
-impl Display for PositionHeaderValue {
+impl Display for PositionHeaderValue<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            PositionHeaderValue::Left => write!(f, "Left"),
-            PositionHeaderValue::Center => write!(f, "Center"),
-            PositionHeaderValue::Right => write!(f, "Right"),
-            PositionHeaderValue::Keep => write!(f, "Keep"),
+            PositionHeaderValue::Left(_) => write!(f, "Left"),
+            PositionHeaderValue::Center(_) => write!(f, "Center"),
+            PositionHeaderValue::Right(_) => write!(f, "Right"),
+            PositionHeaderValue::Keep(_) => write!(f, "Keep"),
+            PositionHeaderValue::Other(x) => match *x {},
         }
     }
 }
 
 /// The header section of a knitout program.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Header {
+pub struct Headers<P: Phase> {
     /// Carriers: value
-    carriers: CarriersHeaderValue,
-    /// Yarn-C: header values
-    yarn: IndexMap<Carrier, String>,
+    carriers: Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>,
+    /// Yarn-C: header values, stored as a key-value vector
+    yarn: IndexMap<Carrier<P>, Annotated<MyString<P>, P::Header>>,
     /// Machine: value
-    machine: Option<String>,
+    machine: Option<Annotated<MyString<P>, P::Header>>,
     /// Gauge: value
-    gauge: Option<u32>,
+    gauge: Option<Annotated<MyU32<P>, P::Header>>,
     /// Width: value
-    width: Option<u32>,
+    width: Option<Annotated<MyU32<P>, P::Header>>,
     /// Position: value
-    position: Option<PositionHeaderValue>,
+    position: Option<Annotated<PositionHeaderValue<P>, P::Header>>,
     /// Unknown extension headers. The leading "X-" is included in the key.
-    unknown: IndexMap<String, String>,
+    unknown: IndexMap<String, Annotated<String, P::UnknownHeader>>,
 }
 
-impl Header {
-    pub fn new(carriers: CarriersHeaderValue) -> Self {
+impl<P: Phase> Headers<P> {
+    pub fn new(carriers: Annotated<CarriersHeaderValue<P>, P::Header>) -> Self {
         Self {
-            carriers,
+            carriers: Either::Left(carriers),
             yarn: IndexMap::new(),
             machine: None,
             gauge: None,
@@ -119,92 +155,110 @@ impl Header {
         }
     }
 
-    pub fn carriers(&self) -> &CarriersHeaderValue {
+    pub fn carriers(&self) -> &Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other> {
         &self.carriers
     }
 
-    pub fn yarn(&self) -> &IndexMap<Carrier, String> {
+    pub fn yarn(&self) -> &IndexMap<Carrier<P>, Annotated<MyString<P>, P::Header>> {
         &self.yarn
     }
 
-    pub fn machine(&self) -> Option<&str> {
-        self.machine.as_deref()
+    pub fn machine(&self) -> &Option<Annotated<MyString<P>, P::Header>> {
+        &self.machine
     }
 
-    pub fn gauge(&self) -> Option<u32> {
-        self.gauge
+    pub fn gauge(&self) -> &Option<Annotated<MyU32<P>, P::Header>> {
+        &self.gauge
     }
 
-    pub fn width(&self) -> Option<u32> {
-        self.width
+    pub fn width(&self) -> &Option<Annotated<MyU32<P>, P::Header>> {
+        &self.width
     }
 
-    pub fn position(&self) -> Option<PositionHeaderValue> {
-        self.position
-    }
-
-    pub fn unknown(&self) -> &IndexMap<String, String> {
+    pub fn unknown(&self) -> &IndexMap<String, Annotated<String, P::UnknownHeader>> {
         &self.unknown
     }
 
-    pub fn add_yarn(&mut self, carrier: Carrier, yarn: String) -> Option<String> {
-        self.yarn.insert(carrier, yarn)
+    pub fn add_yarn(
+        &mut self,
+        carrier: Carrier<P>,
+        color: String,
+        annotation: P::Header,
+    ) -> Option<Annotated<String, P::Header>> {
+        self.yarn.insert(carrier, Annotated::new(color, annotation))
     }
 
-    pub fn set_machine(&mut self, machine: String) -> Option<String> {
+    pub fn set_machine(
+        &mut self,
+        machine: Annotated<MyString<P>, P::Header>,
+    ) -> Option<Annotated<MyString<P>, P::Header>> {
         self.machine.replace(machine)
     }
 
-    pub fn set_gauge(&mut self, gauge: u32) -> Option<u32> {
+    pub fn set_gauge(
+        &mut self,
+        gauge: Annotated<MyU32<P>, P::Header>,
+    ) -> Option<Annotated<MyU32<P>, P::Header>> {
         self.gauge.replace(gauge)
     }
 
-    pub fn set_width(&mut self, width: u32) -> Option<u32> {
+    pub fn set_width(
+        &mut self,
+        width: Annotated<MyU32<P>, P::Header>,
+    ) -> Option<Annotated<MyU32<P>, P::Header>> {
         self.width.replace(width)
     }
 
-    pub fn set_position(&mut self, position: PositionHeaderValue) -> Option<PositionHeaderValue> {
+    pub fn set_position(
+        &mut self,
+        position: Annotated<PositionHeaderValue<P>, P::Header>,
+    ) -> Option<Annotated<PositionHeaderValue<P>, P::Header>> {
         self.position.replace(position)
     }
 
-    pub fn add_unknown(&mut self, key: String, value: String) -> Option<String> {
-        self.unknown.insert(key, value)
+    pub fn add_unknown(
+        &mut self,
+        key: String,
+        value: String,
+        annotation: P::UnknownHeader,
+    ) -> Option<Annotated<String, P::UnknownHeader>> {
+        self.unknown.insert(key, Annotated::new(value, annotation))
     }
 }
 
-impl DisplayCarrierTable for Header {
+impl DisplayCarrierTable for Headers<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
         write!(f, ";;Carriers:")?;
-        self.carriers.fmt_table(f, table)?;
+        valid(&self.carriers).value.fmt_table(f, table)?;
         writeln!(f)?;
         for (carrier, color) in &self.yarn {
             write!(f, ";;Yarn-")?;
             carrier.fmt_table(f, table)?;
-            writeln!(f, ": {}", color)?;
+            writeln!(f, ": {}", color.value)?;
         }
         if let Some(machine) = &self.machine {
-            writeln!(f, ";;Machine: {}", machine)?;
+            writeln!(f, ";;Machine: {}", machine.value)?;
         }
         if let Some(gauge) = &self.gauge {
-            writeln!(f, ";;Gauge: {}", gauge)?;
+            writeln!(f, ";;Gauge: {}", gauge.value)?;
         }
         if let Some(width) = &self.width {
-            writeln!(f, ";;Width: {}", width)?;
+            writeln!(f, ";;Width: {}", width.value)?;
         }
         if let Some(position) = &self.position {
-            writeln!(f, ";;Position: {}", position)?;
+            writeln!(f, ";;Position: {}", position.value)?;
         }
         for (key, value) in &self.unknown {
-            writeln!(f, ";;{}: {}", key, value)?;
+            writeln!(f, ";;{}: {}", key, value.value)?;
         }
         Ok(())
     }
 }
 
 /// Writes a leading space for all carriers and rails, including the first one!
-impl DisplayCarrierTable for CarriersHeaderValue {
+impl DisplayCarrierTable for CarriersHeaderValue<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
-        for carrier_or_rail in self.carriers_and_rails.iter() {
+        for carrier_or_rail in valid(&self.carriers_and_rails).iter() {
             write!(f, " ")?;
             carrier_or_rail.fmt_table(f, table)?;
         }
@@ -212,24 +266,25 @@ impl DisplayCarrierTable for CarriersHeaderValue {
     }
 }
 
-impl DisplayCarrierTable for CarrierOrRail {
+impl DisplayCarrierTable for CarrierOrRail<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
         match self {
             CarrierOrRail::Carrier(carrier) => carrier.fmt_table(f, table),
             CarrierOrRail::Rail(rail) => rail.fmt_table(f, table),
+            CarrierOrRail::Other(x) => match *x {},
         }
     }
 }
 
-impl DisplayCarrierTable for Rail {
+impl DisplayCarrierTable for Rail<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
-        self.left.fmt_table(f, table)?;
+        valid(&self.left).fmt_table(f, table)?;
         write!(f, ";")?;
-        self.right.fmt_table(f, table)
+        valid(&self.right).fmt_table(f, table)
     }
 }
 
-impl DisplayCarrierTable for RailSide {
+impl DisplayCarrierTable for RailSide<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
         for (i, carrier) in self.carriers.iter().enumerate() {
             if i > 0 {
@@ -257,14 +312,14 @@ mod tests {
     #[test]
     fn test_header_get_set() {
         let mut table = CarrierTable::new();
-        let carriers = CarriersHeaderValue {
+        let carriers = Annotated::unit(CarriersHeaderValue {
             carriers_and_rails: vec![
                 CarrierOrRail::Carrier(table.make_carrier("A")),
                 CarrierOrRail::Carrier(table.make_carrier("B")),
             ],
-        };
-        let mut header = Header::new(carriers.clone());
-        assert_eq!(header.carriers(), &carriers);
+        });
+        let mut header = Headers::<Validated>::new(carriers.clone());
+        assert_eq!(header.carriers().as_ref(), Either::Left(&carriers));
 
         header.add_yarn(table.make_carrier("A"), "Red".to_string());
         assert_eq!(

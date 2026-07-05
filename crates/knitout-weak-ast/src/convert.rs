@@ -1,7 +1,7 @@
 //! Converters from weak AST nodes to their strong knitout-ast equivalents.
 
 use knitout_ast::{
-    BaseOperation, Bed, CarrierOrRail, CarriersHeaderValue, Direction, ExtensionOperation, Header,
+    BaseOperation, Bed, CarrierOrRail, CarriersHeaderValue, Direction, ExtensionOperation, Headers,
     Needle, Operation, PositionHeaderValue, PresserMode, Program, Provenance, Rail, RailSide, Span,
     XferStyle,
 };
@@ -119,7 +119,7 @@ impl WeakProgram {
 fn convert_headers(
     weak_headers: Vec<WeakHeader>,
     mut carrier_table: knitout_ast::CarrierTable,
-) -> Result<(Header, knitout_ast::CarrierTable), ParseError> {
+) -> Result<(Headers, knitout_ast::CarrierTable), ParseError> {
     let mut carriers_value: Option<CarriersHeaderValue> = None;
     let mut deferred: Vec<WeakHeader> = Vec::new();
 
@@ -137,7 +137,7 @@ fn convert_headers(
     }
 
     let carriers = carriers_value.unwrap_or_else(|| CarriersHeaderValue::new(vec![]));
-    let mut header = Header::new(carriers);
+    let mut header = Headers::new(carriers);
 
     for h in deferred {
         let span = h.span;

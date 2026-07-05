@@ -1,60 +1,23 @@
 use bigdecimal::BigDecimal;
-use knitout_ast::{Carrier, CarrierTable, IsSlider, Span};
+use knitout_ast::{Bed, Carrier, CarrierTable, IsSlider, Span};
 
-// ---------------------------------------------------------------------------
-// Leaf-level enums — each has an Unknown(Span) variant for unrecognized text
-// ---------------------------------------------------------------------------
-
+/// A slightly fancier Option<T> which includes a span for unknown/malformed. The span is useless
+/// for converting to strong, valid ASTs, but it's useful for autoformatting; the autoformatter will
+/// grab the spanned text and preserve it
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum WeakBed {
-    Front,
-    Back,
+pub enum Weak<T> {
+    Valid(T),
     Unknown(Span),
 }
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum WeakDirection {
-    Left,
-    Right,
-    Unknown(Span),
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum WeakPositionValue {
-    Left,
-    Center,
-    Right,
-    Keep,
-    Unknown(Span),
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum WeakPresserMode {
-    Off,
-    Auto,
-    On,
-    Unknown(Span),
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum WeakXferStyle {
-    FourPass,
-    TwoPass,
-    Unknown(Span),
-}
-
-// ---------------------------------------------------------------------------
-// Composite types
-// ---------------------------------------------------------------------------
 
 /// A needle with a span covering the whole needle text. `bed` may be Unknown,
 /// `index` is None when missing or unparseable.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct WeakNeedle {
     pub span: Span,
-    pub bed: WeakBed,
-    pub is_slider: IsSlider,
-    pub index: Option<i32>,
+    pub bed: Weak<Bed>,
+    pub is_slider: Weak<IsSlider>,
+    pub index: Weak<i32>,
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +27,7 @@ pub struct WeakNeedle {
 #[derive(Clone, Debug)]
 pub struct WeakProgram {
     pub span: Span,
-    pub magic: WeakMagic,
+    pub magic: Option<WeakMagic>,
     /// Headers in source order
     pub headers: Vec<WeakHeader>,
     /// Operation lines in source order

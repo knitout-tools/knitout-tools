@@ -19,8 +19,7 @@ pub fn lower_cst(source: &[u8], tree: &tree_sitter::Tree) -> (WeakProgram, Vec<P
         carrier_table: CarrierTable::new(),
     };
     let root = tree.root_node();
-    let program = ctx.lower_source_file(root);
-    (program, ctx.errors)
+    ctx.lower_source_file(root)
 }
 
 // ---------------------------------------------------------------------------
@@ -299,21 +298,21 @@ impl<'s> LowerCtx<'s> {
     // Source file
     // -----------------------------------------------------------------------
 
-    fn lower_source_file(&mut self, root: Node) -> WeakProgram {
+    fn lower_source_file(mut self, root: Node) -> (WeakProgram, Vec<ParseError>) {
         let span = self.span_of(root);
 
         if root.is_error() {
             self.push_error(ParseError::UnparsedFile(span));
-            return WeakProgram {
-                span,
-                magic: WeakMagic {
+            return (
+                WeakProgram {
                     span,
-                    version: None,
+                    magic: None,
+                    headers: Vec::new(),
+                    lines: Vec::new(),
+                    carrier_table: self.carrier_table,
                 },
-                headers: Vec::new(),
-                lines: Vec::new(),
-                carrier_table: CarrierTable::new(),
-            };
+                self.errors,
+            );
         }
 
         let magic = match root.child_by_field_name("magic") {
@@ -360,7 +359,7 @@ impl<'s> LowerCtx<'s> {
         let carrier_table = std::mem::replace(&mut self.carrier_table, CarrierTable::new());
         WeakProgram {
             span,
-            magic,
+            magic: Some(magic),
             headers,
             lines,
             carrier_table,

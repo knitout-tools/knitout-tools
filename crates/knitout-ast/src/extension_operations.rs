@@ -1,112 +1,117 @@
 use std::fmt::{Display, Formatter, Result};
 
-use bigdecimal::BigDecimal;
+use either::Either;
 
 use crate::{
     base_operations::fmt_carriers,
-    knitting_types::{Carrier, Direction, Needle},
+    knitting_types::{Carrier, Direction, MyBigDecimal, MyString, MyU32, Needle},
+    phase::{Phase, Validated},
     program::DisplayCarrierTable,
 };
 
 /// An knitout extension operation `x-...`. Known extensions are parsed into their own variants,
 /// while unknown extensions are stored in the `UnknownExtension` variant.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum ExtensionOperation {
+pub enum ExtensionOperation<P: Phase> {
     XStitchNumber {
-        value: u32,
+        value: MyU32<P>,
     },
     XSpeedNumber {
-        value: u32,
+        value: MyU32<P>,
     },
     XSubRollerNumber {
-        value: u32,
+        value: MyU32<P>,
     },
     XPresserMode {
-        mode: PresserMode,
+        mode: PresserMode<P>,
     },
     XXferStitchNumber {
-        value: u32,
+        value: MyU32<P>,
     },
     XEndPass,
     XVisColor {
-        color: String,
-        carriers: Vec<Carrier>,
+        color: MyString<P>,
+        carriers: Vec<Carrier<P>>,
     },
     XLoopIn {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Carrier<P>>,
     },
     XYarnIn {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Carrier<P>>,
     },
     XYarnOut {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Carrier<P>>,
     },
     XEnd,
     XRollerAdvance {
-        value: BigDecimal,
+        value: MyBigDecimal<P>,
     },
     XAddRollerAdvance {
-        value: BigDecimal,
+        value: MyBigDecimal<P>,
     },
     XCarrierSpacing {
-        value: u32,
+        value: MyU32<P>,
     },
     XCarrierStoppingDistance {
         /// A parsed spacing of "0.5" is represented using 0 here. That is, carriers move `value` +
         /// 0.5 needles past the needle they just operated on.
-        value: u32,
+        value: MyU32<P>,
     },
     XXferStyle {
-        style: XferStyle,
+        style: XferStyle<P>,
     },
     UnknownExtension {
         /// Includes the leading "x-"
-        name: String,
-        arguments: Vec<String>,
+        name: MyString<P>,
+        arguments: Vec<MyString<P>>,
     },
 }
 
 /// Valid presser modes for the `x-presser-mode` extension operation.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum PresserMode {
-    Off,
-    Auto,
-    On,
+pub enum PresserMode<P: Phase> {
+    Off(P::PresserMode),
+    Auto(P::PresserMode),
+    On(P::PresserMode),
+    Other(P::Other),
 }
 
-impl Display for PresserMode {
+impl Display for PresserMode<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            PresserMode::Off => write!(f, "Off"),
-            PresserMode::Auto => write!(f, "Auto"),
-            PresserMode::On => write!(f, "On"),
+            PresserMode::Off(_) => write!(f, "Off"),
+            PresserMode::Auto(_) => write!(f, "Auto"),
+            PresserMode::On(_) => write!(f, "On"),
+            PresserMode::Other(x) => match *x {},
         }
     }
 }
 
 /// Valid transfer styles for the `x-xfer-style` extension operation.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum XferStyle {
-    FourPass,
-    TwoPass,
+pub enum XferStyle<P: Phase> {
+    FourPass(P::XferStyle),
+    TwoPass(P::XferStyle),
+    Other(P::Other),
 }
 
-impl Display for XferStyle {
+impl Display for XferStyle<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            XferStyle::FourPass => write!(f, "FourPass"),
-            XferStyle::TwoPass => write!(f, "TwoPass"),
+            XferStyle::FourPass(_) => write!(f, "FourPass"),
+            XferStyle::TwoPass(_) => write!(f, "TwoPass"),
+            XferStyle::Other(x) => match *x {},
         }
     }
 }
 
-impl DisplayCarrierTable for ExtensionOperation {
+impl DisplayCarrierTable for ExtensionOperation<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &crate::program::CarrierTable) -> Result {
         match self {
             ExtensionOperation::XStitchNumber { value } => write!(f, "x-stitch-number {}", value),

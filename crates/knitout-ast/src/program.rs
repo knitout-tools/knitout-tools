@@ -7,27 +7,36 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 static NEXT_CARRIER_TABLE_ID: AtomicU32 = AtomicU32::new(0);
 
+use either::Either;
+
 use crate::{
-    Carrier, Provenance, base_operations::BaseOperation, extension_operations::ExtensionOperation,
-    header_types::Header,
+    Carrier,
+    base_operations::BaseOperation,
+    extension_operations::ExtensionOperation,
+    header_types::Headers,
+    phase::{Annotated, Phase, Validated, valid},
 };
 
 /// A knitout program, complete with headers and magic string
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Program {
+#[derive(Debug, PartialEq, Eq)]
+pub struct Program<P: Phase> {
     /// The ;!knitout-`version` at the top
-    version: u32,
+    version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
     /// The headers
-    headers: Header,
+    headers: Headers<P>,
     /// The operations, with attached provenance
-    operations: Vec<(Operation, Provenance)>,
+    operations: Vec<Annotated<Operation<P>, P::Operation>>,
 
     /// The carrier naming table
     carrier_table: CarrierTable,
 }
 
-impl Program {
-    pub fn new(version: u32, headers: Header, carriers_table: CarrierTable) -> Self {
+impl<P: Phase> Program<P> {
+    pub fn new(
+        version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
+        headers: Headers<P>,
+        carriers_table: CarrierTable,
+    ) -> Self {
         Self {
             version,
             headers,
@@ -36,24 +45,24 @@ impl Program {
         }
     }
 
-    pub fn version(&self) -> u32 {
-        self.version
+    pub fn version(&self) -> &Either<Annotated<u32, P::MagicVersion>, P::Other> {
+        &self.version
     }
 
-    pub fn headers(&self) -> &Header {
+    pub fn headers(&self) -> &Headers<P> {
         &self.headers
     }
 
-    pub fn headers_mut(&mut self) -> &mut Header {
+    pub fn headers_mut(&mut self) -> &mut Headers<P> {
         &mut self.headers
     }
 
-    pub fn operations(&self) -> &[(Operation, Provenance)] {
+    pub fn operations(&self) -> &[Annotated<Operation<P>, P::Operation>] {
         &self.operations
     }
 
-    pub fn push_operation(&mut self, op: Operation, provenance: Provenance) {
-        self.operations.push((op, provenance));
+    pub fn push_operation(&mut self, op: Annotated<Operation<P>, P::Operation>) {
+        self.operations.push(op);
     }
 
     pub fn carrier_table(&self) -> &CarrierTable {
@@ -66,7 +75,7 @@ impl Program {
 }
 
 /// A table that stores carrier names once. Use `CarrierTable::make_carrier` to create `Carrier`s.
-#[derive(Clone, Eq, Debug)]
+#[derive(Eq, Debug)]
 pub struct CarrierTable {
     /// The map from carrier u32 IDs to their names in the source
     id_to_name: Vec<String>,
@@ -100,12 +109,12 @@ impl CarrierTable {
 
     /// Gets the name of a carrier, panicking if the carrier ID is invalid. This should be
     /// impossible, as as all carriers in a program must be created through the carrier table.
-    pub fn carrier_name(&self, carrier: Carrier) -> &str {
+    pub fn carrier_name<P: Phase>(&self, carrier: &Carrier<P>) -> &str {
         self.carrier_name_option(carrier)
-            .expect("Invalid carrier ID: no name found in carrier table. Did you use multiple carrier tables when you should have used one?.")
+            .expect("Invalid carrier ID: no name found in carrier table. Did you use multiple carrier tables when you should have used only one?")
     }
 
-    pub(crate) fn carrier_name_option(&self, carrier: Carrier) -> Option<&str> {
+    pub(crate) fn carrier_name_option<P: Phase>(&self, carrier: &Carrier<P>) -> Option<&str> {
         debug_assert_eq!(
             self.id,
             carrier.table_id(),
@@ -116,37 +125,38 @@ impl CarrierTable {
             .map(String::as_str)
     }
 
-    pub fn make_carrier(&mut self, name: &str) -> Carrier {
+    pub fn make_carrier<P: Phase>(&mut self, name: &str, annotation: P::Carrier) -> Carrier<P> {
         if let Some(&id) = self.name_to_id.get(name) {
-            Carrier::new(id, self.id)
+            Carrier::new(id, annotation, self.id)
         } else {
             let id = u32::try_from(self.id_to_name.len())
                 .expect("Too many carriers: carrier table overflowed u32");
             self.id_to_name.push(name.to_owned());
             self.name_to_id.insert(name.to_owned(), id);
-            Carrier::new(id, self.id)
+            Carrier::new(id, annotation, self.id)
         }
     }
 }
 
 /// An operation in a knitout program: either a base operation or an extension operation
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum Operation {
-    BaseOperation(BaseOperation),
-    ExtensionOperation(ExtensionOperation),
+pub enum Operation<P: Phase> {
+    BaseOperation(BaseOperation<P>),
+    ExtensionOperation(ExtensionOperation<P>),
+    Other(P::Other),
 }
 
 /// Errors out when the program's carrier table is missing entries
-impl Display for Program {
+impl Display for Program<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        writeln!(f, ";!knitout-{}", self.version)?;
+        write!(f, ";!knitout-{}", valid(&self.version).value)?;
         // writes a newline at the end of headers:
         self.headers.fmt_table(f, &self.carrier_table)?;
-        for (op, provenance) in &self.operations {
+        for op in &self.operations {
             // makes an empty line between operations and headers
             writeln!(f)?;
-            op.fmt_table(f, &self.carrier_table)?;
-            if let Some(source) = provenance.source() {
+            op.value.fmt_table(f, &self.carrier_table)?;
+            if let Some(source) = op.annotation.source() {
                 write!(f, " ;!source: {}", source)?;
             }
         }
@@ -160,11 +170,12 @@ pub trait DisplayCarrierTable {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result;
 }
 
-impl DisplayCarrierTable for Operation {
+impl DisplayCarrierTable for Operation<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
         match self {
             Operation::BaseOperation(op) => op.fmt_table(f, table),
             Operation::ExtensionOperation(op) => op.fmt_table(f, table),
+            Operation::Other(x) => match *x {},
         }
     }
 }
@@ -204,7 +215,7 @@ mod tests {
         let carrier_a = carrier_table.make_carrier("A");
         let carrier_b = carrier_table.make_carrier("B");
 
-        let headers = Header::new(CarriersHeaderValue::new(vec![
+        let headers = Headers::new(CarriersHeaderValue::new(vec![
             CarrierOrRail::Carrier(carrier_a),
             CarrierOrRail::Carrier(carrier_b),
         ]));
@@ -235,7 +246,7 @@ mod tests {
         let carrier_a = carrier_table.make_carrier("A");
         let carrier_b = carrier_table.make_carrier("B");
 
-        let headers = Header::new(CarriersHeaderValue::new(vec![
+        let headers = Headers::new(CarriersHeaderValue::new(vec![
             CarrierOrRail::Carrier(carrier_a),
             CarrierOrRail::Carrier(carrier_b),
         ]));

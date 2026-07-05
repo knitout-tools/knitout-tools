@@ -1,76 +1,77 @@
 use std::fmt::{Formatter, Result};
 
-use bigdecimal::BigDecimal;
+use either::Either;
 
 use crate::{
-    knitting_types::{Carrier, Direction, Needle},
+    knitting_types::{Carrier, Direction, MyBigDecimal, Needle},
+    phase::{Phase, Validated},
     program::{CarrierTable, DisplayCarrierTable},
 };
 
 /// A basic knitout operation. Excludes extension operations, which are a different enum. Also
 /// excludes syntactic sugar operations; faux constructors are provided.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum BaseOperation {
+pub enum BaseOperation<P: Phase> {
     In {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Carrier<P>>,
     },
     Inhook {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Carrier<P>>,
     },
     Releasehook {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Carrier<P>>,
     },
     Out {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Carrier<P>>,
     },
     Outhook {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Carrier<P>>,
     },
     Stitch {
-        before_pull: BigDecimal,
-        after_pull: BigDecimal,
+        before_pull: MyBigDecimal<P>,
+        after_pull: MyBigDecimal<P>,
     },
     Rack {
-        offset: BigDecimal,
+        offset: MyBigDecimal<P>,
     },
     Knit {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Carrier<P>>,
     },
     Tuck {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Carrier<P>>,
     },
     Miss {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Carrier<P>>,
     },
     Split {
-        direction: Direction,
-        source: Needle,
-        destination: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        source: Either<Needle<P>, P::Other>,
+        destination: Either<Needle<P>, P::Other>,
+        carriers: Vec<Carrier<P>>,
     },
     Pause,
     Drop {
-        needle: Needle,
+        needle: Either<Needle<P>, P::Other>,
     },
     Amiss {
-        needle: Needle,
+        needle: Either<Needle<P>, P::Other>,
     },
     Xfer {
-        source: Needle,
-        destination: Needle,
+        source: Either<Needle<P>, P::Other>,
+        destination: Either<Needle<P>, P::Other>,
     },
 }
 
 /// Writes a leading space in front of every carrier, including the first one
 pub(crate) fn fmt_carriers(
     f: &mut Formatter<'_>,
-    carriers: &[Carrier],
+    carriers: &[Carrier<Validated>],
     table: &CarrierTable,
 ) -> Result {
     for carrier in carriers.iter() {
@@ -80,7 +81,7 @@ pub(crate) fn fmt_carriers(
     Ok(())
 }
 
-impl DisplayCarrierTable for BaseOperation {
+impl DisplayCarrierTable for BaseOperation<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
         match self {
             BaseOperation::In { carriers } => {
