@@ -30,7 +30,15 @@
         "extensions": [
           ".k",
           ".knitout"
-        ]
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "knitout",
+        "scopeName": "source.knitout",
+        "path": "./syntaxes/knitout.tmLanguage.json"
       }
     ],
     "configuration": {

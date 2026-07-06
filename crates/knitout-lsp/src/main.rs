@@ -3,7 +3,10 @@
 //! Speaks LSP over stdio, so an editor extension can launch this binary and forward traffic to it.
 
 mod backend;
+mod docs;
+mod hover;
 mod messages;
+mod positions;
 
 use backend::Backend;
 use tower_lsp::{LspService, Server};

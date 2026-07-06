@@ -1,10 +1,17 @@
 # Knitout for VS Code
 
-A minimal VS Code extension that launches the [`knitout-lsp`](../../crates/knitout-lsp)
-language server and displays its diagnostics. It registers the `knitout` language and associates
-`.k` / `.knitout` files with it. It contributes no other editor features — no syntax highlighting,
-semantic tokens, commands, or code actions. Its only purpose is to start the server and surface
-parser/AST diagnostics.
+A minimal VS Code extension for [knitout][knitout] (`.k`). It:
+
+- registers the `knitout` language and associates `.k` / `.knitout` files with it,
+- provides **static syntax highlighting** via a TextMate grammar
+  ([`syntaxes/knitout.tmLanguage.json`](syntaxes/knitout.tmLanguage.json)), and
+- launches the [`knitout-lsp`](../../crates/knitout-lsp) language server, which supplies
+  **diagnostics** and **hover documentation**.
+
+It contributes no other editor features — no semantic tokens, completion, commands, code actions,
+or snippets.
+
+[knitout]: https://textiles-lab.github.io/knitout/knitout.html
 
 ## Requirements
 

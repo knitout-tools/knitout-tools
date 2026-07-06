@@ -551,6 +551,8 @@ name = "knitout-lsp"
 version = "0.1.0"
 dependencies = [
  "dashmap",
+ "either",
+ "knitout-ast",
  "knitout-weak-ast",
  "tokio",
  "tower-lsp",
