@@ -2,17 +2,23 @@
 name = "knitout-weak-ast"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/knitout-tools/knitout-tools"
+authors = ["Nat Hurtig <nhurtig@acm.org>"]
+readme = "README.md"
+keywords = ["parsing", "tree-sitter", "knitout"]
 
 [dependencies]
-knitout-ast = { path = "../knitout-ast" }
+knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
 tree-sitter = "0.26.10"
 bigdecimal = "0.4.10"
 either = "1.16.0"
-indexmap = "2.14.0"
 
 [dev-dependencies]
-tree-sitter-knitout = { path = "../tree-sitter-knitout" }
-knitout-ast = { path = "../knitout-ast", features = ["serde"] }
+tree-sitter-knitout = { version = "0.1.0", path = "../tree-sitter-knitout" }
+knitout-ast = { version = "0.1.0", path = "../knitout-ast", features = [
+    "serde",
+] }
 datatest-stable = "0.3"
 serde_json = "1.0"
 zstd = "0.13"
