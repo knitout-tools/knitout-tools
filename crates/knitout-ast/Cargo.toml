@@ -1,5 +1,6 @@
 [package]
 name = "knitout-ast"
+description = "Parametric AST for Knitout (.k), a machine knitting language."
 version = "0.1.0"
 rust-version.workspace = true
 edition.workspace = true
