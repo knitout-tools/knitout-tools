@@ -2,8 +2,6 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use either::Either;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
 
 use crate::Provenance;
 
@@ -13,7 +11,8 @@ impl<T> PhaseType for T where T: Debug + Hash + PartialEq + Eq + Clone {}
 
 /// An uninhabited stand-in for `Infallible` that also derives serde, used as the `Other` type of a
 /// fully-validated program (where no `Other` node can exist).
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Never {}
 
 impl std::fmt::Display for Never {
@@ -23,57 +22,59 @@ impl std::fmt::Display for Never {
 }
 
 /// A `Phase` whose associated types are all serde-(de)serializable. Deriving `Serialize` /
-/// `Deserialize` on the phase-generic AST types only requires `P: SerdePhase` thanks to this alias.
+/// `Deserialize` on the phase-generic AST types only requires `P: crate::SerdePhase` thanks to this alias.
+#[cfg(feature = "serde")]
 pub trait SerdePhase:
     Phase<
-        Other: Serialize + DeserializeOwned,
-        MagicVersion: Serialize + DeserializeOwned,
-        Operation: Serialize + DeserializeOwned,
-        Header: Serialize + DeserializeOwned,
-        UnknownHeader: Serialize + DeserializeOwned,
-        PositionHeaderValue: Serialize + DeserializeOwned,
-        CarriersHeaderValue: Serialize + DeserializeOwned,
-        Rail: Serialize + DeserializeOwned,
-        RailSide: Serialize + DeserializeOwned,
-        Carrier: Serialize + DeserializeOwned,
-        Direction: Serialize + DeserializeOwned,
-        Bed: Serialize + DeserializeOwned,
-        IsSlider: Serialize + DeserializeOwned,
-        Index: Serialize + DeserializeOwned,
-        Needle: Serialize + DeserializeOwned,
-        MyBigDecimal: Serialize + DeserializeOwned,
-        MyU32: Serialize + DeserializeOwned,
-        MyI32: Serialize + DeserializeOwned,
-        MyString: Serialize + DeserializeOwned,
-        PresserMode: Serialize + DeserializeOwned,
-        XferStyle: Serialize + DeserializeOwned,
+        Other: serde::Serialize + serde::de::DeserializeOwned,
+        MagicVersion: serde::Serialize + serde::de::DeserializeOwned,
+        Operation: serde::Serialize + serde::de::DeserializeOwned,
+        Header: serde::Serialize + serde::de::DeserializeOwned,
+        UnknownHeader: serde::Serialize + serde::de::DeserializeOwned,
+        PositionHeaderValue: serde::Serialize + serde::de::DeserializeOwned,
+        CarriersHeaderValue: serde::Serialize + serde::de::DeserializeOwned,
+        Rail: serde::Serialize + serde::de::DeserializeOwned,
+        RailSide: serde::Serialize + serde::de::DeserializeOwned,
+        Carrier: serde::Serialize + serde::de::DeserializeOwned,
+        Direction: serde::Serialize + serde::de::DeserializeOwned,
+        Bed: serde::Serialize + serde::de::DeserializeOwned,
+        IsSlider: serde::Serialize + serde::de::DeserializeOwned,
+        Index: serde::Serialize + serde::de::DeserializeOwned,
+        Needle: serde::Serialize + serde::de::DeserializeOwned,
+        MyBigDecimal: serde::Serialize + serde::de::DeserializeOwned,
+        MyU32: serde::Serialize + serde::de::DeserializeOwned,
+        MyI32: serde::Serialize + serde::de::DeserializeOwned,
+        MyString: serde::Serialize + serde::de::DeserializeOwned,
+        PresserMode: serde::Serialize + serde::de::DeserializeOwned,
+        XferStyle: serde::Serialize + serde::de::DeserializeOwned,
     >
 {
 }
 
+#[cfg(feature = "serde")]
 impl<P> SerdePhase for P where
     P: Phase<
-            Other: Serialize + DeserializeOwned,
-            MagicVersion: Serialize + DeserializeOwned,
-            Operation: Serialize + DeserializeOwned,
-            Header: Serialize + DeserializeOwned,
-            UnknownHeader: Serialize + DeserializeOwned,
-            PositionHeaderValue: Serialize + DeserializeOwned,
-            CarriersHeaderValue: Serialize + DeserializeOwned,
-            Rail: Serialize + DeserializeOwned,
-            RailSide: Serialize + DeserializeOwned,
-            Carrier: Serialize + DeserializeOwned,
-            Direction: Serialize + DeserializeOwned,
-            Bed: Serialize + DeserializeOwned,
-            IsSlider: Serialize + DeserializeOwned,
-            Index: Serialize + DeserializeOwned,
-            Needle: Serialize + DeserializeOwned,
-            MyBigDecimal: Serialize + DeserializeOwned,
-            MyU32: Serialize + DeserializeOwned,
-            MyI32: Serialize + DeserializeOwned,
-            MyString: Serialize + DeserializeOwned,
-            PresserMode: Serialize + DeserializeOwned,
-            XferStyle: Serialize + DeserializeOwned,
+            Other: serde::Serialize + serde::de::DeserializeOwned,
+            MagicVersion: serde::Serialize + serde::de::DeserializeOwned,
+            Operation: serde::Serialize + serde::de::DeserializeOwned,
+            Header: serde::Serialize + serde::de::DeserializeOwned,
+            UnknownHeader: serde::Serialize + serde::de::DeserializeOwned,
+            PositionHeaderValue: serde::Serialize + serde::de::DeserializeOwned,
+            CarriersHeaderValue: serde::Serialize + serde::de::DeserializeOwned,
+            Rail: serde::Serialize + serde::de::DeserializeOwned,
+            RailSide: serde::Serialize + serde::de::DeserializeOwned,
+            Carrier: serde::Serialize + serde::de::DeserializeOwned,
+            Direction: serde::Serialize + serde::de::DeserializeOwned,
+            Bed: serde::Serialize + serde::de::DeserializeOwned,
+            IsSlider: serde::Serialize + serde::de::DeserializeOwned,
+            Index: serde::Serialize + serde::de::DeserializeOwned,
+            Needle: serde::Serialize + serde::de::DeserializeOwned,
+            MyBigDecimal: serde::Serialize + serde::de::DeserializeOwned,
+            MyU32: serde::Serialize + serde::de::DeserializeOwned,
+            MyI32: serde::Serialize + serde::de::DeserializeOwned,
+            MyString: serde::Serialize + serde::de::DeserializeOwned,
+            PresserMode: serde::Serialize + serde::de::DeserializeOwned,
+            XferStyle: serde::Serialize + serde::de::DeserializeOwned,
         >
 {
 }
@@ -150,7 +151,8 @@ pub fn valid<T>(val: &Either<T, Never>) -> &T {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Annotated<T, A> {
     pub value: T,
     pub annotation: A,

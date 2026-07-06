@@ -3,25 +3,31 @@ use std::hash::{Hash, Hasher};
 
 use bigdecimal::BigDecimal;
 use either::Either;
-use serde::{Deserialize, Serialize};
 
 use crate::{
-    phase::{Phase, SerdePhase, Validated},
+    phase::{Phase, Validated},
     program::{CarrierTable, DisplayCarrierTable},
 };
 
 /// A carrier, which is essentially a variable in knitout. Use a `CarrierTable` to construct
 /// carriers. Don't mix carriers from different tables; you will get undefined behavior or panic! if
 /// so. One table, one program, many carriers.
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct Carrier<P: Phase> {
     pub(crate) id: u32,
     pub(crate) annotation: P::Carrier,
     // The table id ties a carrier to a specific `CarrierTable`; it is assigned from a global
     // counter and so is not stable across runs. Excluded from serialization so golden output is
     // deterministic.
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub(crate) table_id: u32,
 }
 
@@ -82,8 +88,15 @@ impl DisplayCarrierTable for Carrier<Validated> {
 }
 
 /// A direction of movement: Left (-) or Right (+). Oriented with respect to the front bed
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum Direction<P: Phase> {
     Left(P::Direction),
     Right(P::Direction),
@@ -101,8 +114,15 @@ impl Display for Direction<Validated> {
 }
 
 /// A machine's bed: Front (f) or Back (b).
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum Bed<P: Phase> {
     Front(P::Bed),
     Back(P::Bed),
@@ -120,8 +140,15 @@ impl Display for Bed<Validated> {
 }
 
 /// Whether a needle is a slider (s) or not.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum IsSlider<P: Phase> {
     Slider(P::IsSlider),
     NotSlider(P::IsSlider),
@@ -139,8 +166,15 @@ impl Display for IsSlider<Validated> {
 }
 
 /// A needle struct: a triple of a bed, whether it's a slider, and an index into the bed.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct Needle<P: Phase> {
     pub(crate) bed: Bed<P>,
     pub(crate) is_slider: IsSlider<P>,
@@ -186,10 +220,17 @@ impl Display for Needle<Validated> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct MyBigDecimal<P: Phase> {
-    #[serde(with = "crate::serde_helpers::bigdec_either")]
+    #[cfg_attr(feature = "serde", serde(with = "crate::serde_helpers::bigdec_either"))]
     pub(crate) value: Either<BigDecimal, P::Other>,
     pub(crate) annotation: P::MyBigDecimal,
 }
@@ -215,8 +256,15 @@ impl Display for MyBigDecimal<Validated> {
         }
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct MyU32<P: Phase> {
     pub(crate) value: Either<u32, P::Other>,
     pub(crate) annotation: P::MyU32,
@@ -243,8 +291,15 @@ impl Display for MyU32<Validated> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct MyI32<P: Phase> {
     pub(crate) value: Either<i32, P::Other>,
     pub(crate) annotation: P::MyI32,
@@ -271,8 +326,15 @@ impl Display for MyI32<Validated> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct MyString<P: Phase> {
     pub(crate) value: Either<String, P::Other>,
     pub(crate) annotation: P::MyString,

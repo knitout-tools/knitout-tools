@@ -1,19 +1,25 @@
 use std::fmt::{Display, Formatter, Result};
 
 use either::Either;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     base_operations::fmt_carriers,
     knitting_types::{Carrier, Direction, MyBigDecimal, MyString, MyU32, Needle},
-    phase::{Phase, SerdePhase, Validated},
+    phase::{Phase, Validated},
     program::DisplayCarrierTable,
 };
 
 /// An knitout extension operation `x-...`. Known extensions are parsed into their own variants,
 /// while unknown extensions are stored in the `UnknownExtension` variant.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum ExtensionOperation<P: Phase> {
     XStitchNumber {
         value: MyU32<P>,
@@ -82,8 +88,15 @@ pub enum ExtensionOperation<P: Phase> {
 }
 
 /// Valid presser modes for the `x-presser-mode` extension operation.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum PresserMode<P: Phase> {
     Off(P::PresserMode),
     Auto(P::PresserMode),
@@ -103,8 +116,15 @@ impl Display for PresserMode<Validated> {
 }
 
 /// Valid transfer styles for the `x-xfer-style` extension operation.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum XferStyle<P: Phase> {
     FourPass(P::XferStyle),
     TwoPass(P::XferStyle),

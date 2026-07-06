@@ -1,5 +1,1 @@
-# Under `cargo mutants`, run only the fast library unit tests and skip the slow, example-driven
-# golden datatest (crates/knitout-weak-ast/tests/examples_golden.rs). Restricting `cargo test` to
-# `--lib` targets means the integration test is never built or run; the mutants all live in library
-# code, which the unit tests exercise.
-additional_cargo_test_args = ["--lib"]
+additional_cargo_args = ["--", "--skip", "golden_test_round_trip::"]

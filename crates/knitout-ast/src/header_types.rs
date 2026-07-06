@@ -2,11 +2,10 @@ use std::fmt::{Display, Formatter, Result};
 
 use either::Either;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     knitting_types::{Carrier, MyString, MyU32},
-    phase::{Annotated, Phase, SerdePhase, Validated, valid},
+    phase::{Annotated, Phase, Validated, valid},
     program::{CarrierTable, DisplayCarrierTable},
 };
 
@@ -17,8 +16,15 @@ pub type MaybeCarrier<P> = Either<Carrier<P>, <P as Phase>::Other>;
 pub type YarnMap<P> = IndexMap<MaybeCarrier<P>, Annotated<MyString<P>, <P as Phase>::Header>>;
 
 /// The value of the `Carriers:` header, which is a list of carriers and rails.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct CarriersHeaderValue<P: Phase> {
     pub(crate) carriers_and_rails: Either<Vec<CarrierOrRail<P>>, P::Other>,
     pub(crate) annotation: P::CarriersHeaderValue,
@@ -48,8 +54,15 @@ impl<P: Phase> CarriersHeaderValue<P> {
 }
 
 /// Either a carrier or a rail.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum CarrierOrRail<P: Phase> {
     Carrier(Carrier<P>),
     Rail(Rail<P>),
@@ -57,8 +70,15 @@ pub enum CarrierOrRail<P: Phase> {
 }
 
 /// A rail, which has a left and right side, each of which has a list of carriers.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct Rail<P: Phase> {
     pub(crate) left: Either<RailSide<P>, P::Other>,
     pub(crate) right: Either<RailSide<P>, P::Other>,
@@ -92,8 +112,15 @@ impl<P: Phase> Rail<P> {
 }
 
 /// The left or right side of a rail, which has an ordered list of carriers separated by commas.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct RailSide<P: Phase> {
     pub(crate) carriers: Vec<MaybeCarrier<P>>,
     pub(crate) annotation: P::RailSide,
@@ -117,8 +144,15 @@ impl<P: Phase> RailSide<P> {
 }
 
 /// Acceptable values for the `Position:` header.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub enum PositionHeaderValue<P: Phase> {
     Left(P::PositionHeaderValue),
     Center(P::PositionHeaderValue),
@@ -140,13 +174,20 @@ impl Display for PositionHeaderValue<Validated> {
 }
 
 /// The header section of a knitout program.
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[serde(bound(serialize = "P: SerdePhase", deserialize = "P: SerdePhase"))]
+#[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
 pub struct Headers<P: Phase> {
     /// Carriers: value
     pub(crate) carriers: Either<Annotated<CarriersHeaderValue<P>, P::Header>, P::Other>,
     /// Yarn-C: header values, stored as a key-value vector
-    #[serde(with = "crate::serde_helpers::indexmap_seq")]
+    #[cfg_attr(feature = "serde", serde(with = "crate::serde_helpers::indexmap_seq"))]
     pub(crate) yarn: YarnMap<P>,
     /// Machine: value
     pub(crate) machine: Option<Annotated<MyString<P>, P::Header>>,

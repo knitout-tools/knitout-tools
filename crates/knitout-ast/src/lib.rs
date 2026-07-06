@@ -6,6 +6,7 @@ mod phase;
 pub mod phase_transform;
 mod program;
 mod provenance;
+#[cfg(feature = "serde")]
 mod serde_helpers;
 
 pub use base_operations::BaseOperation;
@@ -17,7 +18,9 @@ pub use header_types::{
 pub use knitting_types::{
     Bed, Carrier, Direction, IsSlider, MyBigDecimal, MyI32, MyString, MyU32, Needle,
 };
-pub use phase::{Annotated, Never, Phase, PhaseType, SerdePhase, Validated};
+#[cfg(feature = "serde")]
+pub use phase::SerdePhase;
+pub use phase::{Annotated, Never, Phase, PhaseType, Validated};
 pub use phase_transform::{PhaseTransform, transform_program};
 pub use program::{CarrierTable, DisplayCarrierTable, Operation, Program};
 pub use provenance::{Provenance, Span};

@@ -1,4 +1,3 @@
-#![cfg(not(mutants))]
 //! Golden tests over the `examples/` corpus.
 //!
 //! For every example file this test:
@@ -28,7 +27,7 @@ fn golden_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden")
 }
 
-fn golden_test(path: &Path) -> datatest_stable::Result<()> {
+fn golden_test_round_trip(path: &Path) -> datatest_stable::Result<()> {
     let source = std::fs::read(path)?;
 
     let mut parser = tree_sitter::Parser::new();
@@ -94,5 +93,5 @@ fn golden_test(path: &Path) -> datatest_stable::Result<()> {
 }
 
 datatest_stable::harness! {
-    { test = golden_test, root = "../../examples", pattern = r".*\.k$" },
+    { test = golden_test_round_trip, root = "../../examples", pattern = r".*\.k$" },
 }
