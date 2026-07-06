@@ -89,42 +89,49 @@ Diagnostics appear inline, and `K` (or `vim.lsp.buf.hover()`) shows the hover do
 
 The language server does **not** provide highlighting. In Neovim, use the
 [`tree-sitter-knitout`](../tree-sitter-knitout) grammar together with its
-[`queries/highlights.scm`](../tree-sitter-knitout/queries/highlights.scm) via
-[`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter).
+[`queries/highlights.scm`](../tree-sitter-knitout/queries/highlights.scm).
 
-Register the parser and map the filetype, then install it:
+The steps below use only Neovim's built-in tree-sitter runtime (`vim.treesitter`, Neovim ≥ 0.9),
+so they do **not** depend on the `nvim-treesitter` plugin or its API — which differs between the
+plugin's `master` and `main` branches (on `main`,
+`require("nvim-treesitter.parsers").get_parser_configs()` no longer exists).
 
-```lua
-local parsers = require("nvim-treesitter.parsers").get_parser_configs()
-parsers.knitout = {
-  install_info = {
-    -- Point this at your checkout of this repository.
-    url = "https://github.com/knitout-tools/knitout-tools",
-    location = "crates/tree-sitter-knitout",
-    files = { "src/parser.c" },
-    branch = "main",
-  },
-  filetype = "knitout",
-}
+1. **Build the parser** into a shared library named `knitout.so` and drop it in Neovim's parser
+   directory. The grammar has no external scanner, so a C compiler is enough (run from your
+   checkout of this repository):
 
-vim.filetype.add({ extension = { k = "knitout", knitout = "knitout" } })
-```
+   ```sh
+   mkdir -p ~/.config/nvim/parser
+   cc -o ~/.config/nvim/parser/knitout.so -shared -fPIC -Os \
+     -I crates/tree-sitter-knitout/src \
+     crates/tree-sitter-knitout/src/parser.c
+   ```
 
-```vim
-:TSInstall knitout
-```
+   (Alternatively, with the tree-sitter CLI:
+   `cd crates/tree-sitter-knitout && tree-sitter build --output ~/.config/nvim/parser/knitout.so`.)
 
-Then copy the grammar's highlight query where Neovim can find it, e.g.
-`~/.config/nvim/queries/knitout/highlights.scm`:
+2. **Install the highlight query** by copying the grammar's `highlights.scm` to where Neovim looks
+   for `knitout` queries:
 
-```scheme
-; extends
-```
+   ```sh
+   mkdir -p ~/.config/nvim/queries/knitout
+   cp crates/tree-sitter-knitout/queries/highlights.scm \
+     ~/.config/nvim/queries/knitout/highlights.scm
+   ```
 
-followed by the contents of
-[`crates/tree-sitter-knitout/queries/highlights.scm`](../tree-sitter-knitout/queries/highlights.scm)
-(or simply copy that file to the path above). Highlighting turns on with `:TSBufEnable highlight`
-or automatically once the parser and query are installed.
+3. **Map the file extensions and start highlighting** in your Neovim config:
+
+   ```lua
+   vim.filetype.add({ extension = { k = "knitout", knitout = "knitout" } })
+
+   vim.api.nvim_create_autocmd("FileType", {
+     pattern = "knitout",
+     callback = function()
+       -- The parser named "knitout" and the knitout/highlights.scm query are found automatically.
+       vim.treesitter.start()
+     end,
+   })
+   ```
 
 ## VS Code extension
 
