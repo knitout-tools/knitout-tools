@@ -12,21 +12,37 @@
 //! during regeneration, and `REGEN_GOLDEN` first decompresses the existing golden and skips the
 //! (slow) re-compression when the JSON is unchanged. Regenerate with
 //! `REGEN_GOLDEN=1 cargo test -p knitout-weak-ast --test examples_golden`.
+//!
+//! This one test is intentionally skipped under `cargo mutants` (which builds with `--cfg
+//! mutants`): running it against every mutant would be far too slow. The opt-out is explicit and
+//! local to this file — any *other* test still runs during mutation testing.
+#![allow(unexpected_cfgs)]
 
+// Under `cargo mutants` everything below is compiled out; this trivial `main` keeps the
+// (harness-less) test binary linkable.
+#[cfg(mutants)]
+fn main() {}
+
+#[cfg(not(mutants))]
 use std::path::{Path, PathBuf};
 
+#[cfg(not(mutants))]
 use knitout_ast::{Program, Validated};
+#[cfg(not(mutants))]
 use knitout_weak_ast::{cst_to_program, parsed_to_valid};
 
 /// zstd level used when (re-)writing goldens. Only affects committed file size and regeneration
 /// time, never the comparison (which decompresses first). Kept low so regeneration stays fast; the
 /// corpus is repetitive enough that even a low level compresses it dramatically.
+#[cfg(not(mutants))]
 const ZSTD_LEVEL: i32 = 1;
 
+#[cfg(not(mutants))]
 fn golden_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden")
 }
 
+#[cfg(not(mutants))]
 fn golden_test(path: &Path) -> datatest_stable::Result<()> {
     let source = std::fs::read(path)?;
 
@@ -92,6 +108,7 @@ fn golden_test(path: &Path) -> datatest_stable::Result<()> {
     Ok(())
 }
 
+#[cfg(not(mutants))]
 datatest_stable::harness! {
     { test = golden_test, root = "../../examples", pattern = r".*\.k$" },
 }
