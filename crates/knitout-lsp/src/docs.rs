@@ -26,9 +26,9 @@ pub struct Doc {
     /// The signature / representative syntax, e.g. `"knit <direction> <needle> [carriers…]"`.
     pub syntax: &'static str,
     /// A representative concrete example, e.g. `"knit + f10 3"`.
-    pub example: &'static str,
-    /// A longer description. May be empty.
-    pub description: &'static str,
+    pub example: Option<&'static str>,
+    /// A longer description.
+    pub description: Option<&'static str>,
 }
 
 /// Combine a [`Doc`]'s pieces into the Markdown string shown on hover.
@@ -36,12 +36,15 @@ pub fn render(doc: &Doc) -> String {
     let mut out = format!("**{}** — {}\n\n", doc.title, doc.summary);
     out.push_str("Signature:\n```knitout\n");
     out.push_str(doc.syntax);
-    out.push_str("\n```\n\nExample:\n```knitout\n");
-    out.push_str(doc.example);
-    out.push_str("\n```");
-    if !doc.description.is_empty() {
+    out.push_str("\n```\n");
+    if let Some(example) = doc.example {
+        out.push_str("Example:\n```knitout\n");
+        out.push_str(example);
+        out.push_str("\n```\n");
+    }
+    if let Some(description) = doc.description {
         out.push_str("\n\n");
-        out.push_str(doc.description);
+        out.push_str(description);
     }
     out
 }
@@ -50,10 +53,10 @@ pub fn render(doc: &Doc) -> String {
 /// unrecognized opcode.
 pub fn operation_arity_hint(opcode: &str) -> Option<String> {
     let doc = operation_doc_by_opcode(opcode)?;
-    Some(format!(
-        "Signature: `{}`\nExample: `{}`",
-        doc.syntax, doc.example
-    ))
+    Some(match doc.example {
+        Some(example) => format!("Signature: `{}`\nExample: `{}`", doc.syntax, example),
+        None => format!("Signature: `{}`", doc.syntax),
+    })
 }
 
 /// Documentation for a parsed operation. Returns `None` for `Operation::Other` and for unknown
@@ -62,8 +65,8 @@ pub fn operation_doc(op: &Operation<Parsed>) -> Option<Doc> {
     opcode_of(op).and_then(operation_doc_by_opcode)
 }
 
-/// The canonical opcode string for a parsed operation, or `None` if it has none (an unresolved
-/// `Other` node, or an unknown `x-…` extension).
+/// The opcode string for a parsed operation, or `None` if it has none (an unresolved `Other` node,
+/// or an unknown `x-…` extension).
 fn opcode_of(op: &Operation<Parsed>) -> Option<&'static str> {
     match op {
         Operation::BaseOperation(base) => Some(match base {
@@ -117,38 +120,49 @@ pub fn operation_doc_by_opcode(opcode: &str) -> Option<Doc> {
         // ── carrier-list operations ───────────────────────────────────────────
         "in" => Doc {
             title: "in",
-            summary: "Bring carriers into action.",
+            summary: "Bring carriers into action using the yarn grippers.",
             syntax: "in <carriers…>",
-            example: "in 3",
-            description: "Marks the given carriers as in use without using the yarn inserting hook. Pair with `out` to remove them.",
+            example: Some("in 3 2"),
+            description: Some(
+                "Marks the given carriers as in use without using the yarn inserting hook. Pair with `out` or `outhook` to remove them.",
+            ),
         },
         "inhook" => Doc {
             title: "inhook",
-            summary: "Bring carriers in using the yarn inserting hook.",
+            summary: "Bring carriers into action using the yarn inserting hook.",
             syntax: "inhook <carriers…>",
-            example: "inhook 3",
-            description: "Like `in`, but holds the yarn with the inserting hook until a later `releasehook`.",
+            example: Some("inhook 3 2"),
+            description: Some(
+                "Like `in`, but holds the yarn(s) with the inserting hook until a later `releasehook`. The inserting hook will be parked just before the first stitch made with the carriers.",
+            ),
         },
         "releasehook" => Doc {
             title: "releasehook",
             summary: "Release the yarn inserting hook.",
             syntax: "releasehook <carriers…>",
-            example: "releasehook 3",
-            description: "Releases carriers previously brought in with `inhook`, freeing the inserting hook.",
+            example: Some("releasehook 3 2"),
+            description: Some(
+                "Releases the carriers previously brought in with `inhook`, freeing the inserting
+                hook. Must be after an `inhook` for the same carriers.",
+            ),
         },
         "out" => Doc {
             title: "out",
-            summary: "Take carriers out of action.",
+            summary: "Take carriers out of action by moving them to the yarn grippers.",
             syntax: "out <carriers…>",
-            example: "out 3",
-            description: "Marks the given carriers as no longer in use, without the yarn inserting hook.",
+            example: Some("out 3 2"),
+            description: Some(
+                "Marks the given carriers as no longer in use, without the yarn inserting hook. Can undo an `in` or an `inhook` (as long as the hook has been released).",
+            ),
         },
         "outhook" => Doc {
             title: "outhook",
             summary: "Take carriers out using the yarn inserting hook.",
             syntax: "outhook <carriers…>",
-            example: "outhook 3",
-            description: "Like `out`, but uses the yarn inserting hook to hold and cut the yarn.",
+            example: Some("outhook 3"),
+            description: Some(
+                "Like `out`, but uses the yarn inserting hook to hold and cut the yarn. The inserting hook must not be in use when this is called.",
+            ),
         },
 
         // ── stitch / rack ─────────────────────────────────────────────────────
@@ -156,45 +170,57 @@ pub fn operation_doc_by_opcode(opcode: &str) -> Option<Doc> {
             title: "stitch",
             summary: "Set the stitch (loop-length) values.",
             syntax: "stitch <before> <after>",
-            example: "stitch 5 10",
-            description: "Sets the leading/stitch values applied before and after a needle is operated on.",
+            example: Some("stitch 5 10"),
+            description: Some(
+                "Before forming a loop, pull needle by `before` units; after forming the loop, pull by `after` units. The units are machine-specific.",
+            ),
         },
         "rack" => Doc {
             title: "rack",
             summary: "Set the racking offset between the beds.",
             syntax: "rack <offset>",
-            example: "rack 2",
-            description: "Aligns the back bed relative to the front bed by the given number of needles. A fractional offset (e.g. `0.25`) enables all-needle knitting.",
+            example: Some("rack -2"),
+            description: Some(
+                "Aligns the back bed relative to the front bed by the given number of needles. Positive racking values move the back bed right. Fractional offset, if supported by the machine, enable all-needle knitting.",
+            ),
         },
 
         // ── direction + needle + carriers ─────────────────────────────────────
         "knit" => Doc {
             title: "knit",
-            summary: "Knit a loop, dropping any existing loops.",
+            summary: "Knit through the loops on the needle, dropping any existing loops on the needle.",
             syntax: "knit <direction> <needle> [carriers…]",
-            example: "knit + f10 3",
-            description: "Pulls the carried yarn through all loops on the needle, forming a new loop and dropping the old ones. With no carriers, behaves like `drop`.",
+            example: Some("knit + f-10 3 9"),
+            description: Some(
+                "Pulls the carried yarns through all loops on the needle, forming a new loop and dropping the old ones. With no carriers, behaves like `drop`. The needle bed controls whether this is a knit or a purl. The direction controls the direction the carrier moves past the old loops.",
+            ),
         },
         "tuck" => Doc {
             title: "tuck",
-            summary: "Add a loop without clearing existing loops.",
+            summary: "Drape loops without clearing existing loops.",
             syntax: "tuck <direction> <needle> [carriers…]",
-            example: "tuck + f10 3",
-            description: "Adds the carried yarn to the needle, keeping any loops already held there.",
+            example: Some("tuck + f4 3 2"),
+            description: Some(
+                "Flows the carried yarn over the needle, preserving any loops already held there. Used at the start of a program to form loops in a cast-on.",
+            ),
         },
         "miss" => Doc {
             title: "miss",
             summary: "Move carriers past a needle without knitting.",
             syntax: "miss <direction> <needle> [carriers…]",
-            example: "miss + f10 3",
-            description: "Moves the given carriers to the needle's location without forming a loop.",
+            example: Some("miss - f10 3 2"),
+            description: Some(
+                "Repositions the given carriers to the needle's location without forming a loop. The knit structure is unchanged.",
+            ),
         },
         "split" => Doc {
             title: "split",
-            summary: "Split loops to another needle while knitting.",
+            summary: "Knit through the first loop, transferring old loops to the opposite bed.",
             syntax: "split <direction> <source> <destination> [carriers…]",
-            example: "split + f10 b10 3",
-            description: "Forms a new loop on the source needle and transfers its previous loops to the destination needle.",
+            example: Some("split + f10 b10 3 2"),
+            description: Some(
+                "Forms a new loop on the source needle and transfers its previous loops to the destination needle. The source and destination needles must be on opposite beds and they must be aligned via racking.",
+            ),
         },
 
         // ── no-arg / single-needle ─────────────────────────────────────────────
@@ -202,29 +228,35 @@ pub fn operation_doc_by_opcode(opcode: &str) -> Option<Doc> {
             title: "pause",
             summary: "Pause the machine.",
             syntax: "pause",
-            example: "pause",
-            description: "Requests that the machine pause for operator intervention.",
+            example: None,
+            description: Some(
+                "Requests that the machine pauses at this point for operator intervention. Can be useful for changing yarns or for debugging.",
+            ),
         },
         "drop" => Doc {
             title: "drop",
             summary: "Drop the loops on a needle.",
             syntax: "drop <needle>",
-            example: "drop f10",
-            description: "Releases all loops held on the needle. Equivalent to a `knit` with no carriers.",
+            example: Some("drop f10"),
+            description: Some(
+                "Releases all loops held on the needle. Equivalent to a `knit` with no carriers.",
+            ),
         },
         "amiss" => Doc {
             title: "amiss",
-            summary: "Activate a needle without knitting.",
+            summary: "Equivalent to `miss` without carriers.",
             syntax: "amiss <needle>",
-            example: "amiss f10",
-            description: "Marks activity on the needle without forming or dropping loops.",
+            example: Some("amiss b-10"),
+            description: None, // TODO: what is amiss useful for?
         },
         "xfer" => Doc {
             title: "xfer",
-            summary: "Transfer loops between needles.",
+            summary: "Transfer loops across the beds.",
             syntax: "xfer <source> <destination>",
-            example: "xfer f10 b10",
-            description: "Moves the loops on the source needle to the destination needle. No yarn or carriers are involved.",
+            example: Some("xfer f10 b10"),
+            description: Some(
+                "Moves all loops on the source needle to the destination needle. No carriers are involved. The source and destination needles must be on opposite beds and they must be aligned via racking.",
+            ),
         },
 
         // ── extension operations ───────────────────────────────────────────────
@@ -232,129 +264,153 @@ pub fn operation_doc_by_opcode(opcode: &str) -> Option<Doc> {
             title: "x-stitch-number",
             summary: "Select a machine stitch-number setting.",
             syntax: "x-stitch-number <n>",
-            example: "x-stitch-number 5",
-            description: "Extension: selects a stitch-number entry from the machine's stitch table.",
+            example: Some("x-stitch-number 5"),
+            description: Some(
+                "Selects a stitch-number entry from the machine's stitch table. An alternative to `stitch`.",
+            ),
         },
         "x-speed-number" => Doc {
             title: "x-speed-number",
-            summary: "Select a machine speed-number setting.",
+            summary: "Select a machine speed setting.",
             syntax: "x-speed-number <n>",
-            example: "x-speed-number 3",
-            description: "Extension: selects a speed-number entry from the machine's speed table.",
+            example: Some("x-speed-number 3"),
+            description: Some("Selects a speed entry from the machine's table."),
         },
         "x-sub-roller-number" => Doc {
             title: "x-sub-roller-number",
             summary: "Select a machine sub-roller setting.",
             syntax: "x-sub-roller-number <n>",
-            example: "x-sub-roller-number 2",
-            description: "Extension: selects a sub-roller entry from the machine's table.",
+            example: Some("x-sub-roller-number 2"),
+            description: Some("Selects a sub-roller entry from the machine's table."),
         },
         "x-presser-mode" => Doc {
             title: "x-presser-mode",
             summary: "Set the fabric presser mode.",
             syntax: "x-presser-mode <off|auto|on>",
-            example: "x-presser-mode auto",
-            description: "Extension: controls the presser foot. `auto` lets the machine decide when it is safe.",
+            example: Some("x-presser-mode auto"),
+            description: Some(
+                "Controls the fabric presser. `auto` runs the presser whenever possible, whereas `on` fails to compile if the presser cannot be used at any point.",
+            ),
         },
         "x-xfer-stitch-number" => Doc {
             title: "x-xfer-stitch-number",
             summary: "Select a stitch-number setting for transfers.",
             syntax: "x-xfer-stitch-number <n>",
-            example: "x-xfer-stitch-number 5",
-            description: "Extension: selects the stitch-number entry used for transfer passes.",
+            example: Some("x-xfer-stitch-number 5"),
+            description: Some(
+                "Selects the stitch-number entry used for transfer passes from the machine's table.",
+            ),
         },
         "x-end-pass" => Doc {
             title: "x-end-pass",
             summary: "Mark the end of a knitting pass.",
             syntax: "x-end-pass",
-            example: "x-end-pass",
-            description: "Extension: signals a pass boundary to compilers that group operations into passes.",
+            example: Some("x-end-pass"),
+            description: Some(
+                "Signals to a compiler that the current knitting pass should be forced to end here. Useful for debugging.",
+            ),
         },
         "x-vis-color" => Doc {
             title: "x-vis-color",
             summary: "Set a visualization color for carriers.",
             syntax: "x-vis-color <color> [carriers…]",
-            example: "x-vis-color #ff0000 3",
-            description: "Extension: hints a display color for the given carriers; has no effect on the knit fabric.",
+            example: Some("x-vis-color #ff0000 3"),
+            description: Some(
+                "Sets a display color for the given carriers in a visualizer; has no effect on the knit fabric. Colors are any CSS color string.",
+            ),
         },
         "x-loop-in" => Doc {
             title: "x-loop-in",
-            summary: "Bring a carrier in, forming a starting loop.",
+            summary: "Visualize an existing starter loop.",
             syntax: "x-loop-in <direction> <needle> [carriers…]",
-            example: "x-loop-in + f10 3",
-            description: "Extension: introduces a carrier while forming an anchoring loop on the needle.",
+            example: Some("x-loop-in + f10 3"),
+            description: Some(
+                "Creates a loop out of nowhere for visualization purposes. Should have no effect on compiled knitout.",
+            ),
         },
         "x-yarn-in" => Doc {
             title: "x-yarn-in",
-            summary: "Bring a yarn in at a needle.",
+            summary: "Control the visualizer to bring a yarn in",
             syntax: "x-yarn-in <direction> <needle> [carriers…]",
-            example: "x-yarn-in + f10 3",
-            description: "Extension: introduces a carrier's yarn at the given needle and direction.",
+            example: Some("x-yarn-in + f10 3"),
+            description: None, // TODO: why isn't this just in?
         },
         "x-yarn-out" => Doc {
             title: "x-yarn-out",
-            summary: "Take a yarn out at a needle.",
+            summary: "Control the visualizer to take a yarn out.",
             syntax: "x-yarn-out <direction> <needle> [carriers…]",
-            example: "x-yarn-out + f10 3",
-            description: "Extension: removes a carrier's yarn at the given needle and direction.",
+            example: Some("x-yarn-out + f10 3"),
+            description: None, // TODO: why isn't this just out?
         },
         "x-end" => Doc {
             title: "x-end",
-            summary: "Mark the end of the program.",
+            summary: "Tell the visualizer to stop drawing the file here.",
             syntax: "x-end",
-            example: "x-end",
-            description: "Extension: signals the end of the knitout program.",
+            example: None,
+            description: Some("Should have no effect on compiled knitout."),
         },
         "x-roller-advance" => Doc {
             title: "x-roller-advance",
             summary: "Set the roller advance amount.",
             syntax: "x-roller-advance <value>",
-            example: "x-roller-advance 100",
-            description: "Extension: sets the take-down roller advance used on subsequent passes.",
+            example: Some("x-roller-advance 100"),
+            description: Some("Sets the amount the take-down roller advances between passes."),
         },
         "x-add-roller-advance" => Doc {
             title: "x-add-roller-advance",
-            summary: "Add to the roller advance amount.",
+            summary: "Add to the roller advance amount for this pass only.",
             syntax: "x-add-roller-advance <value>",
-            example: "x-add-roller-advance 50",
-            description: "Extension: adds to the current take-down roller advance for the next pass.",
+            example: Some("x-add-roller-advance 50"),
+            description: Some(
+                "Adds to the base roller advance amount for the current pass only. Multiple calls are cumulative, but reset after a pass completes.",
+            ),
         },
         "x-carrier-spacing" => Doc {
             title: "x-carrier-spacing",
             summary: "Set the carrier spacing.",
             syntax: "x-carrier-spacing <n>",
-            example: "x-carrier-spacing 4",
-            description: "Extension: sets the spacing (in needle units) maintained between carriers.",
+            example: Some("x-carrier-spacing 4"),
+            description: Some(
+                "Sets the minimum spacing (in needle units) that is forcibly maintained between carriers' stopping points.",
+            ),
         },
         "x-carrier-stopping-distance" => Doc {
             title: "x-carrier-stopping-distance",
             summary: "Set how far carriers stop past a needle.",
-            syntax: "x-carrier-stopping-distance <n>",
-            example: "x-carrier-stopping-distance 2",
-            description: "Extension: carriers stop `n` (+0.5) needles past the needle they last operated on.",
+            syntax: "x-carrier-stopping-distance <n>", // TODO: ends with 0.5?
+            example: Some("x-carrier-stopping-distance 2"), // TODO: is this wrong?
+            description: Some(
+                "Make carriers stop `n` (+0.5 with follow through) needles past the needle they last operated on.",
+            ),
         },
         "x-xfer-style" => Doc {
             title: "x-xfer-style",
             summary: "Select the transfer style.",
             syntax: "x-xfer-style <four-pass|two-pass>",
-            example: "x-xfer-style four-pass",
-            description: "Extension: chooses how the compiler realizes transfers on the machine.",
+            example: Some("x-xfer-style four-pass"),
+            description: Some(
+                "Sets how transfers are performed. `four-pass` organizes even and odd front-to-back and back-to-front transfers into their own passes (4 classes), and `two-pass` just separates front-to-back and back-to-front. `four-pass` is slower but might be more reliable.",
+            ),
         },
         "x-loop-start" => Doc {
             title: "x-loop-start",
-            summary: "Mark the start of a loop region.",
+            summary: "Sets up the start of an iterated loop that repeats instructions.",
             syntax: "x-loop-start <n>",
-            example: "x-loop-start 1",
-            description: "Extension: marks the beginning of a numbered loop/repeat region.",
+            example: Some("x-loop-start 23"),
+            description: Some(
+                "Marks the beginning of a repeated region. The number is a machine-specific constant, not the number of repetitions. Each `x-loop-start` must be paired with a matching `x-loop-end` with the same number. Machines may have limits on how deeply nested loops can be.",
+            ),
         },
         "x-loop-end" => Doc {
             title: "x-loop-end",
-            summary: "Mark the end of a loop region.",
+            summary: "Ends an iterated loop that repeats instructions.",
             syntax: "x-loop-end <n>",
-            example: "x-loop-end 1",
-            description: "Extension: marks the end of a numbered loop/repeat region.",
+            example: Some("x-loop-end 23"),
+            description: Some(
+                "Marks the end of a repeated region. The number is a machine-specific constant, not the number of repetitions. Each `x-loop-end` must be paired with a matching `x-loop-start` with the same number. Machines may have limits on how deeply nested loops can be.",
+            ),
         },
-
+        // TODO doc for unrecognized extensions? Probably not... but we have doc for extension headers...
         _ => return None,
     };
     Some(doc)
@@ -366,8 +422,10 @@ pub fn needle_doc() -> Doc {
         title: "Needle",
         summary: "A position on a bed where loops are held.",
         syntax: "[f|b] [s] <index>",
-        example: "f10",
-        description: "A bed (`f` front or `b` back), an optional slider marker `s`, and an integer index (which may be negative). Examples: `f10`, `b-3`, `fs5` (front slider 5).",
+        example: Some("fs10"),
+        description: Some(
+            "A bed (`f` front or `b` back), an optional slider marker `s`, and an integer index (which may be negative). Examples: `f10`, `b-3`, `fs5` (front slider 5).",
+        ),
     }
 }
 
@@ -388,8 +446,10 @@ pub fn direction_doc(direction: &Direction<Parsed>) -> Doc {
         title,
         summary,
         syntax: "+ | -",
-        example: "+",
-        description: "The direction a carrier moves across the bed: `+` is rightward (toward larger needle indices) and `-` is leftward.",
+        example: None,
+        description: Some(
+            "The direction a carrier moves across the bed: `+` is rightward (toward larger needle indices) and `-` is leftward.",
+        ),
     }
 }
 
@@ -397,10 +457,12 @@ pub fn direction_doc(direction: &Direction<Parsed>) -> Doc {
 pub fn magic_doc() -> Doc {
     Doc {
         title: ";!knitout-N",
-        summary: "The knitout version line.",
+        summary: "The knitout magic string.",
         syntax: ";!knitout-<version>",
-        example: ";!knitout-2",
-        description: "Must be the first non-blank line of the file. `N` is the knitout format version (a non-negative integer).",
+        example: Some(";!knitout-2"),
+        description: Some(
+            "Must be the first non-blank line of the file. `N` is the knitout format version (a non-negative integer).",
+        ),
     }
 }
 
@@ -413,7 +475,7 @@ pub enum HeaderKind {
     Gauge,
     Width,
     Position,
-    /// An `X-…` extension header or any unrecognized header.
+    /// An `X-...` extension header or any unrecognized header.
     Extension,
 }
 
@@ -442,52 +504,60 @@ pub fn header_doc(kind: HeaderKind) -> Doc {
     match kind {
         HeaderKind::Carriers => Doc {
             title: "Carriers header",
-            summary: "Declares the available yarn carriers, in order.",
+            summary: "Declares the available yarn carriers, in order, separated by spaces.",
             syntax: ";;Carriers: <name…>",
-            example: ";;Carriers: 1 2 3 4 5 6",
-            description: "Required. Lists the carrier names the program may use, front-to-back on the machine.",
+            example: Some(";;Carriers: 1 2 3 4 5 6"),
+            description: Some(
+                "Required. Lists the carrier names the program may use, front-to-back on the machine. Machines with multiple carriers on the same rail can specify a rail like \"1,2,3;4,5,6\" to indicate that 1,2,3 are on the left side of the rail and 4,5,6 are on the right.",
+            ),
         },
         HeaderKind::Yarn => Doc {
             title: "Yarn header",
             summary: "Describes the yarn loaded on a carrier.",
             syntax: ";;Yarn-<carrier>: <description>",
-            example: ";;Yarn-1: 50-50 Wool-Nylon",
-            description: "Optional. Associates a human-readable yarn description with a carrier named in `Carriers`.",
+            example: Some(";;Yarn-1: 50-50 Wool-Nylon"),
+            description: Some(
+                "Associates a human-readable yarn description with a carrier named in `Carriers`.",
+            ),
         },
         HeaderKind::Machine => Doc {
             title: "Machine header",
             summary: "Names the target knitting machine.",
             syntax: ";;Machine: <name>",
-            example: ";;Machine: SWGXL",
-            description: "Optional. Identifies the machine the program is written for.",
+            example: Some(";;Machine: SWG091N2"),
+            description: Some("Identifies the machine the program is written for."),
         },
         HeaderKind::Gauge => Doc {
             title: "Gauge header",
             summary: "The machine gauge (needles per inch).",
             syntax: ";;Gauge: <n>",
-            example: ";;Gauge: 15",
-            description: "Optional. A non-negative integer giving the needle gauge.",
+            example: Some(";;Gauge: 15"),
+            description: None,
         },
         HeaderKind::Width => Doc {
             title: "Width header",
-            summary: "The number of needles on the machine.",
+            summary: "The number of needles on a bed of the machine.",
             syntax: ";;Width: <n>",
-            example: ";;Width: 540",
-            description: "Optional. A non-negative integer giving the needle-bed width.",
+            example: Some(";;Width: 540"),
+            description: Some("A non-negative integer counting the needles on each bed."),
         },
         HeaderKind::Position => Doc {
             title: "Position header",
             summary: "How to place the piece on the bed.",
             syntax: ";;Position: <Left|Center|Right|Keep>",
-            example: ";;Position: Center",
-            description: "Optional. Controls horizontal placement of the operations on the needle bed.",
+            example: Some(";;Position: Center"),
+            description: Some(
+                "Controls horizontal translation of all operations on the needle bed. `Keep` preserves the given indices, `Center` centers, and `Left`/`Right` move the piece as far as it can go.",
+            ),
         },
         HeaderKind::Extension => Doc {
             title: "Extension header",
             summary: "A non-standard extension header.",
             syntax: ";;X-<name>: <value>",
-            example: ";;X-Stitch-Numbers: 5 6 7",
-            description: "Extension headers begin with `X-`. They carry machine- or tool-specific metadata.",
+            example: Some(";;X-My-Header: 5 6 7"),
+            description: Some(
+                "Extension headers begin with `X-`. They carry machine- or tool-specific metadata.",
+            ),
         },
     }
 }
@@ -537,7 +607,7 @@ mod tests {
                 .unwrap_or_else(|| panic!("no doc for opcode {opcode}"));
             assert!(!doc.summary.is_empty());
             assert!(doc.syntax.starts_with(opcode), "syntax for {opcode}");
-            assert!(!doc.example.is_empty());
+            assert!(doc.example.is_none_or(|s| !s.is_empty()),);
             assert!(operation_arity_hint(opcode).is_some());
         }
     }
@@ -554,7 +624,7 @@ mod tests {
         let md = render(&doc);
         assert!(md.contains("knit"));
         assert!(md.contains(doc.syntax));
-        assert!(md.contains(doc.example));
+        assert!(doc.example.is_none_or(|s| md.contains(s)));
         assert!(md.contains("Example:"));
     }
 
