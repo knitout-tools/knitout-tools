@@ -1,12 +1,15 @@
 [package]
 name = "knitout-weak-ast"
+description = "Tree-sitter CST walker that produces a parametric AST for Knitout (.k), a machine knitting language."
 version = "0.1.0"
-edition = "2024"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/knitout-tools/knitout-tools"
-authors = ["Nat Hurtig <nhurtig@acm.org>"]
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 readme = "README.md"
 keywords = ["parsing", "tree-sitter", "knitout"]
+exclude = ["tests/golden/*"]
 
 [dependencies]
 knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
