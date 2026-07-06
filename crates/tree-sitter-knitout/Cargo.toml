@@ -2,12 +2,13 @@
 name = "tree-sitter-knitout"
 description = "Knitout (.k) is a file format that can represent low-level knitting machine instructions in a machine-independent way."
 version = "0.1.0"
-authors = ["Nat Hurtig <nhurtig@acm.org>"]
-license = "MIT OR Apache-2.0"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 readme = "README.md"
 keywords = ["incremental", "parsing", "tree-sitter", "knitout"]
 categories = ["parser-implementations", "parsing", "text-editors"]
-repository = "https://github.com/knitout-tools/knitout-tools"
 edition = "2021"
 autoexamples = false
 
