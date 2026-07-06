@@ -1,0 +1,5 @@
+{
+  "type": "extensionHost",
+  "request": "launch",
+  "name": "Run Extension"
+}
