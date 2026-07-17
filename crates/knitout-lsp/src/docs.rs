@@ -142,8 +142,7 @@ pub fn operation_doc_by_opcode(opcode: &str) -> Option<Doc> {
             syntax: "releasehook <carriers…>",
             example: Some("releasehook 3 2"),
             description: Some(
-                "Releases the carriers previously brought in with `inhook`, freeing the inserting
-                hook. Must be after an `inhook` for the same carriers.",
+                "Releases the carriers previously brought in with `inhook`, freeing the inserting hook. Must be after an `inhook` for the same carriers.",
             ),
         },
         "out" => Doc {
@@ -566,49 +565,94 @@ pub fn header_doc(kind: HeaderKind) -> Doc {
 mod tests {
     use super::*;
 
+    /// Every opcode the docs module claims to know about. Kept in one place so the coverage and
+    /// hygiene tests below stay in sync as operations are added.
+    const ALL_OPCODES: &[&str] = &[
+        "in",
+        "inhook",
+        "releasehook",
+        "out",
+        "outhook",
+        "stitch",
+        "rack",
+        "knit",
+        "tuck",
+        "miss",
+        "split",
+        "pause",
+        "drop",
+        "amiss",
+        "xfer",
+        "x-stitch-number",
+        "x-speed-number",
+        "x-sub-roller-number",
+        "x-presser-mode",
+        "x-xfer-stitch-number",
+        "x-end-pass",
+        "x-vis-color",
+        "x-loop-in",
+        "x-yarn-in",
+        "x-yarn-out",
+        "x-end",
+        "x-roller-advance",
+        "x-add-roller-advance",
+        "x-carrier-spacing",
+        "x-carrier-stopping-distance",
+        "x-xfer-style",
+        "x-loop-start",
+        "x-loop-end",
+    ];
+
     #[test]
     fn known_opcodes_have_docs() {
-        for opcode in [
-            "in",
-            "inhook",
-            "releasehook",
-            "out",
-            "outhook",
-            "stitch",
-            "rack",
-            "knit",
-            "tuck",
-            "miss",
-            "split",
-            "pause",
-            "drop",
-            "amiss",
-            "xfer",
-            "x-stitch-number",
-            "x-speed-number",
-            "x-sub-roller-number",
-            "x-presser-mode",
-            "x-xfer-stitch-number",
-            "x-end-pass",
-            "x-vis-color",
-            "x-loop-in",
-            "x-yarn-in",
-            "x-yarn-out",
-            "x-end",
-            "x-roller-advance",
-            "x-add-roller-advance",
-            "x-carrier-spacing",
-            "x-carrier-stopping-distance",
-            "x-xfer-style",
-            "x-loop-start",
-            "x-loop-end",
-        ] {
+        for &opcode in ALL_OPCODES {
             let doc = operation_doc_by_opcode(opcode)
                 .unwrap_or_else(|| panic!("no doc for opcode {opcode}"));
             assert!(!doc.summary.is_empty());
             assert!(doc.syntax.starts_with(opcode), "syntax for {opcode}");
             assert!(doc.example.is_none_or(|s| !s.is_empty()),);
             assert!(operation_arity_hint(opcode).is_some());
+        }
+    }
+
+    /// Doc fields are single-line snippets that `render` lays out; a stray newline (usually from a
+    /// wrapped source string literal) leaks a hard break and a run of indentation into hover text.
+    /// Guard every doc's fields against embedded newlines.
+    #[test]
+    fn doc_fields_are_single_line() {
+        let assert_single_line = |label: &str, field: &str| {
+            assert!(
+                !field.contains('\n'),
+                "{label} contains an embedded newline (likely a wrapped string literal): {field:?}"
+            );
+        };
+        let check = |doc: Doc, label: &str| {
+            assert_single_line(label, doc.title);
+            assert_single_line(label, doc.summary);
+            assert_single_line(label, doc.syntax);
+            if let Some(example) = doc.example {
+                assert_single_line(label, example);
+            }
+            if let Some(description) = doc.description {
+                assert_single_line(label, description);
+            }
+        };
+
+        for &opcode in ALL_OPCODES {
+            check(operation_doc_by_opcode(opcode).unwrap(), opcode);
+        }
+        check(needle_doc(), "needle");
+        check(magic_doc(), "magic");
+        for kind in [
+            HeaderKind::Carriers,
+            HeaderKind::Yarn,
+            HeaderKind::Machine,
+            HeaderKind::Gauge,
+            HeaderKind::Width,
+            HeaderKind::Position,
+            HeaderKind::Extension,
+        ] {
+            check(header_doc(kind), "header");
         }
     }
 
