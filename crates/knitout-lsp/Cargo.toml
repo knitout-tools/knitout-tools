@@ -1,0 +1,27 @@
+[package]
+name = "knitout-lsp"
+description = "Language Server Protocol server for Knitout (.k), surfacing parser and AST diagnostics."
+version = "0.1.0"
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+keywords = ["knitout", "lsp", "language-server", "tree-sitter"]
+
+[[bin]]
+name = "knitout-lsp"
+path = "src/main.rs"
+
+[dependencies]
+knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
+knitout-weak-ast = { version = "0.1.0", path = "../knitout-weak-ast" }
+either = "1.16.0"
+tree-sitter = "0.26.10"
+tree-sitter-knitout = { version = "0.1.0", path = "../tree-sitter-knitout" }
+tower-lsp = "0.20"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std"] }
+# Pinned to 5.x so it unifies with the dashmap that tower-lsp already pulls in,
+# rather than introducing a second dashmap version.
+dashmap = "5"

@@ -1,0 +1,68 @@
+{
+  "name": "knitout-lsp",
+  "displayName": "Knitout",
+  "description": "Knitout language support: parser and AST diagnostics via the knitout language server.",
+  "version": "0.1.0",
+  "publisher": "knitout-tools",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/knitout-tools/knitout-tools"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:knitout"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "knitout",
+        "aliases": [
+          "Knitout",
+          "knitout"
+        ],
+        "extensions": [
+          ".k",
+          ".knitout"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "knitout",
+        "scopeName": "source.knitout",
+        "path": "./syntaxes/knitout.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Knitout",
+      "properties": {
+        "knitout.server.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the knitout-lsp server executable. If empty, `knitout-lsp` is looked up on PATH."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.4.0"
+  }
+}
