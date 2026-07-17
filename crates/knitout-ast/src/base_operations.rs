@@ -1,86 +1,96 @@
 use std::fmt::{Formatter, Result};
 
-use bigdecimal::BigDecimal;
+use either::Either;
 
+use crate::phase::Never;
 use crate::{
-    knitting_types::{Carrier, Direction, Needle},
+    knitting_types::{Carrier, Direction, MyBigDecimal, Needle},
+    phase::{Phase, Validated, valid},
     program::{CarrierTable, DisplayCarrierTable},
 };
 
 /// A basic knitout operation. Excludes extension operations, which are a different enum. Also
 /// excludes syntactic sugar operations; faux constructors are provided.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum BaseOperation {
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
+pub enum BaseOperation<P: Phase> {
     In {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Inhook {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Releasehook {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Out {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Outhook {
-        carriers: Vec<Carrier>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Stitch {
-        before_pull: BigDecimal,
-        after_pull: BigDecimal,
+        before_pull: MyBigDecimal<P>,
+        after_pull: MyBigDecimal<P>,
     },
     Rack {
-        offset: BigDecimal,
+        offset: MyBigDecimal<P>,
     },
     Knit {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Tuck {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Miss {
-        direction: Direction,
-        needle: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        needle: Either<Needle<P>, P::Other>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Split {
-        direction: Direction,
-        source: Needle,
-        destination: Needle,
-        carriers: Vec<Carrier>,
+        direction: Direction<P>,
+        source: Either<Needle<P>, P::Other>,
+        destination: Either<Needle<P>, P::Other>,
+        carriers: Vec<Either<Carrier<P>, P::Other>>,
     },
     Pause,
     Drop {
-        needle: Needle,
+        needle: Either<Needle<P>, P::Other>,
     },
     Amiss {
-        needle: Needle,
+        needle: Either<Needle<P>, P::Other>,
     },
     Xfer {
-        source: Needle,
-        destination: Needle,
+        source: Either<Needle<P>, P::Other>,
+        destination: Either<Needle<P>, P::Other>,
     },
 }
 
 /// Writes a leading space in front of every carrier, including the first one
 pub(crate) fn fmt_carriers(
     f: &mut Formatter<'_>,
-    carriers: &[Carrier],
+    carriers: &[Either<Carrier<Validated>, Never>],
     table: &CarrierTable,
 ) -> Result {
     for carrier in carriers.iter() {
         write!(f, " ")?;
-        carrier.fmt_table(f, table)?;
+        valid(carrier).fmt_table(f, table)?;
     }
     Ok(())
 }
 
-impl DisplayCarrierTable for BaseOperation {
+impl DisplayCarrierTable for BaseOperation<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
         match self {
             BaseOperation::In { carriers } => {
@@ -169,9 +179,11 @@ mod tests {
     use super::*;
     use std::fmt;
 
+    use crate::phase::Validated;
+
     // A throwaway wrapper so we can drive a real Formatter through the standard machinery.
     struct FmtCarriersHarness<'a> {
-        carriers: &'a [Carrier],
+        carriers: &'a [Either<Carrier<Validated>, Never>],
         table: &'a CarrierTable,
     }
 
@@ -181,7 +193,7 @@ mod tests {
         }
     }
 
-    fn render(carriers: &[Carrier], table: &CarrierTable) -> String {
+    fn render(carriers: &[Either<Carrier<Validated>, Never>], table: &CarrierTable) -> String {
         FmtCarriersHarness { carriers, table }.to_string()
     }
 
@@ -194,16 +206,22 @@ mod tests {
     #[test]
     fn single_carrier_has_leading_space() {
         let mut table = CarrierTable::new();
-        let c = table.make_carrier("1");
-        assert_eq!(render(&[c], &table), " 1");
+        let c = table.make_carrier("1", ());
+        assert_eq!(render(&[Either::Left(c)], &table), " 1");
     }
 
     #[test]
     fn multiple_carriers_are_space_separated() {
         let mut table = CarrierTable::new();
-        let c1 = table.make_carrier("1");
-        let c2 = table.make_carrier("2");
-        let c3 = table.make_carrier("3");
-        assert_eq!(render(&[c1, c2, c3], &table), " 1 2 3");
+        let c1 = table.make_carrier("1", ());
+        let c2 = table.make_carrier("2", ());
+        let c3 = table.make_carrier("3", ());
+        assert_eq!(
+            render(
+                &[Either::Left(c1), Either::Left(c2), Either::Left(c3)],
+                &table
+            ),
+            " 1 2 3"
+        );
     }
 }

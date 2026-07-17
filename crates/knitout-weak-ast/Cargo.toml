@@ -1,0 +1,34 @@
+[package]
+name = "knitout-weak-ast"
+description = "Tree-sitter CST walker that produces a parametric AST for Knitout (.k), a machine knitting language."
+version = "0.1.0"
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+keywords = ["parsing", "tree-sitter", "knitout"]
+exclude = ["tests/golden/*"]
+
+[dependencies]
+knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
+tree-sitter = "0.26.10"
+bigdecimal = "0.4.10"
+either = "1.16.0"
+
+[dev-dependencies]
+tree-sitter-knitout = { version = "0.1.0", path = "../tree-sitter-knitout" }
+knitout-ast = { version = "0.1.0", path = "../knitout-ast", features = [
+    "serde",
+] }
+datatest-stable = "0.3"
+serde_json = "1.0"
+zstd = "0.13"
+
+[[test]]
+name = "examples_golden"
+harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mutants)'] }

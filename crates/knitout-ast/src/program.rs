@@ -7,53 +7,70 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 static NEXT_CARRIER_TABLE_ID: AtomicU32 = AtomicU32::new(0);
 
+use either::Either;
+
 use crate::{
-    Carrier, Provenance, base_operations::BaseOperation, extension_operations::ExtensionOperation,
-    header_types::Header,
+    Carrier,
+    base_operations::BaseOperation,
+    extension_operations::ExtensionOperation,
+    header_types::Headers,
+    phase::{Annotated, Phase, Validated, valid},
 };
 
 /// A knitout program, complete with headers and magic string
-#[derive(PartialEq, Eq, Debug)]
-pub struct Program {
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
+pub struct Program<P: Phase> {
     /// The ;!knitout-`version` at the top
-    version: u32,
-    /// The headers
-    headers: Header,
+    pub(crate) version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
+    /// The headers, or `Other` if the header block was unrepresentable (e.g. a conflicting header).
+    pub(crate) headers: Either<Headers<P>, P::Other>,
     /// The operations, with attached provenance
-    operations: Vec<(Operation, Provenance)>,
-
+    pub(crate) operations: Vec<Annotated<Operation<P>, P::Operation>>,
     /// The carrier naming table
-    carrier_table: CarrierTable,
+    pub(crate) carrier_table: CarrierTable,
 }
 
-impl Program {
-    pub fn new(version: u32, headers: Header, carriers_table: CarrierTable) -> Self {
+impl<P: Phase> Program<P> {
+    pub fn new(
+        version: Either<Annotated<u32, P::MagicVersion>, P::Other>,
+        headers: Either<Headers<P>, P::Other>,
+        operations: Vec<Annotated<Operation<P>, P::Operation>>,
+        carriers_table: CarrierTable,
+    ) -> Self {
         Self {
             version,
             headers,
-            operations: Vec::new(),
+            operations,
             carrier_table: carriers_table,
         }
     }
 
-    pub fn version(&self) -> u32 {
-        self.version
+    pub fn version(&self) -> &Either<Annotated<u32, P::MagicVersion>, P::Other> {
+        &self.version
     }
 
-    pub fn headers(&self) -> &Header {
+    pub fn headers(&self) -> &Either<Headers<P>, P::Other> {
         &self.headers
     }
 
-    pub fn headers_mut(&mut self) -> &mut Header {
+    pub fn headers_mut(&mut self) -> &mut Either<Headers<P>, P::Other> {
         &mut self.headers
     }
 
-    pub fn operations(&self) -> &[(Operation, Provenance)] {
+    pub fn operations(&self) -> &[Annotated<Operation<P>, P::Operation>] {
         &self.operations
     }
 
-    pub fn push_operation(&mut self, op: Operation, provenance: Provenance) {
-        self.operations.push((op, provenance));
+    pub fn push_operation(&mut self, op: Annotated<Operation<P>, P::Operation>) {
+        self.operations.push(op);
     }
 
     pub fn carrier_table(&self) -> &CarrierTable {
@@ -66,13 +83,21 @@ impl Program {
 }
 
 /// A table that stores carrier names once. Use `CarrierTable::make_carrier` to create `Carrier`s.
+///
+/// Only `id_to_name` is serialized; `name_to_id` is redundant with it and `id` is a run-local
+/// value. Both are excluded so serialized output is deterministic, and both default to
+/// empty/`0` on deserialization (which keeps a deserialized table's `id` in sync with its
+/// carriers' skipped `table_id`, so name lookups still work).
 #[derive(Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CarrierTable {
     /// The map from carrier u32 IDs to their names in the source
     id_to_name: Vec<String>,
     /// The reverse map, taking a name and returning the carrier ID if it exists
+    #[cfg_attr(feature = "serde", serde(skip))]
     name_to_id: HashMap<String, u32>,
     /// A unique ID for this carrier table, passed along to its carriers
+    #[cfg_attr(feature = "serde", serde(skip))]
     id: u32,
 }
 
@@ -100,12 +125,12 @@ impl CarrierTable {
 
     /// Gets the name of a carrier, panicking if the carrier ID is invalid. This should be
     /// impossible, as as all carriers in a program must be created through the carrier table.
-    pub fn carrier_name(&self, carrier: Carrier) -> &str {
+    pub fn carrier_name<P: Phase>(&self, carrier: &Carrier<P>) -> &str {
         self.carrier_name_option(carrier)
-            .expect("Invalid carrier ID: no name found in carrier table. Did you use multiple carrier tables when you should have used one?.")
+            .expect("Invalid carrier ID: no name found in carrier table. Did you use multiple carrier tables when you should have used only one?")
     }
 
-    pub(crate) fn carrier_name_option(&self, carrier: Carrier) -> Option<&str> {
+    pub(crate) fn carrier_name_option<P: Phase>(&self, carrier: &Carrier<P>) -> Option<&str> {
         debug_assert_eq!(
             self.id,
             carrier.table_id(),
@@ -116,37 +141,46 @@ impl CarrierTable {
             .map(String::as_str)
     }
 
-    pub fn make_carrier(&mut self, name: &str) -> Carrier {
+    pub fn make_carrier<P: Phase>(&mut self, name: &str, annotation: P::Carrier) -> Carrier<P> {
         if let Some(&id) = self.name_to_id.get(name) {
-            Carrier::new(id, self.id)
+            Carrier::new(id, annotation, self.id)
         } else {
             let id = u32::try_from(self.id_to_name.len())
                 .expect("Too many carriers: carrier table overflowed u32");
             self.id_to_name.push(name.to_owned());
             self.name_to_id.insert(name.to_owned(), id);
-            Carrier::new(id, self.id)
+            Carrier::new(id, annotation, self.id)
         }
     }
 }
 
 /// An operation in a knitout program: either a base operation or an extension operation
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum Operation {
-    BaseOperation(BaseOperation),
-    ExtensionOperation(ExtensionOperation),
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "P: crate::SerdePhase",
+        deserialize = "P: crate::SerdePhase"
+    ))
+)]
+pub enum Operation<P: Phase> {
+    BaseOperation(BaseOperation<P>),
+    ExtensionOperation(ExtensionOperation<P>),
+    Other(P::Other),
 }
 
 /// Errors out when the program's carrier table is missing entries
-impl Display for Program {
+impl Display for Program<Validated> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        writeln!(f, ";!knitout-{}", self.version)?;
+        writeln!(f, ";!knitout-{}", valid(&self.version).value)?;
         // writes a newline at the end of headers:
-        self.headers.fmt_table(f, &self.carrier_table)?;
-        for (op, provenance) in &self.operations {
+        valid(&self.headers).fmt_table(f, &self.carrier_table)?;
+        for op in &self.operations {
             // makes an empty line between operations and headers
             writeln!(f)?;
-            op.fmt_table(f, &self.carrier_table)?;
-            if let Some(source) = provenance.source() {
+            op.value.fmt_table(f, &self.carrier_table)?;
+            if let Some(source) = op.annotation.source() {
                 write!(f, " ;!source: {}", source)?;
             }
         }
@@ -160,20 +194,26 @@ pub trait DisplayCarrierTable {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result;
 }
 
-impl DisplayCarrierTable for Operation {
+impl DisplayCarrierTable for Operation<Validated> {
     fn fmt_table(&self, f: &mut Formatter<'_>, table: &CarrierTable) -> Result {
         match self {
             Operation::BaseOperation(op) => op.fmt_table(f, table),
             Operation::ExtensionOperation(op) => op.fmt_table(f, table),
+            Operation::Other(x) => match *x {},
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use either::Either;
+
     use crate::{
-        Bed, CarrierOrRail, Direction, IsSlider, Needle, PositionHeaderValue, Span,
+        BaseOperation, Bed, CarrierOrRail, Direction, ExtensionOperation, IsSlider, Needle,
+        PositionHeaderValue, Provenance, Span, Validated,
         header_types::CarriersHeaderValue,
+        knitting_types::{MyI32, MyString, MyU32},
+        phase::{Annotated, valid},
     };
 
     use super::*;
@@ -183,16 +223,16 @@ mod tests {
         let mut table1 = CarrierTable::new();
         let mut table2 = CarrierTable::new();
 
-        table1.make_carrier("A");
-        table1.make_carrier("B");
+        table1.make_carrier::<Validated>("A", ());
+        table1.make_carrier::<Validated>("B", ());
 
-        table2.make_carrier("A");
-        table2.make_carrier("B");
+        table2.make_carrier::<Validated>("A", ());
+        table2.make_carrier::<Validated>("B", ());
 
         assert_eq!(table1, table2);
 
         // Add a new carrier to table1
-        table1.make_carrier("C");
+        table1.make_carrier::<Validated>("C", ());
 
         // Now the tables should not be equal
         assert_ne!(table1, table2);
@@ -201,30 +241,52 @@ mod tests {
     #[test]
     fn test_program_getters() {
         let mut carrier_table = CarrierTable::new();
-        let carrier_a = carrier_table.make_carrier("A");
-        let carrier_b = carrier_table.make_carrier("B");
+        let carrier_a = carrier_table.make_carrier("A", ());
+        let carrier_b = carrier_table.make_carrier("B", ());
 
-        let headers = Header::new(CarriersHeaderValue::new(vec![
-            CarrierOrRail::Carrier(carrier_a),
-            CarrierOrRail::Carrier(carrier_b),
-        ]));
-        let mut program = Program::new(18, headers, carrier_table);
+        let headers = Headers::new(Either::Left(Annotated::unit(CarriersHeaderValue::new(
+            Either::Left(vec![
+                CarrierOrRail::Carrier(carrier_a),
+                CarrierOrRail::Carrier(carrier_b),
+            ]),
+            (),
+        ))));
+        let mut program = Program::<Validated>::new(
+            Either::Left(Annotated::unit(18u32)),
+            Either::Left(headers),
+            Vec::new(),
+            carrier_table,
+        );
 
-        let carrier_c = program.carrier_table_mut().make_carrier("C");
-        assert_eq!(program.carrier_table().carrier_name(carrier_c), "C");
+        let carrier_c: Carrier<Validated> = program.carrier_table_mut().make_carrier("C", ());
+        assert_eq!(program.carrier_table().carrier_name(&carrier_c), "C");
 
-        assert_eq!(program.version(), 18);
-        assert_eq!(program.headers().carriers().carriers_and_rails().len(), 2);
+        assert_eq!(valid(program.version()).value, 18u32);
+        let carriers_val = valid(valid(program.headers()).carriers());
+        assert_eq!(
+            carriers_val
+                .value
+                .carriers_and_rails()
+                .left()
+                .unwrap()
+                .len(),
+            2
+        );
         assert_eq!(program.operations().len(), 0);
 
-        program.push_operation(
+        program.push_operation(Annotated::new(
             Operation::BaseOperation(BaseOperation::Tuck {
-                direction: Direction::Right,
-                needle: Needle::new(Bed::Front, IsSlider::NotSlider, 5),
-                carriers: vec![carrier_a],
+                direction: Direction::Right(()),
+                needle: Either::Left(Needle::new(
+                    Bed::Front(()),
+                    IsSlider::NotSlider(()),
+                    MyI32::new(Either::Left(5i32), ()),
+                    (),
+                )),
+                carriers: vec![Either::Left(carrier_a)],
             }),
             Provenance::default(),
-        );
+        ));
 
         assert_eq!(program.operations().len(), 1);
     }
@@ -232,34 +294,58 @@ mod tests {
     #[test]
     fn test_program_display() {
         let mut carrier_table = CarrierTable::new();
-        let carrier_a = carrier_table.make_carrier("A");
-        let carrier_b = carrier_table.make_carrier("B");
+        let carrier_a = carrier_table.make_carrier("A", ());
+        let carrier_b = carrier_table.make_carrier("B", ());
 
-        let headers = Header::new(CarriersHeaderValue::new(vec![
-            CarrierOrRail::Carrier(carrier_a),
-            CarrierOrRail::Carrier(carrier_b),
-        ]));
-        let mut program = Program::new(18, headers, carrier_table);
+        let headers = Headers::new(Either::Left(Annotated::unit(CarriersHeaderValue::new(
+            Either::Left(vec![
+                CarrierOrRail::Carrier(carrier_a),
+                CarrierOrRail::Carrier(carrier_b),
+            ]),
+            (),
+        ))));
+        let mut program = Program::<Validated>::new(
+            Either::Left(Annotated::unit(18u32)),
+            Either::Left(headers),
+            Vec::new(),
+            carrier_table,
+        );
         program
             .headers_mut()
-            .set_position(PositionHeaderValue::Left);
-        program.headers_mut().set_gauge(1500);
+            .as_mut()
+            .left()
+            .unwrap()
+            .set_position(Annotated::unit(PositionHeaderValue::Left(())));
+        program
+            .headers_mut()
+            .as_mut()
+            .left()
+            .unwrap()
+            .set_gauge(Annotated::new(MyU32::new(Either::Left(1500u32), ()), ()));
 
-        program.push_operation(
+        program.push_operation(Annotated::new(
             Operation::BaseOperation(BaseOperation::Tuck {
-                direction: Direction::Right,
-                needle: Needle::new(Bed::Front, IsSlider::NotSlider, 5),
-                carriers: vec![carrier_a],
+                direction: Direction::Right(()),
+                needle: Either::Left(Needle::new(
+                    Bed::Front(()),
+                    IsSlider::NotSlider(()),
+                    MyI32::new(Either::Left(5i32), ()),
+                    (),
+                )),
+                carriers: vec![Either::Left(carrier_a)],
             }),
             Provenance::new(Some(Span::new(1, 1)), None),
-        );
-        program.push_operation(
+        ));
+        program.push_operation(Annotated::new(
             Operation::ExtensionOperation(ExtensionOperation::UnknownExtension {
-                name: "x-custom".to_string(),
-                arguments: vec!["arg1".to_string(), "arg2".to_string()],
+                name: MyString::new(Either::Left("x-custom".to_string()), ()),
+                arguments: vec![
+                    MyString::new(Either::Left("arg1".to_string()), ()),
+                    MyString::new(Either::Left("arg2".to_string()), ()),
+                ],
             }),
             Provenance::new(None, Some("test_source".to_string())),
-        );
+        ));
 
         let expected_output = ";!knitout-18
 ;;Carriers: A B

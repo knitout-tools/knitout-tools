@@ -9,20 +9,19 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier)))))
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (header
+      content: (line_content))))
 
 ================================================================================
 headers-interspersed-newlines
@@ -53,72 +52,63 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (tag_comment
+      value: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (header
+      content: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (header
+      content: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (header
+      content: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
+    (header
+      content: (line_content)))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))))
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 header-whitespace
@@ -135,36 +125,31 @@ knit + f3 1
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier)))))
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))))
+  (line
+    (header
+      content: (line_content)))
+  (line
+    (header
+      content: (line_content)))
+  (line
+    (header
+      content: (line_content)))
+  (line
+    (header
+      content: (line_content)))
+  (line
+    (header
+      content: (line_content))))
 
 ================================================================================
 extension-header
@@ -178,17 +163,15 @@ extension-header
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
-  (header
-    (extension_header
-      name: (extension_header_name)
-      value: (header_value)))
-  (header
-    (extension_header
-      name: (extension_header_name)
-      value: (header_value)))
-  (header
-    (extension_header
-      name: (extension_header_name)
-      value: (header_value))))
+  (line
+    (tag_comment
+      value: (line_content)))
+  (line
+    (header
+      content: (line_content)))
+  (line
+    (header
+      content: (line_content)))
+  (line
+    (header
+      content: (line_content))))

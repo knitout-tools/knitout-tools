@@ -1,4 +1,4 @@
-use knitout_ast::Program;
+use knitout_ast::{Program, Validated};
 
 use crate::{effect::KnitEffect, state::MachineState};
 
@@ -11,7 +11,7 @@ pub trait Backend {
     /// Create an instance of a backend that will listen to this program's execution. The backend
     /// will likely use this to view the version number, headers, and carrier table. Has the option
     /// to bail out at this point with an error.
-    fn register(program: &Program) -> Result<Self, Self::Error>
+    fn register(program: &Program<Validated>) -> Result<Self, Self::Error>
     where
         Self: Sized;
 
@@ -23,7 +23,7 @@ pub trait Backend {
         effect: KnitEffect,
         state: &MachineState,
         operation_index: usize,
-        program: &Program,
+        program: &Program<Validated>,
     ) -> Option<Self::Error>;
 
     /// After the program is finished, return the output of the backend. Can optionally fail.
@@ -31,6 +31,6 @@ pub trait Backend {
 }
 
 /// Run a knitout program on the backend, returning either the intended result or an error
-pub fn run_knitout<B: Backend>(program: &Program) -> Result<B::Output, B::Error> {
+pub fn run_knitout<B: Backend>(program: &Program<Validated>) -> Result<B::Output, B::Error> {
     MachineState::execute::<B>(program)
 }

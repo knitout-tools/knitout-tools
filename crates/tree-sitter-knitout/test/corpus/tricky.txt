@@ -8,27 +8,34 @@ unassociated source comment is a comment
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    comment: (comment
-      text: (comment_text))))
+    (tag_comment
+      value: (line_content)))
+  (line
+    (tag_comment
+      value: (line_content))))
 
 ================================================================================
 almost source comment
 ================================================================================
 
 ;!knitout-2
-;!source caston.knit:12
+knit + f0 ;!source caston.knit:12
 
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    comment: (comment
-      text: (comment_text))))
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument))
+      tag_comment: (tag_comment
+        value: (line_content)))))
 
 ================================================================================
 valid slider needle
@@ -40,14 +47,14 @@ drop fs10
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (drop
-      needle: (needle
-        bed: (bed)
-        slider: (slider)
-        index: (needle_index)))))
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)))))
 
 ================================================================================
 header after operation
@@ -60,17 +67,17 @@ drop f10
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (drop
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))))
-  (header
-    (carriers_header
-      value: (carriers_value
-        (carrier)))))
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument))))
+  (line
+    (header
+      content: (line_content))))
 
 ================================================================================
 operation with source comment
@@ -82,15 +89,15 @@ knit + f10 1 ;!source: caston.knit:17
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
   (line
-    operation: (knit
-      direction: (direction)
-      needle: (needle
-        bed: (bed)
-        index: (needle_index))
-      carriers: (pos_carrier_set
-        (carrier)))
-    source_comment: (source_comment
-      source: (comment_text))))
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)
+        argument: (argument))
+      tag_comment: (tag_comment
+        value: (line_content)))))

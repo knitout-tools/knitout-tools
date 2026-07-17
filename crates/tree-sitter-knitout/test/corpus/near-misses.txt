@@ -8,11 +8,25 @@ header missing value
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
-  (header
-    (gauge_header
-      value: (MISSING nonneg_integer))))
+  (line
+    (tag_comment
+      value: (line_content)))
+  (line
+    (header
+      content: (line_content))))
+
+================================================================================
+bad knitout declaration
+================================================================================
+
+;!knito
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (line
+    (tag_comment
+      value: (line_content))))
 
 ================================================================================
 space in magic string
@@ -22,8 +36,10 @@ space in magic string
 
 --------------------------------------------------------------------------------
 
-(ERROR
-  (nonneg_integer))
+(source_file
+  (line
+    (tag_comment
+      (line_content))))
 
 ================================================================================
 needle requires adjacency
@@ -35,11 +51,15 @@ drop f 10
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
-  (ERROR
-    (bed)
-    (nonneg_integer)))
+  (line
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 slider requires adjacency
@@ -51,12 +71,15 @@ drop fs 10
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
-  (ERROR
-    (bed)
-    (slider)
-    (nonneg_integer)))
+  (line
+    (tag_comment
+      value: (line_content)))
+  (line
+    (op_line
+      operation: (operation
+        opcode: (opcode)
+        argument: (argument)
+        argument: (argument)))))
 
 ================================================================================
 double semicolon plain comment
@@ -68,7 +91,9 @@ double semicolon plain comment
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version))
-  (ERROR
-    (UNEXPECTED 'n')))
+  (line
+    (tag_comment
+      value: (line_content)))
+  (line
+    (header
+      content: (line_content))))

@@ -5,8 +5,9 @@ just-magic
 --------------------------------------------------------------------------------
 
 (source_file
-  (magic
-    (version)))
+  (line
+    (tag_comment
+      (line_content))))
 
 ================================================================================
 magic-with-newlines
@@ -19,5 +20,6 @@ magic-with-newlines
 --------------------------------------------------------------------------------
 
 (source_file
-  magic: (magic
-    version: (version)))
+  (line
+    (tag_comment
+      value: (line_content))))
