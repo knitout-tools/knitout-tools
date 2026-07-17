@@ -82,9 +82,9 @@ fn machine_width(program: &Program<Validated>) -> Option<u32> {
     }
 }
 
-/// The `(wale, generation)` of the deepest loop among `infos`, for a new loop to inherit.
-fn max_parent(infos: impl IntoIterator<Item = (u64, u32)>) -> Option<(u64, u32)> {
-    infos.into_iter().max_by_key(|(_, generation)| *generation)
+/// The generation of the deepest loop among `generations`, for a new loop to inherit.
+fn max_parent(generations: impl IntoIterator<Item = u32>) -> Option<u32> {
+    generations.into_iter().max()
 }
 
 const ADJACENT: i64 = 1;
@@ -102,8 +102,8 @@ struct Analyzer {
     width_reported: bool,
     /// The operation index whose op-start checks have already run.
     current_index: Option<usize>,
-    /// The `(wale, generation)` a loop formed later in the current operation should inherit.
-    pending_parent: Option<(u64, u32)>,
+    /// The generation a loop formed later in the current operation should inherit.
+    pending_parent: Option<u32>,
     in_spans: HashMap<Carrier<Validated>, Option<Span>>,
     hook_span: Option<Span>,
     hooked: HashSet<Carrier<Validated>>,
@@ -174,7 +174,8 @@ impl Analyzer {
             }
             BaseOperation::Tuck {
                 needle, carriers, ..
-            } if !carriers.is_empty() => {
+            } => {
+                // With no carriers this is an `amiss`; the loop below simply does nothing.
                 let needle = only(needle).clone();
                 let carriers = owned_carriers(carriers);
                 for &c in &carriers {
@@ -185,9 +186,9 @@ impl Analyzer {
             }
             BaseOperation::Miss {
                 needle, carriers, ..
-            } if !carriers.is_empty() => {
-                let needle = only(needle).clone();
+            } => {
                 // A miss moves the carrier but does not itself open a float; just relocate it.
+                let needle = only(needle).clone();
                 for c in owned_carriers(carriers) {
                     let slot = self.machine.slot(&needle);
                     self.last_stitch.insert(c, (slot, span));
@@ -378,7 +379,7 @@ impl Analyzer {
                 });
             }
         }
-        self.pending_parent = max_parent(removed.iter().map(|i| (i.wale, i.generation)));
+        self.pending_parent = max_parent(removed.iter().map(|i| i.generation));
     }
 
     fn on_loops_transferred(
@@ -413,7 +414,7 @@ impl Analyzer {
             }
             self.check_lateral_movement(*id, span);
             if let Some(info) = self.machine.get(*id) {
-                parents.push((info.wale, info.generation));
+                parents.push(info.generation);
             }
         }
         self.pending_parent = max_parent(parents);
@@ -642,9 +643,9 @@ impl Backend for Analyzer {
         program: &Program<Validated>,
     ) -> Option<Self::Error> {
         let span = op_span(program, operation_index);
-        if operation_index < program.operations().len()
-            && self.current_index != Some(operation_index)
-        {
+        // A new operation is starting (the end-of-program index has no base op, so
+        // `on_operation_start` is a no-op there — no explicit bounds check needed).
+        if self.current_index != Some(operation_index) {
             self.current_index = Some(operation_index);
             self.pending_parent = None;
             self.on_operation_start(program, operation_index);
@@ -978,15 +979,34 @@ mod tests {
             !warns(&d, |w| matches!(w, RuntimeWarning::LongFloat { .. })),
             "{d:?}"
         );
+        // The miss itself carried a yarn, so it is not a "miss with no yarn".
+        assert!(!warns(&d, |w| matches!(
+            w,
+            RuntimeWarning::MissWithNoYarn { .. }
+        )));
     }
 
     #[test]
     fn continuous_pickup_stitch() {
+        // Adjacent non-zero indices (f1, f2) so the |prev - cur| == 1 test is exercised.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
-            vec![in_(&[c]), tuck(pos(), f(0), &[c]), tuck(pos(), f(1), &[c])]
+            vec![in_(&[c]), tuck(pos(), f(1), &[c]), tuck(pos(), f(2), &[c])]
         });
         assert!(warns(&d, |w| matches!(
+            w,
+            RuntimeWarning::ContinuousPickUpStitch { .. }
+        )));
+    }
+
+    #[test]
+    fn non_adjacent_pickups_are_fine() {
+        // Same bed but 5 apart is not a continuous pick-up.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![in_(&[c]), tuck(pos(), f(0), &[c]), tuck(pos(), f(5), &[c])]
+        });
+        assert!(!warns(&d, |w| matches!(
             w,
             RuntimeWarning::ContinuousPickUpStitch { .. }
         )));
@@ -1004,10 +1024,60 @@ mod tests {
         )));
     }
 
+    #[test]
+    fn drop_after_pickup_needs_opposite_direction() {
+        // Knitting the pick-up in the SAME direction is a normal knit, not a drop.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![in_(&[c]), tuck(pos(), f(0), &[c]), knit(pos(), f(0), &[c])]
+        });
+        assert!(!warns(&d, |w| matches!(
+            w,
+            RuntimeWarning::DropAfterPickUp { .. }
+        )));
+    }
+
+    #[test]
+    fn drop_after_pickup_needs_a_pickup_loop() {
+        // The loop on the needle was pulled through (a real knit), so knitting it off is normal.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                knit(pos(), f(0), &[c]), // now f0 holds a pulled-through loop
+                knit(neg(), f(0), &[c]),
+            ]
+        });
+        assert!(!warns(&d, |w| matches!(
+            w,
+            RuntimeWarning::DropAfterPickUp { .. }
+        )));
+    }
+
+    #[test]
+    fn empty_knit_on_empty_needle_is_not_knitting_through_nothing() {
+        // `knit` with no carriers is a drop; on an empty needle it must not warn about knitting
+        // through nothing (only NoYarnCarrier applies).
+        let d = run(None, |_t| vec![knit(pos(), f(0), &[])]);
+        assert!(
+            !warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::KnittingThroughNothing { .. }
+            )),
+            "{d:?}"
+        );
+        assert!(warns(&d, |w| matches!(
+            w,
+            RuntimeWarning::NoYarnCarrier { .. }
+        )));
+    }
+
     // ── loop stacking / remains ──────────────────────────────────────────
 
     #[test]
-    fn max_hold_loops() {
+    fn max_hold_loops_warns_once_at_four() {
+        // Five tucks on one needle: the warning fires exactly once, when the count reaches 4.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
@@ -1016,12 +1086,19 @@ mod tests {
                 tuck(pos(), f(0), &[c]),
                 tuck(pos(), f(0), &[c]),
                 tuck(pos(), f(0), &[c]),
+                tuck(pos(), f(0), &[c]),
             ]
         });
-        assert!(warns(&d, |w| matches!(
-            w,
+        let hits: Vec<_> = d
+            .warnings
+            .iter()
+            .filter(|w| matches!(w, RuntimeWarning::MaxHoldLoops { .. }))
+            .collect();
+        assert_eq!(hits.len(), 1, "{d:?}");
+        assert!(matches!(
+            hits[0],
             RuntimeWarning::MaxHoldLoops { count: 4, .. }
-        )));
+        ));
     }
 
     #[test]
@@ -1080,6 +1157,33 @@ mod tests {
             w,
             RuntimeWarning::TransferWithPickUpStitch { .. }
         )));
+        // A single loop is not "overlapped".
+        assert!(!warns(&d, |w| matches!(
+            w,
+            RuntimeWarning::TransferWithOverlappedLoops { .. }
+        )));
+    }
+
+    #[test]
+    fn transfer_aligned_under_racking_has_no_error() {
+        // At rack 2, f5 lines up with b3; this is a legal, aligned transfer.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(5), &[c]),
+                rack(2),
+                xfer(f(5), b(3)),
+            ]
+        });
+        assert!(
+            !errs(&d, |e| matches!(
+                e,
+                RuntimeError::TransferAtWrongRacking { .. }
+                    | RuntimeError::TransferWithWrongBeds { .. }
+            )),
+            "{d:?}"
+        );
     }
 
     // ── lineage: hold / continuous transfer / unstable split ─────────────
@@ -1103,6 +1207,48 @@ mod tests {
                 w,
                 RuntimeWarning::LoopHeldTooLong { rows: 3, .. }
             )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn loop_held_too_long_at_end_of_program() {
+        // Same as above, but the held loop is never taken off — the check fires at program end.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]), // held loop, never dropped
+                tuck(pos(), f(1), &[c]),
+                knit(neg(), f(1), &[c]),
+                knit(pos(), f(1), &[c]),
+                knit(neg(), f(1), &[c]), // carrier frontier reaches 3
+            ]
+        });
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::LoopHeldTooLong { rows: 3, .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn short_lived_loop_is_not_held_too_long() {
+        // A loop knit off after one row is not "held too long".
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                knit(neg(), f(0), &[c]),
+                drop(f(0)),
+                out(&[c]),
+            ]
+        });
+        assert!(
+            !warns(&d, |w| matches!(w, RuntimeWarning::LoopHeldTooLong { .. })),
             "{d:?}"
         );
     }
@@ -1156,19 +1302,44 @@ mod tests {
 
     #[test]
     fn racking_wearing_out_yarn() {
+        // A at slot 3 and B at slot 5 are yarn-adjacent and born 2 apart; B is then moved to slot
+        // 15, so they end up 12 apart.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
                 in_(&[c]),
-                tuck(pos(), f(0), &[c]), // loop A at slot 0
-                tuck(pos(), f(1), &[c]), // loop B at slot 1 (yarn-adjacent, close)
-                xfer(f(1), b(1)),        // B -> b1 (slot 1 at rack 0)
+                tuck(pos(), f(3), &[c]),
+                tuck(pos(), f(5), &[c]),
+                xfer(f(5), b(5)), // B -> b5 (slot 5 at rack 0)
                 rack(10),
-                xfer(b(1), f(11)), // B -> f11 (slot 11); now 11 away from A
+                xfer(b(5), f(15)), // B -> f15 (slot 15)
             ]
         });
         assert!(
             warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::RackingWearingOutYarn { distance: 12, .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn racking_wear_boundary() {
+        // Same setup but B only reaches slot 9, exactly 6 from A — not a wear warning.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(3), &[c]),
+                tuck(pos(), f(5), &[c]),
+                xfer(f(5), b(5)),
+                rack(4),
+                xfer(b(5), f(9)), // slot 9, exactly 6 from A at slot 3
+            ]
+        });
+        assert!(
+            !warns(&d, |w| matches!(
                 w,
                 RuntimeWarning::RackingWearingOutYarn { .. }
             )),
@@ -1178,18 +1349,41 @@ mod tests {
 
     #[test]
     fn pulldown_takedown_overload() {
+        // A single loop born at slot 2, moved to slot 15: a lateral move of 13 (> 12).
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
                 in_(&[c]),
-                tuck(pos(), f(0), &[c]), // loop A at slot 0 (no yarn neighbour)
-                xfer(f(0), b(0)),
-                rack(20),
-                xfer(b(0), f(20)), // A moved to slot 20 (> 12 from birth)
+                tuck(pos(), f(2), &[c]),
+                xfer(f(2), b(2)),
+                rack(13),
+                xfer(b(2), f(15)),
             ]
         });
         assert!(
             warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::PulldownTakedownOverload { distance: 13, .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn pulldown_boundary() {
+        // Moving to slot 14 is a lateral move of exactly 12 — not an overload.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(2), &[c]),
+                xfer(f(2), b(2)),
+                rack(12),
+                xfer(b(2), f(14)),
+            ]
+        });
+        assert!(
+            !warns(&d, |w| matches!(
                 w,
                 RuntimeWarning::PulldownTakedownOverload { .. }
             )),
@@ -1212,21 +1406,75 @@ mod tests {
     }
 
     #[test]
-    fn slack_of_edge_stitch() {
+    fn unstable_yarn_feeding_onto_front_is_fine() {
+        // Hooked but knitting onto the near (front) bed feeds fine.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
-            vec![
-                in_(&[c]),
-                tuck(pos(), f(0), &[c]),
-                tuck(pos(), b(0), &[c]), // tube column at index 0
-                rack(2),
-                tuck(pos(), f(0), &[c]), // knit the racked tube edge
-            ]
+            vec![inhook(&[c]), tuck(pos(), f(0), &[c])]
         });
-        assert!(warns(&d, |w| matches!(
+        assert!(!warns(&d, |w| matches!(
             w,
-            RuntimeWarning::SlackOfEdgeStitch { .. }
+            RuntimeWarning::UnstableYarnFeeding { .. }
         )));
+    }
+
+    #[test]
+    fn unstable_yarn_feeding_off_grippers_first_stitch_only() {
+        // The first stitch off the grippers onto the back bed is unstable; a later one is not.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![in_(&[c]), tuck(pos(), b(0), &[c]), tuck(pos(), b(2), &[c])]
+        });
+        let count = d
+            .warnings
+            .iter()
+            .filter(|w| matches!(w, RuntimeWarning::UnstableYarnFeeding { .. }))
+            .count();
+        assert_eq!(count, 1, "{d:?}");
+    }
+
+    #[test]
+    fn slack_of_edge_stitch_at_both_edges() {
+        // A tube spanning columns 0 and 5; at nonzero racking, knitting either edge is slack.
+        let cast_tube = |t: &mut CarrierTable| -> (Carrier<Validated>, Vec<Operation<Validated>>) {
+            let c = t.make_carrier("1", ());
+            (
+                c,
+                vec![
+                    in_(&[c]),
+                    tuck(pos(), f(0), &[c]),
+                    tuck(pos(), b(0), &[c]),
+                    tuck(pos(), f(5), &[c]),
+                    tuck(pos(), b(5), &[c]),
+                    rack(2),
+                ],
+            )
+        };
+        let at_min = run(None, |t| {
+            let (c, mut ops) = cast_tube(t);
+            ops.push(tuck(pos(), f(0), &[c])); // min edge (index 0)
+            ops
+        });
+        assert!(
+            warns(&at_min, |w| matches!(
+                w,
+                RuntimeWarning::SlackOfEdgeStitch { .. }
+            )),
+            "{at_min:?}"
+        );
+
+        let at_max = run(None, |t| {
+            let (c, mut ops) = cast_tube(t);
+            ops.push(tuck(pos(), f(5), &[c])); // max edge (index 5)
+            ops
+        });
+        assert!(
+            warns(&at_max, |w| matches!(
+                w,
+                RuntimeWarning::SlackOfEdgeStitch { .. }
+            )),
+            "{at_max:?}"
+        );
     }
 
     // ── transfer errors ──────────────────────────────────────────────────
@@ -1293,12 +1541,13 @@ mod tests {
 
     #[test]
     fn machine_too_wide() {
+        // Needles 2..=7 span 6 columns, which exceeds a width of 3.
         let d = run(Some(3), |t| {
             let c = t.make_carrier("1", ());
             vec![
                 in_(&[c]),
-                tuck(pos(), f(0), &[c]),
-                tuck(pos(), f(5), &[c]),
+                tuck(pos(), f(2), &[c]),
+                tuck(pos(), f(7), &[c]),
                 out(&[c]),
             ]
         });
@@ -1310,6 +1559,24 @@ mod tests {
                 ..
             }
         )));
+    }
+
+    #[test]
+    fn width_boundary_exact_fit_is_ok() {
+        // Needles 2..=7 span exactly 6; a width of 6 fits.
+        let d = run(Some(6), |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(2), &[c]),
+                tuck(pos(), f(7), &[c]),
+                out(&[c]),
+            ]
+        });
+        assert!(
+            !errs(&d, |e| matches!(e, RuntimeError::MachineTooWide { .. })),
+            "{d:?}"
+        );
     }
 
     // ── carrier lifecycle (kept from the base version) ───────────────────
@@ -1376,5 +1643,91 @@ mod tests {
             vec![in_(&[c]), tuck(pos(), f(0), &[c]), drop(f(0)), out(&[c])]
         });
         assert!(d.is_empty(), "{d:?}");
+    }
+
+    #[test]
+    fn diagnostics_are_not_empty_when_present() {
+        let d = run(None, |_t| vec![miss(pos(), f(0), &[])]);
+        assert!(!d.warnings.is_empty());
+        assert!(!d.is_empty());
+    }
+
+    #[test]
+    fn split_runs_transfer_checks() {
+        // A split (not just an xfer) must still be checked for bed/racking legality.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                split(pos(), f(0), b(1), &[c]),
+            ]
+        });
+        assert!(
+            errs(&d, |e| matches!(
+                e,
+                RuntimeError::TransferAtWrongRacking { .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn split_with_carriers_opens_a_long_float() {
+        // The new loop lands on the source, so a split moves the carrier there — far from f0 here.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                split(pos(), f(10), b(10), &[c]),
+            ]
+        });
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::LongFloat { distance: 10, .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn unstable_feeding_first_gripper_stitch_warns() {
+        // Isolates the "fresh gripper, first stitch onto the back bed" case.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![in_(&[c]), tuck(pos(), b(0), &[c])]
+        });
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::UnstableYarnFeeding { .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn racking_wear_ignores_loops_born_far_apart() {
+        // A and B are yarn-adjacent but born 5 apart; moving them is not "close together then far".
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                tuck(pos(), f(5), &[c]), // born 5 from A (> BORN_CLOSE)
+                xfer(f(5), b(5)),
+                rack(15),
+                xfer(b(5), f(20)),
+            ]
+        });
+        assert!(
+            !warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::RackingWearingOutYarn { .. }
+            )),
+            "{d:?}"
+        );
     }
 }

@@ -29,8 +29,6 @@ pub(crate) struct LoopInfo {
     /// Whether it was pulled through at least one existing loop when made (a knit/split on an
     /// occupied needle). `false` for a tuck or a knit/split on an empty needle (a "pick-up stitch").
     pub pulled_through: bool,
-    /// The wale (column lineage) this loop belongs to.
-    pub wale: u64,
     /// How many generations deep in its wale this loop is (a proxy for "row").
     pub generation: u32,
     /// How many times this loop has been transferred.
@@ -57,7 +55,6 @@ pub(crate) struct LoopMachine {
     frontier: HashMap<Carrier<Validated>, u32>,
     carrier_last_loop: HashMap<Carrier<Validated>, LoopId>,
     next_id: u64,
-    next_wale: u64,
 }
 
 impl LoopMachine {
@@ -69,7 +66,6 @@ impl LoopMachine {
             frontier: HashMap::new(),
             carrier_last_loop: HashMap::new(),
             next_id: 0,
-            next_wale: 0,
         }
     }
 
@@ -127,29 +123,23 @@ impl LoopMachine {
         self.loops.get(&id)
     }
 
-    /// Form a new loop on `needle`. `parent` is the `(wale, generation)` of the loop(s) it pulled
-    /// through (`None` for a pick-up stitch, which starts a fresh wale at generation 0). Returns the
-    /// new loop and updates the carrier's frontier and yarn chain.
+    /// Form a new loop on `needle`. `parent` is the generation of the loop(s) it pulled through
+    /// (`None` for a pick-up stitch, which starts a fresh wale at generation 0). Returns the new
+    /// loop and updates the carrier's frontier and yarn chain.
     pub fn form(
         &mut self,
         needle: &Needle<Validated>,
         carrier: Carrier<Validated>,
         direction: Direction<Validated>,
         span: Option<Span>,
-        parent: Option<(u64, u32)>,
+        parent: Option<u32>,
     ) -> LoopId {
-        let (wale, generation) = match parent {
-            Some((w, g)) => (w, g + 1),
-            None => {
-                let w = self.next_wale;
-                self.next_wale += 1;
-                (w, 0)
-            }
+        let generation = match parent {
+            Some(g) => g + 1,
+            None => 0,
         };
         let frontier = self.frontier.entry(carrier).or_insert(0);
-        if generation > *frontier {
-            *frontier = generation;
-        }
+        *frontier = (*frontier).max(generation);
         let born_frontier = *frontier;
         let birth_slot = self.slot(needle);
         let yarn_prev = self
@@ -166,7 +156,6 @@ impl LoopMachine {
                 birth_span: span,
                 birth_direction: direction,
                 pulled_through: parent.is_some(),
-                wale,
                 generation,
                 transfers: 0,
                 split_throughs: 0,
