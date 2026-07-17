@@ -7,7 +7,7 @@
 //! semantics itself, it only applies the count-level movements the effects describe at loop
 //! granularity, tagging each loop with lineage as it goes.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bigdecimal::{BigDecimal, RoundingMode, ToPrimitive};
 use either::Either;
@@ -49,7 +49,9 @@ pub(crate) struct LoopInfo {
 
 /// The loop-lineage model. Field access is crate-internal; the analyzer drives it.
 pub(crate) struct LoopMachine {
-    rack: BigDecimal,
+    /// `floor(rack)` cached as an integer: it is added to every back-bed slot lookup, so keeping
+    /// it here avoids redoing `BigDecimal` arithmetic on the hot path.
+    rack_floor: i64,
     loops: HashMap<LoopId, LoopInfo>,
     stacks: HashMap<Needle<Validated>, Vec<LoopId>>,
     frontier: HashMap<Carrier<Validated>, u32>,
@@ -57,24 +59,28 @@ pub(crate) struct LoopMachine {
     /// The frozen `(slot, is_front)` of loops that have been knit off. Their loops are gone from the
     /// machine, but the yarn still runs to where they were, so floats to them stay measurable.
     dead_positions: HashMap<LoopId, (i64, bool)>,
+    /// The live loops currently on the back bed. Racking only shifts back-bed slots, so only these
+    /// loops' floats can change on a rack — the set keeps that re-check cheap.
+    back_bed: HashSet<LoopId>,
     next_id: u64,
 }
 
 impl LoopMachine {
     pub fn new() -> Self {
         LoopMachine {
-            rack: BigDecimal::from(0),
+            rack_floor: 0,
             loops: HashMap::new(),
             stacks: HashMap::new(),
             frontier: HashMap::new(),
             carrier_last_loop: HashMap::new(),
             dead_positions: HashMap::new(),
+            back_bed: HashSet::new(),
             next_id: 0,
         }
     }
 
     pub fn set_rack(&mut self, rack: BigDecimal) {
-        self.rack = rack;
+        self.rack_floor = floor_rack(&rack);
     }
 
     /// The racking-adjusted column a needle sits at: front needles at their index, back needles
@@ -84,7 +90,7 @@ impl LoopMachine {
         if is_front(needle) {
             index
         } else {
-            index + floor_rack(&self.rack)
+            index + self.rack_floor
         }
     }
 
@@ -188,7 +194,15 @@ impl LoopMachine {
         }
         self.carrier_last_loop.insert(carrier, id);
         self.stacks.entry(needle.clone()).or_default().push(id);
+        if !is_front(needle) {
+            self.back_bed.insert(id);
+        }
         id
+    }
+
+    /// The live loops currently on the back bed (whose floats a rack can change).
+    pub fn back_bed_ids(&self) -> Vec<LoopId> {
+        self.back_bed.iter().copied().collect()
     }
 
     /// Remove the top `count` loops from `needle` and return their info (for knit-through parents
@@ -212,6 +226,7 @@ impl LoopMachine {
                     is_front(&info.current_needle),
                 );
                 self.dead_positions.insert(id, position);
+                self.back_bed.remove(&id);
                 removed.push(info);
             }
         }
@@ -226,9 +241,15 @@ impl LoopMachine {
         destination: &Needle<Validated>,
     ) -> Vec<LoopId> {
         let moved = self.stacks.remove(source).unwrap_or_default();
+        let destination_is_front = is_front(destination);
         for id in &moved {
             if let Some(info) = self.loops.get_mut(id) {
                 info.current_needle = destination.clone();
+            }
+            if destination_is_front {
+                self.back_bed.remove(id);
+            } else {
+                self.back_bed.insert(*id);
             }
         }
         if !moved.is_empty() {

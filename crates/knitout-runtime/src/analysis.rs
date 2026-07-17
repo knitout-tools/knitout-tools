@@ -108,6 +108,9 @@ struct Analyzer {
     last_stitch: HashMap<Carrier<Validated>, (i64, Option<Span>)>,
     /// Each carrier's last pick-up stitch: `(needle, span)`, for the laddering check.
     last_pickup: HashMap<Carrier<Validated>, (Needle<Validated>, Option<Span>)>,
+    /// The needle each carrier last knit/tucked/split/missed on, so drop-after-pickup can require
+    /// the knit to *immediately* follow the pick-up (nothing by that carrier in between).
+    prev_stitch_needle: HashMap<Carrier<Validated>, Needle<Validated>>,
     /// The birth length of each loop's float to its yarn-predecessor.
     float_prev_birth: HashMap<LoopId, i64>,
     warned_pulldown: HashSet<LoopId>,
@@ -169,11 +172,12 @@ impl Analyzer {
                     self.long_float(c, &needle, span);
                     self.unstable_feeding(c, &needle, span);
                 }
+                self.record_stitch(&carriers, &needle);
             }
             BaseOperation::Tuck {
                 needle, carriers, ..
             } => {
-                // With no carriers this is an `amiss`; the loop below simply does nothing.
+                // With no carriers this is an `amiss`; the loops below simply do nothing.
                 let needle = only(needle).clone();
                 let carriers = owned_carriers(carriers);
                 for &c in &carriers {
@@ -181,10 +185,15 @@ impl Analyzer {
                     self.long_float(c, &needle, span);
                     self.unstable_feeding(c, &needle, span);
                 }
+                self.record_stitch(&carriers, &needle);
             }
-            // A miss is invisible to floats (it is neither a float endpoint nor a relocation), so it
-            // falls through to the no-op arm below and the float between the real stitches on either
-            // side is measured as if the miss were not there.
+            BaseOperation::Miss {
+                needle, carriers, ..
+            } => {
+                // A miss is invisible to floats, but it is a carrier movement: it counts as the
+                // carrier's most recent action, so a knit after a tuck-then-miss is not "immediate".
+                self.record_stitch(&owned_carriers(carriers), &only(needle).clone());
+            }
             BaseOperation::Split {
                 source,
                 destination,
@@ -201,6 +210,7 @@ impl Analyzer {
                         self.long_float(c, &source, span);
                         self.unstable_feeding(c, &source, span);
                     }
+                    self.record_stitch(&carriers, &source);
                 }
             }
             BaseOperation::Xfer {
@@ -213,7 +223,16 @@ impl Analyzer {
         }
     }
 
-    /// A knit that undoes a same-carrier, opposite-direction pick-up is really a drop.
+    /// Record the needle each of `carriers` most recently stitched on.
+    fn record_stitch(&mut self, carriers: &[Carrier<Validated>], needle: &Needle<Validated>) {
+        for &c in carriers {
+            self.prev_stitch_needle.insert(c, needle.clone());
+        }
+    }
+
+    /// A knit that *immediately* undoes a same-carrier, opposite-direction pick-up is really a drop
+    /// (a common cast-on mistake). "Immediately" means the carrier's previous stitch was that very
+    /// pick-up, on this needle — not just that a pick-up loop happens to be sitting here.
     fn check_drop_after_pickup(
         &mut self,
         needle: &Needle<Validated>,
@@ -232,6 +251,10 @@ impl Analyzer {
             || top_direction_right == is_rightward(direction)
             || !carriers.contains(&top_carrier)
         {
+            return;
+        }
+        // The pick-up carrier's previous stitch must have been on this same needle.
+        if self.prev_stitch_needle.get(&top_carrier) != Some(needle) {
             return;
         }
         self.warnings
@@ -458,15 +481,23 @@ impl Analyzer {
                 span: birth_span,
                 birth_length: birth,
                 current_length: current,
-                dominant_axis: dominant_axis(lateral, bed, z),
+                dominant_axis: dominant_axis(lateral, z),
             });
         }
     }
 
-    /// Re-check every float on the machine (used after a racking, which shifts back-bed slots).
+    /// Re-check every float on the machine (used at program end, where any float may have aged).
     fn check_all_floats(&mut self) {
         for id in self.machine.live_ids() {
             self.check_prev_float(id);
+        }
+    }
+
+    /// Re-check only the floats a racking can change: those touching a live back-bed loop (racking
+    /// shifts back-bed slots; front loops and knit-off frozen endpoints do not move).
+    fn check_racked_floats(&mut self) {
+        for id in self.machine.back_bed_ids() {
+            self.check_float_around(id);
         }
     }
 
@@ -608,15 +639,13 @@ fn euclid(x: i64, y: i64, z: i64) -> i64 {
     (((x * x + y * y + z * z) as f64).sqrt()).round() as i64
 }
 
-/// Which axis contributes most to a float's current length (ties break age > lateral > bed).
-fn dominant_axis(lateral: i64, bed: i64, age: i64) -> FloatAxis {
-    let (lateral, bed, age) = (lateral.abs(), bed.abs(), age.abs());
-    if age >= lateral && age >= bed {
+/// Whether age or lateral movement is more to blame for a float's length. The bed axis is never
+/// reported, so a bed-crossing stretch (small anyway) is folded into the lateral verdict.
+fn dominant_axis(lateral: i64, age: i64) -> FloatAxis {
+    if age.abs() >= lateral.abs() {
         FloatAxis::Age
-    } else if lateral >= bed {
-        FloatAxis::Lateral
     } else {
-        FloatAxis::Bed
+        FloatAxis::Lateral
     }
 }
 
@@ -676,6 +705,7 @@ impl Backend for Analyzer {
             home_bed: shima_seiki_home_beds(program),
             last_stitch: HashMap::new(),
             last_pickup: HashMap::new(),
+            prev_stitch_needle: HashMap::new(),
             float_prev_birth: HashMap::new(),
             warned_pulldown: HashSet::new(),
             warned_float: HashSet::new(),
@@ -714,8 +744,8 @@ impl Backend for Analyzer {
             }
             KnitEffect::Racked { to, .. } => {
                 self.machine.set_rack(to);
-                // Racking shifts every back-bed loop's slot; re-check the floats it touches.
-                self.check_all_floats();
+                // Racking shifts back-bed slots; re-check only the floats that can change.
+                self.check_racked_floats();
             }
             KnitEffect::LoopsDropped { needle, count } => {
                 self.on_loops_dropped(&needle, count);
@@ -1088,6 +1118,25 @@ mod tests {
     }
 
     #[test]
+    fn drop_after_pickup_must_be_immediate() {
+        // The carrier tucks f0, then stitches elsewhere (f5), then knits f0 the other way. Because
+        // the knit does not immediately follow the pick-up, it is ordinary knitting, not a drop.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                tuck(pos(), f(5), &[c]),
+                knit(neg(), f(0), &[c]),
+            ]
+        });
+        assert!(
+            !warns(&d, |w| matches!(w, RuntimeWarning::DropAfterPickUp { .. })),
+            "{d:?}"
+        );
+    }
+
+    #[test]
     fn drop_after_pickup_needs_a_pickup_loop() {
         // The loop on the needle was pulled through (a real knit), so knitting it off is normal.
         let d = run(None, |t| {
@@ -1445,41 +1494,6 @@ mod tests {
                 RuntimeWarning::OverstretchedFloat {
                     current_length: 25,
                     dominant_axis: FloatAxis::Lateral,
-                    ..
-                }
-            )),
-            "{d:?}"
-        );
-    }
-
-    #[test]
-    fn float_overstretched_across_beds_reports_the_bed_axis() {
-        // With a large bed gap, moving a loop straight across the beds (aligned, so no lateral
-        // change and no age) stretches the float purely along the bed axis.
-        let mut table = CarrierTable::new();
-        let c = table.make_carrier("1", ());
-        let prog = program(
-            table,
-            None,
-            vec![
-                in_(&[c]),
-                tuck(pos(), f(0), &[c]),
-                tuck(pos(), f(1), &[c]),
-                xfer(f(1), b(1)),
-            ],
-        );
-        let thresholds = Thresholds {
-            bed_gap: 10,
-            max_float_stretch: 4,
-            long_float: 1000,
-            ..Thresholds::default()
-        };
-        let d = analyze_with(&prog, &thresholds);
-        assert!(
-            warns(&d, |w| matches!(
-                w,
-                RuntimeWarning::OverstretchedFloat {
-                    dominant_axis: FloatAxis::Bed,
                     ..
                 }
             )),

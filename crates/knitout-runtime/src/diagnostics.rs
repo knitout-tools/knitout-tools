@@ -1,13 +1,12 @@
 use knitout_ast::Span;
 
-/// The axis of an [`RuntimeWarning::OverstretchedFloat`] that contributes most to the float's
-/// current length.
+/// The axis blamed for an [`RuntimeWarning::OverstretchedFloat`]. The bed axis is never reported
+/// (it is small and not actionable on its own), so a bed-crossing stretch is attributed to the
+/// lateral movement that produced it.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum FloatAxis {
     /// Lateral distance between the two stitches (slots), grown by racking or transfers.
     Lateral,
-    /// The front-to-back bed gap between the two stitches.
-    Bed,
     /// How many rows the float has survived (the later loop being held).
     Age,
 }

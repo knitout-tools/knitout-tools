@@ -115,7 +115,6 @@ pub fn runtime_warning_message(warning: &RuntimeWarning) -> String {
         } => {
             let axis = match dominant_axis {
                 FloatAxis::Lateral => "mostly sideways (racking/transfers)",
-                FloatAxis::Bed => "mostly across the beds",
                 FloatAxis::Age => "mostly from being held too long",
             };
             format!("This float has stretched from {birth_length} to {current_length}, {axis}.")
