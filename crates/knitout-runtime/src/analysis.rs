@@ -184,11 +184,9 @@ impl Analyzer {
                     self.unstable_feeding(c, &needle, span);
                 }
             }
-            BaseOperation::Miss { .. } => {
-                // A miss is invisible to floats: it is neither an endpoint of a float nor does it
-                // relocate the carrier for float purposes, so the float between the real stitches on
-                // either side is measured as if the miss were not there. Nothing to do here.
-            }
+            // A miss is invisible to floats (it is neither a float endpoint nor a relocation), so it
+            // falls through to the no-op arm below and the float between the real stitches on either
+            // side is measured as if the miss were not there.
             BaseOperation::Split {
                 source,
                 destination,
@@ -446,7 +444,7 @@ impl Analyzer {
         let Some(&birth) = self.float_prev_birth.get(&id) else {
             return;
         };
-        let (carrier, born_frontier, birth_span, prev, a_slot, a_bed) = {
+        let (carrier, born_frontier, birth_span, prev, a_slot, a_front) = {
             let Some(info) = self.machine.get(id) else {
                 return;
             };
@@ -459,16 +457,16 @@ impl Analyzer {
                 info.birth_span,
                 prev,
                 self.machine.slot(&info.current_needle),
-                self.bed_coord(&info.current_needle),
+                is_front(&info.current_needle),
             )
         };
-        let (b_slot, b_bed) = {
+        let (b_slot, b_front) = {
             let Some(pinfo) = self.machine.get(prev) else {
                 return;
             };
             (
                 self.machine.slot(&pinfo.current_needle),
-                self.bed_coord(&pinfo.current_needle),
+                is_front(&pinfo.current_needle),
             )
         };
         let age = self
@@ -476,7 +474,7 @@ impl Analyzer {
             .frontier_of(&carrier)
             .saturating_sub(born_frontier);
         let z = i64::from(age) * self.thresholds.age_per_generation;
-        let current = euclid(a_slot - b_slot, a_bed - b_bed, z);
+        let current = euclid(a_slot - b_slot, self.bed_axis(a_front, b_front), z);
         if current - birth > self.thresholds.max_float_stretch && self.warned_float.insert(id) {
             self.warnings.push(RuntimeWarning::OverstretchedFloat {
                 span: birth_span,
@@ -493,9 +491,9 @@ impl Analyzer {
         }
     }
 
-    /// The bed axis coordinate of a needle: front is 0, back is `bed_gap` away.
-    fn bed_coord(&self, needle: &Needle<Validated>) -> i64 {
-        if is_front(needle) {
+    /// The bed-axis distance between two stitches: `0` on the same bed, `bed_gap` across beds.
+    fn bed_axis(&self, a_front: bool, b_front: bool) -> i64 {
+        if a_front == b_front {
             0
         } else {
             self.thresholds.bed_gap
@@ -521,7 +519,7 @@ impl Analyzer {
 
     /// Record the birth length of a freshly-formed loop's float to its yarn-predecessor.
     fn store_float_birth(&mut self, id: LoopId) {
-        let (prev, a_slot, a_bed) = {
+        let (prev, a_slot, a_front) = {
             let Some(info) = self.machine.get(id) else {
                 return;
             };
@@ -531,15 +529,15 @@ impl Analyzer {
             (
                 prev,
                 self.machine.slot(&info.current_needle),
-                self.bed_coord(&info.current_needle),
+                is_front(&info.current_needle),
             )
         };
         let Some(pinfo) = self.machine.get(prev) else {
             return;
         };
         let b_slot = self.machine.slot(&pinfo.current_needle);
-        let b_bed = self.bed_coord(&pinfo.current_needle);
-        let birth = euclid(a_slot - b_slot, a_bed - b_bed, 0);
+        let b_front = is_front(&pinfo.current_needle);
+        let birth = euclid(a_slot - b_slot, self.bed_axis(a_front, b_front), 0);
         self.float_prev_birth.insert(id, birth);
     }
 
@@ -985,9 +983,10 @@ mod tests {
 
     #[test]
     fn long_float_reports_distance_and_both_ends() {
+        // Non-zero start (f2) so the |to - from| distance is exercised, not just |to|.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
-            vec![in_(&[c]), tuck(pos(), f(0), &[c]), tuck(pos(), f(10), &[c])]
+            vec![in_(&[c]), tuck(pos(), f(2), &[c]), tuck(pos(), f(12), &[c])]
         });
         assert!(
             d.warnings.iter().any(|w| matches!(
@@ -1004,10 +1003,10 @@ mod tests {
 
     #[test]
     fn long_float_boundary() {
-        // Exactly 6 apart is not a long float; 7 is.
+        // From f2: reaching f8 is exactly 6 apart (not a long float); f9 is 7.
         let ok = run(None, |t| {
             let c = t.make_carrier("1", ());
-            vec![in_(&[c]), tuck(pos(), f(0), &[c]), tuck(pos(), f(6), &[c])]
+            vec![in_(&[c]), tuck(pos(), f(2), &[c]), tuck(pos(), f(8), &[c])]
         });
         assert!(!warns(&ok, |w| matches!(
             w,
@@ -1015,7 +1014,7 @@ mod tests {
         )));
         let bad = run(None, |t| {
             let c = t.make_carrier("1", ());
-            vec![in_(&[c]), tuck(pos(), f(0), &[c]), tuck(pos(), f(7), &[c])]
+            vec![in_(&[c]), tuck(pos(), f(2), &[c]), tuck(pos(), f(9), &[c])]
         });
         assert!(warns(&bad, |w| matches!(
             w,
@@ -1266,11 +1265,13 @@ mod tests {
             }
             ops
         });
+        // birth 1 (lateral f0..f1); current euclid(1, 0, age 8) = 8.
         assert!(
             warns(&d, |w| matches!(
                 w,
                 RuntimeWarning::OverstretchedFloat {
                     birth_length: 1,
+                    current_length: 8,
                     ..
                 }
             )),
@@ -1349,16 +1350,17 @@ mod tests {
     #[test]
     fn float_overstretched_by_racking() {
         // P (f0) and L (f1) start 1 slot apart. L is transferred to slot 11, so its float to P is
-        // now 11 long — the "racking wearing out yarn" case.
+        // now 11 long — the "racking wearing out yarn" case. Non-zero P slot (5) so both the slot
+        // subtraction and the stored birth length are genuinely exercised.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
                 in_(&[c]),
-                tuck(pos(), f(0), &[c]),
-                tuck(pos(), f(1), &[c]),
-                xfer(f(1), b(1)),
+                tuck(pos(), f(5), &[c]),
+                tuck(pos(), f(6), &[c]),
+                xfer(f(6), b(6)),
                 rack(10),
-                xfer(b(1), f(11)),
+                xfer(b(6), f(16)),
             ]
         });
         assert!(
@@ -1397,18 +1399,52 @@ mod tests {
     }
 
     #[test]
-    fn float_not_overstretched_below_threshold() {
-        // Moving L to slot 6 leaves its float to P (at slot 0) exactly 6 long — birth 1, so a growth
-        // of 5, under the stretch limit of 6.
+    fn float_metric_combines_bed_and_age_axes() {
+        // Custom axes exercise the full Euclidean formula: bed gap 8, each row of age worth 2 slots.
+        // The cross-bed float f0<->b0 is euclid(0, 8, 0) = 8 at birth; holding b0 for 3 rows adds an
+        // age component of 3 * 2 = 6, giving euclid(0, 8, 6) = 10.
+        let mut table = CarrierTable::new();
+        let c = table.make_carrier("1", ());
+        let mut ops = vec![in_(&[c]), tuck(pos(), f(0), &[c]), tuck(pos(), b(0), &[c])];
+        ops.push(tuck(pos(), f(10), &[c]));
+        for _ in 0..3 {
+            ops.push(knit(pos(), f(10), &[c]));
+        }
+        let prog = program(table, None, ops);
+        let thresholds = Thresholds {
+            bed_gap: 8,
+            age_per_generation: 2,
+            max_float_stretch: 1,
+            long_float: 1000,
+            ..Thresholds::default()
+        };
+        let d = analyze_with(&prog, &thresholds);
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat {
+                    birth_length: 8,
+                    current_length: 10,
+                    ..
+                }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn float_not_overstretched_at_exactly_the_limit() {
+        // L ends at slot 12, 7 from P at slot 5 — a growth of exactly 6 from birth 1, which is not
+        // beyond the limit of 6.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
                 in_(&[c]),
-                tuck(pos(), f(0), &[c]),
-                tuck(pos(), f(1), &[c]),
-                xfer(f(1), b(1)),
-                rack(5),
-                xfer(b(1), f(6)),
+                tuck(pos(), f(5), &[c]),
+                tuck(pos(), f(6), &[c]),
+                xfer(f(6), b(6)),
+                rack(6),
+                xfer(b(6), f(12)),
             ]
         });
         assert!(
