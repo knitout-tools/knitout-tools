@@ -16,5 +16,10 @@ either = "1.16.0"
 knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
 knitout-semantics = { version = "0.1.0", path = "../knitout-semantics" }
 
+[dev-dependencies]
+knitout-weak-ast = { version = "0.1.0", path = "../knitout-weak-ast" }
+tree-sitter = "0.26.10"
+tree-sitter-knitout = { version = "0.1.0", path = "../tree-sitter-knitout" }
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mutants)'] }

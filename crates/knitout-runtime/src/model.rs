@@ -54,6 +54,9 @@ pub(crate) struct LoopMachine {
     stacks: HashMap<Needle<Validated>, Vec<LoopId>>,
     frontier: HashMap<Carrier<Validated>, u32>,
     carrier_last_loop: HashMap<Carrier<Validated>, LoopId>,
+    /// The frozen `(slot, is_front)` of loops that have been knit off. Their loops are gone from the
+    /// machine, but the yarn still runs to where they were, so floats to them stay measurable.
+    dead_positions: HashMap<LoopId, (i64, bool)>,
     next_id: u64,
 }
 
@@ -65,6 +68,7 @@ impl LoopMachine {
             stacks: HashMap::new(),
             frontier: HashMap::new(),
             carrier_last_loop: HashMap::new(),
+            dead_positions: HashMap::new(),
             next_id: 0,
         }
     }
@@ -118,9 +122,22 @@ impl LoopMachine {
         *self.frontier.get(carrier).unwrap_or(&0)
     }
 
-    /// Look up a loop by id.
+    /// Look up a *live* loop by id.
     pub fn get(&self, id: LoopId) -> Option<&LoopInfo> {
         self.loops.get(&id)
+    }
+
+    /// The current `(slot, is_front)` of a loop, whether it is still on the machine (its live
+    /// position, which moves with racking) or has been knit off (its frozen death position).
+    pub fn position(&self, id: LoopId) -> Option<(i64, bool)> {
+        if let Some(info) = self.loops.get(&id) {
+            Some((
+                self.slot(&info.current_needle),
+                is_front(&info.current_needle),
+            ))
+        } else {
+            self.dead_positions.get(&id).copied()
+        }
     }
 
     /// Form a new loop on `needle`. `parent` is the generation of the loop(s) it pulled through
@@ -142,11 +159,9 @@ impl LoopMachine {
         *frontier = (*frontier).max(generation);
         let born_frontier = *frontier;
         let birth_slot = self.slot(needle);
-        let yarn_prev = self
-            .carrier_last_loop
-            .get(&carrier)
-            .copied()
-            .filter(|p| self.loops.contains_key(p));
+        // The yarn runs from the carrier's previous stitch — which may already have been knit off;
+        // that is fine, its frozen position keeps the float measurable.
+        let yarn_prev = self.carrier_last_loop.get(&carrier).copied();
         let id = LoopId(self.next_id);
         self.next_id += 1;
         self.loops.insert(
@@ -191,7 +206,12 @@ impl LoopMachine {
         let mut removed = Vec::new();
         for id in ids {
             if let Some(info) = self.loops.remove(&id) {
-                self.unlink_yarn(&info);
+                // Freeze where the loop was so floats to it (now a dead endpoint) stay measurable.
+                let position = (
+                    self.slot(&info.current_needle),
+                    is_front(&info.current_needle),
+                );
+                self.dead_positions.insert(id, position);
                 removed.push(info);
             }
         }
@@ -237,22 +257,6 @@ impl LoopMachine {
     /// Every loop still on the machine.
     pub fn remaining(&self) -> impl Iterator<Item = &LoopInfo> {
         self.loops.values()
-    }
-
-    /// Drop the yarn-chain links pointing at a removed loop so neighbour lookups stay valid. (If the
-    /// removed loop was a carrier's most recent, the mapping is left as-is; [`form`](Self::form)
-    /// filters out dead ids when it reads it.)
-    fn unlink_yarn(&mut self, info: &LoopInfo) {
-        if let Some(prev) = info.yarn_prev {
-            if let Some(p) = self.loops.get_mut(&prev) {
-                p.yarn_next = None;
-            }
-        }
-        if let Some(next) = info.yarn_next {
-            if let Some(n) = self.loops.get_mut(&next) {
-                n.yarn_prev = None;
-            }
-        }
     }
 }
 

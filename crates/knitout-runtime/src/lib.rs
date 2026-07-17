@@ -16,4 +16,4 @@ mod model;
 
 pub use analysis::{RuntimeDiagnostics, analyze, analyze_with};
 pub use config::Thresholds;
-pub use diagnostics::{RuntimeError, RuntimeWarning};
+pub use diagnostics::{FloatAxis, RuntimeError, RuntimeWarning};

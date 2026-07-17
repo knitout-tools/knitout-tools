@@ -6,7 +6,7 @@ use knitout_ast::{BaseOperation, Carrier, Needle, Operation, Program, Span, Vali
 use knitout_semantics::{Backend, Diagnostic, KnitEffect, MachineState, run_knitout};
 
 use crate::config::Thresholds;
-use crate::diagnostics::{RuntimeError, RuntimeWarning};
+use crate::diagnostics::{FloatAxis, RuntimeError, RuntimeWarning};
 use crate::model::{LoopId, LoopMachine, is_front, is_rightward, is_slider, needle_index, only};
 
 /// The runtime diagnostics produced by analyzing a program: warnings (the program still runs) and
@@ -439,23 +439,26 @@ impl Analyzer {
             };
             (info.carrier, info.born_frontier, info.birth_span, prev)
         };
-        let Some((a_slot, a_front)) = self.loop_position(id) else {
+        let Some((a_slot, a_front)) = self.machine.position(id) else {
             return;
         };
-        let Some((b_slot, b_front)) = self.loop_position(prev) else {
+        let Some((b_slot, b_front)) = self.machine.position(prev) else {
             return;
         };
         let age = self
             .machine
             .frontier_of(&carrier)
             .saturating_sub(born_frontier);
+        let lateral = a_slot - b_slot;
+        let bed = self.bed_axis(a_front, b_front);
         let z = i64::from(age) * self.thresholds.age_per_generation;
-        let current = euclid(a_slot - b_slot, self.bed_axis(a_front, b_front), z);
+        let current = euclid(lateral, bed, z);
         if current - birth > self.thresholds.max_float_stretch && self.warned_float.insert(id) {
             self.warnings.push(RuntimeWarning::OverstretchedFloat {
                 span: birth_span,
                 birth_length: birth,
                 current_length: current,
+                dominant_axis: dominant_axis(lateral, bed, z),
             });
         }
     }
@@ -465,15 +468,6 @@ impl Analyzer {
         for id in self.machine.live_ids() {
             self.check_prev_float(id);
         }
-    }
-
-    /// A live loop's current position as `(slot, is_front)`.
-    fn loop_position(&self, id: LoopId) -> Option<(i64, bool)> {
-        let info = self.machine.get(id)?;
-        Some((
-            self.machine.slot(&info.current_needle),
-            is_front(&info.current_needle),
-        ))
     }
 
     /// The bed-axis distance between two stitches: `0` on the same bed, `bed_gap` across beds.
@@ -507,10 +501,10 @@ impl Analyzer {
         let Some(prev) = self.machine.get(id).and_then(|info| info.yarn_prev) else {
             return;
         };
-        let Some((a_slot, a_front)) = self.loop_position(id) else {
+        let Some((a_slot, a_front)) = self.machine.position(id) else {
             return;
         };
-        let Some((b_slot, b_front)) = self.loop_position(prev) else {
+        let Some((b_slot, b_front)) = self.machine.position(prev) else {
             return;
         };
         let birth = euclid(a_slot - b_slot, self.bed_axis(a_front, b_front), 0);
@@ -612,6 +606,18 @@ fn owned_carriers(
 /// The rounded Euclidean length of a 3-axis float vector.
 fn euclid(x: i64, y: i64, z: i64) -> i64 {
     (((x * x + y * y + z * z) as f64).sqrt()).round() as i64
+}
+
+/// Which axis contributes most to a float's current length (ties break age > lateral > bed).
+fn dominant_axis(lateral: i64, bed: i64, age: i64) -> FloatAxis {
+    let (lateral, bed, age) = (lateral.abs(), bed.abs(), age.abs());
+    if age >= lateral && age >= bed {
+        FloatAxis::Age
+    } else if lateral >= bed {
+        FloatAxis::Lateral
+    } else {
+        FloatAxis::Bed
+    }
 }
 
 /// Map each carrier named `1`–`10` to its Shima-Seiki home bed (`1`–`5` front, `6`–`10` back).
@@ -1276,6 +1282,64 @@ mod tests {
             !warns(&d, |w| matches!(
                 w,
                 RuntimeWarning::OverstretchedFloat { .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn float_to_a_knit_off_neighbour_still_ages() {
+        // L (f1) is held while its yarn-predecessor P (f0) is knit off and the carrier knits 8 more
+        // rows there. The float L<->P is still measured against P's frozen position, so L's age
+        // stretches it — this is the "measure floats to dead stitches" case.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            let mut ops = vec![in_(&[c]), tuck(pos(), f(0), &[c]), tuck(pos(), f(1), &[c])];
+            for _ in 0..8 {
+                ops.push(knit(pos(), f(0), &[c])); // knits P off, then deepens the f0 wale
+            }
+            ops
+        });
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat {
+                    dominant_axis: FloatAxis::Age,
+                    ..
+                }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn moving_the_whole_work_laterally_is_pulldown_not_overstretch() {
+        // Both loops move together by 20 slots (via racking), so their float length is unchanged —
+        // no overstretch — but each loop is far from where it was made, so pull-down fires.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                tuck(pos(), f(1), &[c]),
+                xfer(f(0), b(0)),
+                xfer(f(1), b(1)),
+                rack(20),
+                xfer(b(0), f(20)),
+                xfer(b(1), f(21)),
+            ]
+        });
+        assert!(
+            !warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat { .. }
+            )),
+            "{d:?}"
+        );
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::PulldownTakedownOverload { .. }
             )),
             "{d:?}"
         );

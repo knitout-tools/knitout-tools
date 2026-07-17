@@ -4,7 +4,7 @@
 //! server. Every [`ParseWarning`] and [`ParseError`] variant maps to exactly one message here;
 //! the [`crate::backend`] module turns those messages into LSP diagnostics.
 
-use knitout_runtime::{RuntimeError, RuntimeWarning};
+use knitout_runtime::{FloatAxis, RuntimeError, RuntimeWarning};
 use knitout_weak_ast::{ParseError, ParseWarning};
 
 /// Human-readable message for a parse warning.
@@ -110,11 +110,16 @@ pub fn runtime_warning_message(warning: &RuntimeWarning) -> String {
         RuntimeWarning::OverstretchedFloat {
             birth_length,
             current_length,
+            dominant_axis,
             ..
-        } => format!(
-            "This float has stretched from {birth_length} to {current_length} (racking, transfers, \
-             or age)."
-        ),
+        } => {
+            let axis = match dominant_axis {
+                FloatAxis::Lateral => "mostly sideways (racking/transfers)",
+                FloatAxis::Bed => "mostly across the beds",
+                FloatAxis::Age => "mostly from being held too long",
+            };
+            format!("This float has stretched from {birth_length} to {current_length}, {axis}.")
+        }
         RuntimeWarning::ContinuousTransferWithoutKnitting { transfers, .. } => {
             format!("This loop has been transferred {transfers} times without being knit.")
         }
@@ -286,6 +291,7 @@ mod tests {
                 span: None,
                 birth_length: 1,
                 current_length: 9,
+                dominant_axis: FloatAxis::Age,
             },
             RuntimeWarning::ContinuousTransferWithoutKnitting {
                 span: None,

@@ -569,6 +569,9 @@ dependencies = [
  "either",
  "knitout-ast",
  "knitout-semantics",
+ "knitout-weak-ast",
+ "tree-sitter",
+ "tree-sitter-knitout",
 ]
 
 [[package]]

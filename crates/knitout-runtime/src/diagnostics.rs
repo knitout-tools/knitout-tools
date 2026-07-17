@@ -1,5 +1,17 @@
 use knitout_ast::Span;
 
+/// The axis of an [`RuntimeWarning::OverstretchedFloat`] that contributes most to the float's
+/// current length.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum FloatAxis {
+    /// Lateral distance between the two stitches (slots), grown by racking or transfers.
+    Lateral,
+    /// The front-to-back bed gap between the two stitches.
+    Bed,
+    /// How many rows the float has survived (the later loop being held).
+    Age,
+}
+
 /// A non-fatal observation about a knitout program's *runtime* behaviour: the program still runs on
 /// the machine, but a human likely wants to know about it (this covers everything from gentle style
 /// suggestions to "this will probably damage the yarn or the machine"). Analogous to
@@ -64,6 +76,8 @@ pub enum RuntimeWarning {
         birth_length: i64,
         /// The float's length now.
         current_length: i64,
+        /// Which of the three axes contributes most to the current length.
+        dominant_axis: FloatAxis,
     },
     /// One loop was transferred many times without ever being knit through.
     ContinuousTransferWithoutKnitting {
