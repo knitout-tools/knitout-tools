@@ -561,6 +561,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "knitout-semantics"
+version = "0.1.0"
+dependencies = [
+ "bigdecimal",
+ "either",
+ "knitout-ast",
+]
+
+[[package]]
 name = "knitout-weak-ast"
 version = "0.1.0"
 dependencies = [
