@@ -1,0 +1,19 @@
+[package]
+name = "knitout-semantics"
+description = "Virtual machine and semantic analyzer for Knitout (.k), a machine knitting language."
+version = "0.1.0"
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+keywords = ["knitout"]
+
+[dependencies]
+bigdecimal = "0.4.10"
+either = "1.16.0"
+knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mutants)'] }
