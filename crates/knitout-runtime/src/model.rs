@@ -103,6 +103,11 @@ impl LoopMachine {
         }
     }
 
+    /// The ids of every loop on a needle, bottom to top.
+    pub fn ids_on(&self, needle: &Needle<Validated>) -> &[LoopId] {
+        self.stacks.get(needle).map_or(&[], |s| s.as_slice())
+    }
+
     /// The ids of every loop currently on the machine.
     pub fn live_ids(&self) -> Vec<LoopId> {
         self.loops.keys().copied().collect()
@@ -229,7 +234,7 @@ impl LoopMachine {
         info.split_throughs
     }
 
-    /// All loops still on the machine, as `(needle, info)` pairs.
+    /// Every loop still on the machine.
     pub fn remaining(&self) -> impl Iterator<Item = &LoopInfo> {
         self.loops.values()
     }

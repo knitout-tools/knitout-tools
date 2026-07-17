@@ -50,7 +50,7 @@ impl Thresholds {
         takedown_overload_distance: 12,
         bed_gap: 1,
         age_per_generation: 1,
-        max_float_stretch: 6,
+        max_float_stretch: 4,
     };
 }
 

@@ -7,9 +7,7 @@ use knitout_semantics::{Backend, Diagnostic, KnitEffect, MachineState, run_knito
 
 use crate::config::Thresholds;
 use crate::diagnostics::{RuntimeError, RuntimeWarning};
-use crate::model::{
-    LoopId, LoopInfo, LoopMachine, is_front, is_rightward, is_slider, needle_index, only,
-};
+use crate::model::{LoopId, LoopMachine, is_front, is_rightward, is_slider, needle_index, only};
 
 /// The runtime diagnostics produced by analyzing a program: warnings (the program still runs) and
 /// errors (it does not).
@@ -333,30 +331,16 @@ impl Analyzer {
                 .push(RuntimeWarning::TransferWithOverlappedLoops { span, count });
         }
         // Transferring a loop that never pulled through another loop is a pick-up-stitch transfer.
-        let any_pickup = self
-            .stack_infos(source)
-            .into_iter()
-            .any(|info| !info.pulled_through);
+        let source_loops = self.machine.ids_on(source).to_vec();
+        let any_pickup = source_loops.iter().any(|id| {
+            self.machine
+                .get(*id)
+                .is_some_and(|info| !info.pulled_through)
+        });
         if any_pickup {
             self.warnings
                 .push(RuntimeWarning::TransferWithPickUpStitch { span });
         }
-    }
-
-    /// The loop infos currently on a needle, bottom to top.
-    fn stack_infos(&self, needle: &Needle<Validated>) -> Vec<LoopInfo> {
-        // Small helper: read the stack without exposing the machine's internals to the checks.
-        let count = self.machine.count(needle);
-        let mut out = Vec::with_capacity(count as usize);
-        // The machine exposes `top`; walk by temporarily... instead, reconstruct via public API.
-        // We only need `pulled_through` here, so query the top-most repeatedly is not possible;
-        // fall back to the model's iterator.
-        for info in self.machine.remaining() {
-            if info.current_needle == *needle {
-                out.push(info.clone());
-            }
-        }
-        out
     }
 
     // ── effect-driven model updates + effect-level checks ────────────────
@@ -439,35 +423,27 @@ impl Analyzer {
     }
 
     /// Re-check the float from loop `id` back to its yarn-predecessor: if it is now much longer than
-    /// its birth length (lateral, bed, and age combined), report it once.
+    /// its birth length (lateral, bed, and age combined), report it once. The age axis is the
+    /// float's own age — how many rows the carrier has advanced since `id` (the later of the two
+    /// stitches) was made — so a held loop stretches its float even without moving.
     fn check_prev_float(&mut self, id: LoopId) {
         let Some(&birth) = self.float_prev_birth.get(&id) else {
             return;
         };
-        let (carrier, born_frontier, birth_span, prev, a_slot, a_front) = {
+        let (carrier, born_frontier, birth_span, prev) = {
             let Some(info) = self.machine.get(id) else {
                 return;
             };
             let Some(prev) = info.yarn_prev else {
                 return;
             };
-            (
-                info.carrier,
-                info.born_frontier,
-                info.birth_span,
-                prev,
-                self.machine.slot(&info.current_needle),
-                is_front(&info.current_needle),
-            )
+            (info.carrier, info.born_frontier, info.birth_span, prev)
         };
-        let (b_slot, b_front) = {
-            let Some(pinfo) = self.machine.get(prev) else {
-                return;
-            };
-            (
-                self.machine.slot(&pinfo.current_needle),
-                is_front(&pinfo.current_needle),
-            )
+        let Some((a_slot, a_front)) = self.loop_position(id) else {
+            return;
+        };
+        let Some((b_slot, b_front)) = self.loop_position(prev) else {
+            return;
         };
         let age = self
             .machine
@@ -489,6 +465,15 @@ impl Analyzer {
         for id in self.machine.live_ids() {
             self.check_prev_float(id);
         }
+    }
+
+    /// A live loop's current position as `(slot, is_front)`.
+    fn loop_position(&self, id: LoopId) -> Option<(i64, bool)> {
+        let info = self.machine.get(id)?;
+        Some((
+            self.machine.slot(&info.current_needle),
+            is_front(&info.current_needle),
+        ))
     }
 
     /// The bed-axis distance between two stitches: `0` on the same bed, `bed_gap` across beds.
@@ -517,26 +502,17 @@ impl Analyzer {
         self.check_max_hold(new_count.saturating_sub(1), new_count, span);
     }
 
-    /// Record the birth length of a freshly-formed loop's float to its yarn-predecessor.
+    /// Record the birth length of a freshly-formed loop's float to its yarn-predecessor (age 0).
     fn store_float_birth(&mut self, id: LoopId) {
-        let (prev, a_slot, a_front) = {
-            let Some(info) = self.machine.get(id) else {
-                return;
-            };
-            let Some(prev) = info.yarn_prev else {
-                return;
-            };
-            (
-                prev,
-                self.machine.slot(&info.current_needle),
-                is_front(&info.current_needle),
-            )
-        };
-        let Some(pinfo) = self.machine.get(prev) else {
+        let Some(prev) = self.machine.get(id).and_then(|info| info.yarn_prev) else {
             return;
         };
-        let b_slot = self.machine.slot(&pinfo.current_needle);
-        let b_front = is_front(&pinfo.current_needle);
+        let Some((a_slot, a_front)) = self.loop_position(id) else {
+            return;
+        };
+        let Some((b_slot, b_front)) = self.loop_position(prev) else {
+            return;
+        };
         let birth = euclid(a_slot - b_slot, self.bed_axis(a_front, b_front), 0);
         self.float_prev_birth.insert(id, birth);
     }
@@ -724,7 +700,12 @@ impl Backend for Analyzer {
                     self.hook_span = span;
                 }
             }
-            KnitEffect::HookReleased { .. } | KnitEffect::CarrierOut { .. } => {}
+            KnitEffect::HookReleased { .. } => {}
+            KnitEffect::CarrierOut { carrier, .. } => {
+                // A carrier that is taken out and brought back in is fed fresh again, so its next
+                // stitch should be treated as a first stitch by the unstable-feeding check.
+                self.stitched.remove(&carrier);
+            }
             KnitEffect::Racked { to, .. } => {
                 self.machine.set_rack(to);
                 // Racking shifts every back-bed loop's slot; re-check the floats it touches.
@@ -1434,8 +1415,8 @@ mod tests {
 
     #[test]
     fn float_not_overstretched_at_exactly_the_limit() {
-        // L ends at slot 12, 7 from P at slot 5 — a growth of exactly 6 from birth 1, which is not
-        // beyond the limit of 6.
+        // L ends at slot 10, 5 from P at slot 5 — a growth of exactly 4 from birth 1, which is not
+        // beyond the default limit of 4.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
@@ -1443,8 +1424,8 @@ mod tests {
                 tuck(pos(), f(5), &[c]),
                 tuck(pos(), f(6), &[c]),
                 xfer(f(6), b(6)),
-                rack(6),
-                xfer(b(6), f(12)),
+                rack(4),
+                xfer(b(6), f(10)),
             ]
         });
         assert!(
@@ -1575,6 +1556,30 @@ mod tests {
             .filter(|w| matches!(w, RuntimeWarning::UnstableYarnFeeding { .. }))
             .count();
         assert_eq!(count, 1, "{d:?}");
+    }
+
+    #[test]
+    fn unstable_yarn_feeding_rechecks_after_re_in() {
+        // Carrier 1 knits its first stitch onto its home (front) bed — fine — then is taken out and
+        // brought back in. Its first stitch after re-entering is fed fresh again, so a back-bed
+        // stitch is unstable.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                out(&[c]),
+                in_(&[c]),
+                tuck(pos(), b(0), &[c]),
+            ]
+        });
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::UnstableYarnFeeding { .. }
+            )),
+            "{d:?}"
+        );
     }
 
     // ── transfer errors ──────────────────────────────────────────────────
