@@ -1118,6 +1118,25 @@ mod tests {
     }
 
     #[test]
+    fn drop_after_pickup_broken_by_a_miss() {
+        // A miss between the tuck and the knit means the knit no longer immediately follows the
+        // pick-up, so it is not flagged.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                miss(pos(), f(5), &[c]),
+                knit(neg(), f(0), &[c]),
+            ]
+        });
+        assert!(
+            !warns(&d, |w| matches!(w, RuntimeWarning::DropAfterPickUp { .. })),
+            "{d:?}"
+        );
+    }
+
+    #[test]
     fn drop_after_pickup_must_be_immediate() {
         // The carrier tucks f0, then stitches elsewhere (f5), then knits f0 the other way. Because
         // the knit does not immediately follow the pick-up, it is ordinary knitting, not a drop.
@@ -1329,6 +1348,32 @@ mod tests {
         });
         assert!(
             !warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat { .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn racking_rechecks_a_back_loops_float() {
+        // A back-bed loop L (b1) is joined to a knit-off front stitch P (f0, frozen). Racking to 8
+        // stretches that float; racking back to 0 relaxes it, so the only moment it is overstretched
+        // is right after the rack — which only the rack-time recheck of back-bed loops catches
+        // (P is dead, so no front loop can catch the float from the other side).
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]), // P
+                tuck(pos(), b(1), &[c]), // L, yarn-joined to P
+                drop(f(0)),              // P knit off, frozen at f0
+                rack(8),                 // stretches L<->P
+                rack(0),                 // relaxes it again
+            ]
+        });
+        assert!(
+            warns(&d, |w| matches!(
                 w,
                 RuntimeWarning::OverstretchedFloat { .. }
             )),
