@@ -131,13 +131,31 @@ fn compute_diagnostics(text: &str, tree: &Tree) -> Vec<Diagnostic> {
     diagnostics
 }
 
-/// The span to anchor a runtime warning's diagnostic on, if it has one.
+/// The span to anchor a runtime warning's diagnostic on, if it has one. For warnings that concern
+/// two operations, we anchor on the later/second one.
 fn runtime_warning_span(warning: &RuntimeWarning) -> Option<Span> {
     match warning {
-        RuntimeWarning::OperationOnEmptyNeedle { span }
+        RuntimeWarning::NoYarnCarrier { span }
+        | RuntimeWarning::MissWithNoYarn { span }
+        | RuntimeWarning::KnittingThroughNothing { span }
+        | RuntimeWarning::TransferringNothing { span }
+        | RuntimeWarning::MaxHoldLoops { span, .. }
+        | RuntimeWarning::TransferWithOverlappedLoops { span, .. }
+        | RuntimeWarning::DropAfterPickUp { span, .. }
+        | RuntimeWarning::UnnecessaryLoopRemain { span }
+        | RuntimeWarning::LoopHeldTooLong { span, .. }
+        | RuntimeWarning::ContinuousTransferWithoutKnitting { span, .. }
+        | RuntimeWarning::UnstableSplitKnit { span, .. }
+        | RuntimeWarning::TransferWithPickUpStitch { span }
+        | RuntimeWarning::RackingWearingOutYarn { span, .. }
+        | RuntimeWarning::PulldownTakedownOverload { span, .. }
+        | RuntimeWarning::UnstableYarnFeeding { span }
+        | RuntimeWarning::SlackOfEdgeStitch { span }
         | RuntimeWarning::UnstitchedCarrier { span }
         | RuntimeWarning::CarrierLeftInAction { span }
         | RuntimeWarning::HookLeftEngaged { span } => *span,
+        RuntimeWarning::LongFloat { to_span, .. } => *to_span,
+        RuntimeWarning::ContinuousPickUpStitch { second_span, .. } => *second_span,
     }
 }
 
@@ -150,7 +168,8 @@ fn runtime_error_span(error: &RuntimeError) -> Option<Span> {
         | RuntimeError::ReleaseWithoutHook { span }
         | RuntimeError::ReleaseOfWrongCarriers { span }
         | RuntimeError::TakeOutWhileHooked { span }
-        | RuntimeError::MisalignedTransfer { span }
+        | RuntimeError::TransferAtWrongRacking { span }
+        | RuntimeError::TransferWithWrongBeds { span }
         | RuntimeError::MachineTooWide { span, .. } => *span,
     }
 }
@@ -511,8 +530,9 @@ mod tests {
 
     #[test]
     fn fully_valid_program_has_no_diagnostics() {
-        // Brings a carrier in, tucks, and takes it out cleanly: no parse or runtime diagnostics.
-        let text = ";!knitout-2\n;;Carriers: 1\nin 1\ntuck + f1 1\nout 1\n";
+        // Brings a carrier in, tucks, drops the loop, and takes the carrier out: nothing left on
+        // the machine, so no parse or runtime diagnostics.
+        let text = ";!knitout-2\n;;Carriers: 1\nin 1\ntuck + f1 1\ndrop f1\nout 1\n";
         let tree = parse(text);
         assert!(
             compute_diagnostics(text, &tree).is_empty(),

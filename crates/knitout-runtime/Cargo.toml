@@ -11,6 +11,7 @@ readme = "README.md"
 keywords = ["knitout"]
 
 [dependencies]
+bigdecimal = "0.4.10"
 either = "1.16.0"
 knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
 knitout-semantics = { version = "0.1.0", path = "../knitout-semantics" }

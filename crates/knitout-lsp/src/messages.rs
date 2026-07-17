@@ -72,9 +72,70 @@ pub fn error_message(error: &ParseError) -> String {
 /// Human-readable message for a runtime warning (the program still runs).
 pub fn runtime_warning_message(warning: &RuntimeWarning) -> String {
     match warning {
-        RuntimeWarning::OperationOnEmptyNeedle { .. } => {
-            "This operation acts on a needle that holds no loops (did you mean to `tuck`?)."
+        RuntimeWarning::NoYarnCarrier { .. } => {
+            "This knit/tuck/split has no carriers; use `drop`, `amiss`, or `xfer` instead."
                 .to_string()
+        }
+        RuntimeWarning::MissWithNoYarn { .. } => {
+            "A `miss` with no carriers does nothing.".to_string()
+        }
+        RuntimeWarning::KnittingThroughNothing { .. } => {
+            "This knit acts on a needle that holds no loops (a `tuck` is usually meant)."
+                .to_string()
+        }
+        RuntimeWarning::TransferringNothing { .. } => {
+            "The source needle holds no loops, so this transfer moves nothing.".to_string()
+        }
+        RuntimeWarning::LongFloat { distance, .. } => {
+            format!("This carrier makes a long float of {distance} needles.")
+        }
+        RuntimeWarning::MaxHoldLoops { count, .. } => {
+            format!("{count} loops are stacked on one needle, which can break the needle.")
+        }
+        RuntimeWarning::TransferWithOverlappedLoops { count, .. } => {
+            format!("A stack of {count} loops is being transferred at once.")
+        }
+        RuntimeWarning::ContinuousPickUpStitch { .. } => {
+            "The same carrier makes a new loop on two adjacent needles, laddering the piece."
+                .to_string()
+        }
+        RuntimeWarning::DropAfterPickUp { .. } => {
+            "This knits off a loop the same carrier just tucked, in the opposite direction — the \
+             same as a `drop` (a common cast-on mistake)."
+                .to_string()
+        }
+        RuntimeWarning::UnnecessaryLoopRemain { .. } => {
+            "This needle is still holding a loop at the end of the program.".to_string()
+        }
+        RuntimeWarning::LoopHeldTooLong { rows, .. } => {
+            format!("This loop is held on the machine for {rows} rows before it is knit.")
+        }
+        RuntimeWarning::ContinuousTransferWithoutKnitting { transfers, .. } => {
+            format!("This loop has been transferred {transfers} times without being knit.")
+        }
+        RuntimeWarning::UnstableSplitKnit { split_throughs, .. } => {
+            format!("This loop has been split-through {split_throughs} times, which is unstable.")
+        }
+        RuntimeWarning::TransferWithPickUpStitch { .. } => {
+            "Transferring a loop that never pulled through another loop gives inconsistent results."
+                .to_string()
+        }
+        RuntimeWarning::RackingWearingOutYarn { distance, .. } => {
+            format!(
+                "Two loops made close together are now {distance} needles apart, stretching the yarn."
+            )
+        }
+        RuntimeWarning::PulldownTakedownOverload { distance, .. } => {
+            format!(
+                "This loop is moved {distance} needles laterally, which can overload the take-down."
+            )
+        }
+        RuntimeWarning::UnstableYarnFeeding { .. } => {
+            "Knitting off the hook or grippers onto the far bed feeds the yarn unstably."
+                .to_string()
+        }
+        RuntimeWarning::SlackOfEdgeStitch { .. } => {
+            "Knitting the edge of a tube while racked leaves a slack gap at the edge.".to_string()
         }
         RuntimeWarning::UnstitchedCarrier { .. } => {
             "This carrier is taken out before it ever knitted, so its position is unknown."
@@ -111,8 +172,11 @@ pub fn runtime_error_message(error: &RuntimeError) -> String {
             "This carrier is still held by the hook; release it first (`releasehook`/`outhook`)."
                 .to_string()
         }
-        RuntimeError::MisalignedTransfer { .. } => {
-            "These needles are not aligned for a transfer at the current racking.".to_string()
+        RuntimeError::TransferAtWrongRacking { .. } => {
+            "These needles do not line up at the current racking.".to_string()
+        }
+        RuntimeError::TransferWithWrongBeds { .. } => {
+            "A transfer must be between opposite beds (`f`↔`b`, `f`↔`bs`, or `fs`↔`b`).".to_string()
         }
         RuntimeError::MachineTooWide {
             needles_used,
@@ -194,7 +258,55 @@ mod tests {
     #[test]
     fn all_runtime_messages_are_nonempty_and_distinct() {
         let warnings = [
-            RuntimeWarning::OperationOnEmptyNeedle { span: None },
+            RuntimeWarning::NoYarnCarrier { span: None },
+            RuntimeWarning::MissWithNoYarn { span: None },
+            RuntimeWarning::KnittingThroughNothing { span: None },
+            RuntimeWarning::TransferringNothing { span: None },
+            RuntimeWarning::LongFloat {
+                from_span: None,
+                to_span: None,
+                distance: 8,
+            },
+            RuntimeWarning::MaxHoldLoops {
+                span: None,
+                count: 4,
+            },
+            RuntimeWarning::TransferWithOverlappedLoops {
+                span: None,
+                count: 3,
+            },
+            RuntimeWarning::ContinuousPickUpStitch {
+                first_span: None,
+                second_span: None,
+            },
+            RuntimeWarning::DropAfterPickUp {
+                span: None,
+                pickup_span: None,
+            },
+            RuntimeWarning::UnnecessaryLoopRemain { span: None },
+            RuntimeWarning::LoopHeldTooLong {
+                span: None,
+                rows: 5,
+            },
+            RuntimeWarning::ContinuousTransferWithoutKnitting {
+                span: None,
+                transfers: 4,
+            },
+            RuntimeWarning::UnstableSplitKnit {
+                span: None,
+                split_throughs: 2,
+            },
+            RuntimeWarning::TransferWithPickUpStitch { span: None },
+            RuntimeWarning::RackingWearingOutYarn {
+                span: None,
+                distance: 9,
+            },
+            RuntimeWarning::PulldownTakedownOverload {
+                span: None,
+                distance: 13,
+            },
+            RuntimeWarning::UnstableYarnFeeding { span: None },
+            RuntimeWarning::SlackOfEdgeStitch { span: None },
             RuntimeWarning::UnstitchedCarrier { span: None },
             RuntimeWarning::CarrierLeftInAction { span: None },
             RuntimeWarning::HookLeftEngaged { span: None },
@@ -206,7 +318,8 @@ mod tests {
             RuntimeError::ReleaseWithoutHook { span: None },
             RuntimeError::ReleaseOfWrongCarriers { span: None },
             RuntimeError::TakeOutWhileHooked { span: None },
-            RuntimeError::MisalignedTransfer { span: None },
+            RuntimeError::TransferAtWrongRacking { span: None },
+            RuntimeError::TransferWithWrongBeds { span: None },
             RuntimeError::MachineTooWide {
                 span: None,
                 needles_used: 6,

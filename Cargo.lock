@@ -565,6 +565,7 @@ dependencies = [
 name = "knitout-runtime"
 version = "0.1.0"
 dependencies = [
+ "bigdecimal",
  "either",
  "knitout-ast",
  "knitout-semantics",
