@@ -553,6 +553,7 @@ dependencies = [
  "dashmap",
  "either",
  "knitout-ast",
+ "knitout-runtime",
  "knitout-weak-ast",
  "tokio",
  "tower-lsp",

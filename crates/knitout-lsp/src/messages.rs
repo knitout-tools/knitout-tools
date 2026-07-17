@@ -4,6 +4,7 @@
 //! server. Every [`ParseWarning`] and [`ParseError`] variant maps to exactly one message here;
 //! the [`crate::backend`] module turns those messages into LSP diagnostics.
 
+use knitout_runtime::{RuntimeError, RuntimeWarning};
 use knitout_weak_ast::{ParseError, ParseWarning};
 
 /// Human-readable message for a parse warning.
@@ -65,6 +66,61 @@ pub fn error_message(error: &ParseError) -> String {
             "Illegal carrier name (must not be empty or contain whitespace, `;`, or `,`)."
                 .to_string()
         }
+    }
+}
+
+/// Human-readable message for a runtime warning (the program still runs).
+pub fn runtime_warning_message(warning: &RuntimeWarning) -> String {
+    match warning {
+        RuntimeWarning::OperationOnEmptyNeedle { .. } => {
+            "This operation acts on a needle that holds no loops (did you mean to `tuck`?)."
+                .to_string()
+        }
+        RuntimeWarning::UnstitchedCarrier { .. } => {
+            "This carrier is taken out before it ever knitted, so its position is unknown."
+                .to_string()
+        }
+        RuntimeWarning::CarrierLeftInAction { .. } => {
+            "This carrier is never taken out (`out`/`outhook`).".to_string()
+        }
+        RuntimeWarning::HookLeftEngaged { .. } => {
+            "The yarn inserting hook is never released (`releasehook`).".to_string()
+        }
+    }
+}
+
+/// Human-readable message for a runtime error (the program will not run as written).
+pub fn runtime_error_message(error: &RuntimeError) -> String {
+    match error {
+        RuntimeError::UseOfInactiveCarrier { .. } => {
+            "This carrier is used before it is brought in (`in`/`inhook`).".to_string()
+        }
+        RuntimeError::CarrierBroughtInTwice { .. } => {
+            "This carrier is already in action.".to_string()
+        }
+        RuntimeError::HookAlreadyInUse { .. } => {
+            "The yarn inserting hook is already holding carriers.".to_string()
+        }
+        RuntimeError::ReleaseWithoutHook { .. } => {
+            "`releasehook` with no carriers held by the hook.".to_string()
+        }
+        RuntimeError::ReleaseOfWrongCarriers { .. } => {
+            "`releasehook` names a different carrier set than the hook is holding.".to_string()
+        }
+        RuntimeError::TakeOutWhileHooked { .. } => {
+            "This carrier is still held by the hook; release it first (`releasehook`/`outhook`)."
+                .to_string()
+        }
+        RuntimeError::MisalignedTransfer { .. } => {
+            "These needles are not aligned for a transfer at the current racking.".to_string()
+        }
+        RuntimeError::MachineTooWide {
+            needles_used,
+            machine_width,
+            ..
+        } => format!(
+            "This program spans {needles_used} needles, but the machine is only {machine_width} wide."
+        ),
     }
 }
 
@@ -133,5 +189,50 @@ mod tests {
             messages.len(),
             "every diagnostic message must be distinct"
         );
+    }
+
+    #[test]
+    fn all_runtime_messages_are_nonempty_and_distinct() {
+        let warnings = [
+            RuntimeWarning::OperationOnEmptyNeedle { span: None },
+            RuntimeWarning::UnstitchedCarrier { span: None },
+            RuntimeWarning::CarrierLeftInAction { span: None },
+            RuntimeWarning::HookLeftEngaged { span: None },
+        ];
+        let errors = [
+            RuntimeError::UseOfInactiveCarrier { span: None },
+            RuntimeError::CarrierBroughtInTwice { span: None },
+            RuntimeError::HookAlreadyInUse { span: None },
+            RuntimeError::ReleaseWithoutHook { span: None },
+            RuntimeError::ReleaseOfWrongCarriers { span: None },
+            RuntimeError::TakeOutWhileHooked { span: None },
+            RuntimeError::MisalignedTransfer { span: None },
+            RuntimeError::MachineTooWide {
+                span: None,
+                needles_used: 6,
+                machine_width: 1,
+            },
+        ];
+
+        let mut messages: Vec<String> = warnings.iter().map(runtime_warning_message).collect();
+        messages.extend(errors.iter().map(runtime_error_message));
+
+        assert!(messages.iter().all(|m| !m.trim().is_empty()));
+        let unique: std::collections::HashSet<&String> = messages.iter().collect();
+        assert_eq!(
+            unique.len(),
+            messages.len(),
+            "runtime messages must be distinct"
+        );
+    }
+
+    #[test]
+    fn machine_too_wide_message_includes_the_numbers() {
+        let message = runtime_error_message(&RuntimeError::MachineTooWide {
+            span: None,
+            needles_used: 6,
+            machine_width: 1,
+        });
+        assert!(message.contains('6') && message.contains('1'), "{message}");
     }
 }

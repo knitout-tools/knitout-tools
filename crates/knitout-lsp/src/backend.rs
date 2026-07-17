@@ -2,14 +2,17 @@
 //!
 //! Maintains, for every open document, its full text and a tree-sitter parse tree. On open and on
 //! change it re-parses the document, runs `knitout-weak-ast` over the resulting CST, and publishes
-//! the collected warnings and errors as LSP diagnostics. It also answers hover requests using the
-//! parsed AST (see [`crate::hover`]). The `Program<Parsed>` is not otherwise retained.
+//! the collected warnings and errors as LSP diagnostics. When the document also validates into a
+//! `Program<Validated>`, it additionally runs `knitout-runtime` over it and publishes the resulting
+//! runtime warnings and errors the same way. It also answers hover requests using the parsed AST
+//! (see [`crate::hover`]). The `Program<Parsed>` is not otherwise retained.
 
 use std::sync::Mutex;
 
 use dashmap::DashMap;
 use knitout_ast::Program;
-use knitout_weak_ast::{ParseError, ParseWarning, Parsed, Span, cst_to_program};
+use knitout_runtime::{RuntimeError, RuntimeWarning};
+use knitout_weak_ast::{ParseError, ParseWarning, Parsed, Span, cst_to_program, parsed_to_valid};
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
@@ -17,7 +20,9 @@ use tree_sitter::{Parser, Tree};
 
 use crate::docs::operation_arity_hint;
 use crate::hover::compute_hover;
-use crate::messages::{error_message, warning_message};
+use crate::messages::{
+    error_message, runtime_error_message, runtime_warning_message, warning_message,
+};
 use crate::positions::offset_to_position;
 
 /// A single open document: its current text and the parse tree for that text.
@@ -97,7 +102,57 @@ fn compute_diagnostics(text: &str, tree: &Tree) -> Vec<Diagnostic> {
             ..Default::default()
         });
     }
+
+    // If the program validates, run the runtime analysis on it too. A program with parse errors
+    // won't validate (`parsed_to_valid` returns `None`), so its runtime diagnostics are skipped
+    // until those parse errors are fixed. This consumes `program`, so it must come last.
+    if let Some(valid) = parsed_to_valid(program) {
+        let runtime = knitout_runtime::analyze(&valid);
+        for warning in &runtime.warnings {
+            diagnostics.push(Diagnostic {
+                range: span_to_range(text, runtime_warning_span(warning)),
+                severity: Some(DiagnosticSeverity::WARNING),
+                source: Some("knitout".to_string()),
+                message: runtime_warning_message(warning),
+                ..Default::default()
+            });
+        }
+        for error in &runtime.errors {
+            diagnostics.push(Diagnostic {
+                range: span_to_range(text, runtime_error_span(error)),
+                severity: Some(DiagnosticSeverity::ERROR),
+                source: Some("knitout".to_string()),
+                message: runtime_error_message(error),
+                ..Default::default()
+            });
+        }
+    }
+
     diagnostics
+}
+
+/// The span to anchor a runtime warning's diagnostic on, if it has one.
+fn runtime_warning_span(warning: &RuntimeWarning) -> Option<Span> {
+    match warning {
+        RuntimeWarning::OperationOnEmptyNeedle { span }
+        | RuntimeWarning::UnstitchedCarrier { span }
+        | RuntimeWarning::CarrierLeftInAction { span }
+        | RuntimeWarning::HookLeftEngaged { span } => *span,
+    }
+}
+
+/// The span to anchor a runtime error's diagnostic on, if it has one.
+fn runtime_error_span(error: &RuntimeError) -> Option<Span> {
+    match error {
+        RuntimeError::UseOfInactiveCarrier { span }
+        | RuntimeError::CarrierBroughtInTwice { span }
+        | RuntimeError::HookAlreadyInUse { span }
+        | RuntimeError::ReleaseWithoutHook { span }
+        | RuntimeError::ReleaseOfWrongCarriers { span }
+        | RuntimeError::TakeOutWhileHooked { span }
+        | RuntimeError::MisalignedTransfer { span }
+        | RuntimeError::MachineTooWide { span, .. } => *span,
+    }
 }
 
 /// For argument-count errors, the operation's signature-and-example hint (found by locating the
@@ -396,6 +451,73 @@ mod tests {
                 .iter()
                 .any(|d| d.severity == Some(DiagnosticSeverity::WARNING)),
             "expected a warning diagnostic, got {diags:?}"
+        );
+    }
+
+    #[test]
+    fn runtime_warning_is_reported_for_valid_program() {
+        // A valid program that knits an empty needle: no parse problems, one runtime warning.
+        let text = ";!knitout-2\n;;Carriers: 1\nin 1\nknit + f1 1\nout 1\n";
+        let tree = parse(text);
+        let diags = compute_diagnostics(text, &tree);
+        let warning = diags
+            .iter()
+            .find(|d| d.message.contains("holds no loops"))
+            .unwrap_or_else(|| panic!("expected an empty-needle runtime warning, got {diags:?}"));
+        assert_eq!(warning.severity, Some(DiagnosticSeverity::WARNING));
+        assert_eq!(warning.source.as_deref(), Some("knitout"));
+        // Anchored at the knit (line 3, "f1" is not empty), not the whole file.
+        assert_eq!(warning.range.start.line, 3);
+    }
+
+    #[test]
+    fn runtime_error_is_reported_for_valid_program() {
+        // A valid program that is wider than the declared machine width: a runtime error.
+        let text =
+            ";!knitout-2\n;;Carriers: 1\n;;Width: 1\nin 1\ntuck + f0 1\ntuck + f5 1\nout 1\n";
+        let tree = parse(text);
+        let diags = compute_diagnostics(text, &tree);
+        let error = diags
+            .iter()
+            .find(|d| d.message.contains("wide"))
+            .unwrap_or_else(|| panic!("expected a machine-too-wide runtime error, got {diags:?}"));
+        assert_eq!(error.severity, Some(DiagnosticSeverity::ERROR));
+        assert_eq!(error.source.as_deref(), Some("knitout"));
+        assert!(
+            error.message.contains('6'),
+            "message should mention the span: {}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn parse_errors_suppress_runtime_diagnostics() {
+        // The program can't validate (unknown opcode), so no runtime diagnostics are produced;
+        // only the parse error is reported.
+        let text = ";!knitout-2\n;;Carriers: 1\nnonsense + f1 1\n";
+        let tree = parse(text);
+        let diags = compute_diagnostics(text, &tree);
+        assert!(
+            diags.iter().all(|d| !d.message.contains("holds no loops")),
+            "runtime diagnostics should be suppressed when the program has parse errors: {diags:?}"
+        );
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.severity == Some(DiagnosticSeverity::ERROR)),
+            "expected the parse error to still be reported, got {diags:?}"
+        );
+    }
+
+    #[test]
+    fn fully_valid_program_has_no_diagnostics() {
+        // Brings a carrier in, tucks, and takes it out cleanly: no parse or runtime diagnostics.
+        let text = ";!knitout-2\n;;Carriers: 1\nin 1\ntuck + f1 1\nout 1\n";
+        let tree = parse(text);
+        assert!(
+            compute_diagnostics(text, &tree).is_empty(),
+            "{:?}",
+            compute_diagnostics(text, &tree)
         );
     }
 }
