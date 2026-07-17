@@ -1414,6 +1414,72 @@ mod tests {
                 RuntimeWarning::OverstretchedFloat {
                     birth_length: 1,
                     current_length: 11,
+                    dominant_axis: FloatAxis::Lateral,
+                    ..
+                }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn float_lateral_axis_dominates() {
+        // A held loop 20 slots from its same-bed predecessor: even after ageing 15 rows the lateral
+        // gap (20) still dominates the float's length, euclid(20, 0, 15) = 25.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            let mut ops = vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                tuck(pos(), f(20), &[c]),
+                tuck(pos(), f(30), &[c]),
+            ];
+            for _ in 0..15 {
+                ops.push(knit(pos(), f(30), &[c]));
+            }
+            ops
+        });
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat {
+                    current_length: 25,
+                    dominant_axis: FloatAxis::Lateral,
+                    ..
+                }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn float_overstretched_across_beds_reports_the_bed_axis() {
+        // With a large bed gap, moving a loop straight across the beds (aligned, so no lateral
+        // change and no age) stretches the float purely along the bed axis.
+        let mut table = CarrierTable::new();
+        let c = table.make_carrier("1", ());
+        let prog = program(
+            table,
+            None,
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                tuck(pos(), f(1), &[c]),
+                xfer(f(1), b(1)),
+            ],
+        );
+        let thresholds = Thresholds {
+            bed_gap: 10,
+            max_float_stretch: 4,
+            long_float: 1000,
+            ..Thresholds::default()
+        };
+        let d = analyze_with(&prog, &thresholds);
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat {
+                    dominant_axis: FloatAxis::Bed,
                     ..
                 }
             )),
