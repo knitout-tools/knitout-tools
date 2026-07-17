@@ -1,11 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
 
-use bigdecimal::Zero;
 use either::Either;
-use knitout_ast::{
-    BaseOperation, Bed, Carrier, IsSlider, MyI32, Needle, Operation, Program, Span, Validated,
-};
+use knitout_ast::{BaseOperation, Carrier, Needle, Operation, Program, Span, Validated};
 use knitout_semantics::{Backend, Diagnostic, KnitEffect, MachineState, run_knitout};
 
 use crate::config::Thresholds;
@@ -88,8 +85,6 @@ fn max_parent(generations: impl IntoIterator<Item = u32>) -> Option<u32> {
 }
 
 const ADJACENT: i64 = 1;
-/// Two loops count as "made close together" if their birth slots are within this many columns.
-const BORN_CLOSE: i64 = 2;
 
 /// A [`Backend`] that layers the loop-lineage [`LoopMachine`] over the semantics VM and turns the
 /// combined picture into runtime diagnostics.
@@ -106,15 +101,20 @@ struct Analyzer {
     pending_parent: Option<u32>,
     in_spans: HashMap<Carrier<Validated>, Option<Span>>,
     hook_span: Option<Span>,
-    hooked: HashSet<Carrier<Validated>>,
-    gripper_in: HashSet<Carrier<Validated>>,
+    /// Carriers that have knit at least one stitch, for the "first stitch off the hook" check.
     stitched: HashSet<Carrier<Validated>>,
+    /// Each Shima-Seiki carrier's home bed (`true` = front, names `1`–`5`; `false` = back, `6`–`10`).
+    /// Carriers with other names are absent.
+    home_bed: HashMap<Carrier<Validated>, bool>,
     /// Each carrier's last stitch: `(slot, span)`, for long-float detection.
     last_stitch: HashMap<Carrier<Validated>, (i64, Option<Span>)>,
     /// Each carrier's last pick-up stitch: `(needle, span)`, for the laddering check.
     last_pickup: HashMap<Carrier<Validated>, (Needle<Validated>, Option<Span>)>,
+    /// The birth length of each loop's float to its yarn-predecessor.
+    float_prev_birth: HashMap<LoopId, i64>,
     warned_pulldown: HashSet<LoopId>,
-    warned_wear: HashSet<(LoopId, LoopId)>,
+    /// Loops whose prev-float has already been reported as overstretched.
+    warned_float: HashSet<LoopId>,
 }
 
 impl Analyzer {
@@ -184,15 +184,10 @@ impl Analyzer {
                     self.unstable_feeding(c, &needle, span);
                 }
             }
-            BaseOperation::Miss {
-                needle, carriers, ..
-            } => {
-                // A miss moves the carrier but does not itself open a float; just relocate it.
-                let needle = only(needle).clone();
-                for c in owned_carriers(carriers) {
-                    let slot = self.machine.slot(&needle);
-                    self.last_stitch.insert(c, (slot, span));
-                }
+            BaseOperation::Miss { .. } => {
+                // A miss is invisible to floats: it is neither an endpoint of a float nor does it
+                // relocate the carrier for float purposes, so the float between the real stitches on
+                // either side is measured as if the miss were not there. Nothing to do here.
             }
             BaseOperation::Split {
                 source,
@@ -288,22 +283,26 @@ impl Analyzer {
         self.last_pickup.insert(carrier, (needle.clone(), span));
     }
 
-    /// A carrier still on the hook, or freshly off the grippers, knitting onto the back bed feeds
-    /// unstably on SWG-N machines.
+    /// On Shima-Seiki machines carriers `1`–`5` feed from the front and `6`–`10` from the back. The
+    /// first stitch a carrier makes (fresh off the hook/grippers) onto the bed opposite its home
+    /// feeds unstably. Carriers with other names are not checked.
     fn unstable_feeding(
         &mut self,
         carrier: Carrier<Validated>,
         needle: &Needle<Validated>,
         span: Option<Span>,
     ) {
-        let onto_back = !is_front(needle);
-        let hooked = self.hooked.contains(&carrier);
-        let fresh_gripper = self.gripper_in.contains(&carrier) && !self.stitched.contains(&carrier);
-        if onto_back && (hooked || fresh_gripper) {
-            self.warnings
-                .push(RuntimeWarning::UnstableYarnFeeding { span });
-        }
+        let first_stitch = !self.stitched.contains(&carrier);
         self.stitched.insert(carrier);
+        if !first_stitch {
+            return;
+        }
+        if let Some(&home_is_front) = self.home_bed.get(&carrier) {
+            if home_is_front != is_front(needle) {
+                self.warnings
+                    .push(RuntimeWarning::UnstableYarnFeeding { span });
+            }
+        }
     }
 
     /// The bed/racking legality and content checks for a split or xfer.
@@ -365,20 +364,12 @@ impl Analyzer {
     // ── effect-driven model updates + effect-level checks ────────────────
 
     fn on_loops_dropped(&mut self, needle: &Needle<Validated>, count: u32) {
-        let removed = self.machine.drop_from(needle, count);
-        // Hold check: any dropped loop whose carrier advanced many rows since its birth.
-        for info in &removed {
-            let held = self
-                .machine
-                .frontier_of(&info.carrier)
-                .saturating_sub(info.born_frontier);
-            if held >= self.thresholds.loop_hold_rows {
-                self.warnings.push(RuntimeWarning::LoopHeldTooLong {
-                    span: info.birth_span,
-                    rows: held,
-                });
-            }
+        // Just before the loops leave, re-check the floats they touch: their age is highest now, so
+        // this is where a loop that was held too long is caught.
+        for id in self.machine.top_n(needle, count) {
+            self.check_float_around(id);
         }
+        let removed = self.machine.drop_from(needle, count);
         self.pending_parent = max_parent(removed.iter().map(|i| i.generation));
     }
 
@@ -412,7 +403,8 @@ impl Analyzer {
                     });
                 }
             }
-            self.check_lateral_movement(*id, span);
+            self.check_pulldown(*id, span);
+            self.check_float_around(*id);
             if let Some(info) = self.machine.get(*id) {
                 parents.push(info.generation);
             }
@@ -422,17 +414,13 @@ impl Analyzer {
         self.check_max_hold(dest_before, new_dest, span);
     }
 
-    /// Pulldown/take-down overload (a loop moved far laterally) and racking-wear (two yarn-adjacent
-    /// loops pulled apart), evaluated after a loop has moved.
-    fn check_lateral_movement(&mut self, id: LoopId, span: Option<Span>) {
+    /// Pulldown/take-down overload: a single loop moved far laterally from where it was made.
+    fn check_pulldown(&mut self, id: LoopId, span: Option<Span>) {
         let Some(info) = self.machine.get(id) else {
             return;
         };
         let birth_slot = info.birth_slot;
-        let current = self.machine.slot(&info.current_needle);
-        let neighbours = [info.yarn_prev, info.yarn_next];
-
-        let moved_by = (current - birth_slot).abs();
+        let moved_by = (self.machine.slot(&info.current_needle) - birth_slot).abs();
         if moved_by > self.thresholds.takedown_overload_distance && self.warned_pulldown.insert(id)
         {
             self.warnings
@@ -441,23 +429,76 @@ impl Analyzer {
                     distance: moved_by,
                 });
         }
-        for neighbour in neighbours.into_iter().flatten() {
-            let Some(other) = self.machine.get(neighbour) else {
-                continue;
+    }
+
+    /// Re-check the two floats that touch loop `id` (its float to its yarn-predecessor, and its
+    /// yarn-successor's float back to it).
+    fn check_float_around(&mut self, id: LoopId) {
+        self.check_prev_float(id);
+        if let Some(next) = self.machine.get(id).and_then(|i| i.yarn_next) {
+            self.check_prev_float(next);
+        }
+    }
+
+    /// Re-check the float from loop `id` back to its yarn-predecessor: if it is now much longer than
+    /// its birth length (lateral, bed, and age combined), report it once.
+    fn check_prev_float(&mut self, id: LoopId) {
+        let Some(&birth) = self.float_prev_birth.get(&id) else {
+            return;
+        };
+        let (carrier, born_frontier, birth_span, prev, a_slot, a_bed) = {
+            let Some(info) = self.machine.get(id) else {
+                return;
             };
-            let other_birth = other.birth_slot;
-            let other_current = self.machine.slot(&other.current_needle);
-            if (birth_slot - other_birth).abs() > BORN_CLOSE {
-                continue;
-            }
-            let distance = (current - other_current).abs();
-            if distance > self.thresholds.racking_wear_distance {
-                let key = (id.min(neighbour), id.max(neighbour));
-                if self.warned_wear.insert(key) {
-                    self.warnings
-                        .push(RuntimeWarning::RackingWearingOutYarn { span, distance });
-                }
-            }
+            let Some(prev) = info.yarn_prev else {
+                return;
+            };
+            (
+                info.carrier,
+                info.born_frontier,
+                info.birth_span,
+                prev,
+                self.machine.slot(&info.current_needle),
+                self.bed_coord(&info.current_needle),
+            )
+        };
+        let (b_slot, b_bed) = {
+            let Some(pinfo) = self.machine.get(prev) else {
+                return;
+            };
+            (
+                self.machine.slot(&pinfo.current_needle),
+                self.bed_coord(&pinfo.current_needle),
+            )
+        };
+        let age = self
+            .machine
+            .frontier_of(&carrier)
+            .saturating_sub(born_frontier);
+        let z = i64::from(age) * self.thresholds.age_per_generation;
+        let current = euclid(a_slot - b_slot, a_bed - b_bed, z);
+        if current - birth > self.thresholds.max_float_stretch && self.warned_float.insert(id) {
+            self.warnings.push(RuntimeWarning::OverstretchedFloat {
+                span: birth_span,
+                birth_length: birth,
+                current_length: current,
+            });
+        }
+    }
+
+    /// Re-check every float on the machine (used after a racking, which shifts back-bed slots).
+    fn check_all_floats(&mut self) {
+        for id in self.machine.live_ids() {
+            self.check_prev_float(id);
+        }
+    }
+
+    /// The bed axis coordinate of a needle: front is 0, back is `bed_gap` away.
+    fn bed_coord(&self, needle: &Needle<Validated>) -> i64 {
+        if is_front(needle) {
+            0
+        } else {
+            self.thresholds.bed_gap
         }
     }
 
@@ -472,38 +513,34 @@ impl Analyzer {
             return;
         };
         let parent = self.pending_parent.take();
-        self.machine.form(needle, carrier, *direction, span, parent);
+        let id = self.machine.form(needle, carrier, *direction, span, parent);
+        self.store_float_birth(id);
         let new_count = self.machine.count(needle);
         self.check_max_hold(new_count.saturating_sub(1), new_count, span);
-        self.check_slack_of_edge(needle, span);
     }
 
-    /// Knitting the edge of a tube (a column with loops on both beds) while the beds are racked
-    /// stretches the yarn joining the two edge stitches (SWG heuristic).
-    fn check_slack_of_edge(&mut self, needle: &Needle<Validated>, span: Option<Span>) {
-        if self.machine.rack().is_zero() {
+    /// Record the birth length of a freshly-formed loop's float to its yarn-predecessor.
+    fn store_float_birth(&mut self, id: LoopId) {
+        let (prev, a_slot, a_bed) = {
+            let Some(info) = self.machine.get(id) else {
+                return;
+            };
+            let Some(prev) = info.yarn_prev else {
+                return;
+            };
+            (
+                prev,
+                self.machine.slot(&info.current_needle),
+                self.bed_coord(&info.current_needle),
+            )
+        };
+        let Some(pinfo) = self.machine.get(prev) else {
             return;
-        }
-        let index = needle_index(needle);
-        let opposite = Needle::new(
-            if is_front(needle) {
-                Bed::Back(())
-            } else {
-                Bed::Front(())
-            },
-            IsSlider::NotSlider(()),
-            MyI32::new(Either::Left(index), ()),
-            (),
-        );
-        if self.machine.count(&opposite) == 0 {
-            return;
-        }
-        if let Some((min, max)) = self.machine.occupied_index_range() {
-            if index == min || index == max {
-                self.warnings
-                    .push(RuntimeWarning::SlackOfEdgeStitch { span });
-            }
-        }
+        };
+        let b_slot = self.machine.slot(&pinfo.current_needle);
+        let b_bed = self.bed_coord(&pinfo.current_needle);
+        let birth = euclid(a_slot - b_slot, a_bed - b_bed, 0);
+        self.float_prev_birth.insert(id, birth);
     }
 
     fn check_max_hold(&mut self, old: u32, new: u32, span: Option<Span>) {
@@ -579,23 +616,14 @@ impl Analyzer {
         }
     }
 
-    /// End-of-program: needles still holding loops, plus loops held too long that were never
-    /// dropped.
+    /// End-of-program: needles still holding loops, plus a final float check (a loop left held to
+    /// the end has its highest age here).
     fn finish_program(&mut self) {
+        self.check_all_floats();
         for info in self.machine.remaining() {
             self.warnings.push(RuntimeWarning::UnnecessaryLoopRemain {
                 span: info.birth_span,
             });
-            let held = self
-                .machine
-                .frontier_of(&info.carrier)
-                .saturating_sub(info.born_frontier);
-            if held >= self.thresholds.loop_hold_rows {
-                self.warnings.push(RuntimeWarning::LoopHeldTooLong {
-                    span: info.birth_span,
-                    rows: held,
-                });
-            }
         }
     }
 }
@@ -605,6 +633,47 @@ fn owned_carriers(
     carriers: &[Either<Carrier<Validated>, knitout_ast::Never>],
 ) -> Vec<Carrier<Validated>> {
     carriers.iter().map(|c| *only(c)).collect()
+}
+
+/// The rounded Euclidean length of a 3-axis float vector.
+fn euclid(x: i64, y: i64, z: i64) -> i64 {
+    (((x * x + y * y + z * z) as f64).sqrt()).round() as i64
+}
+
+/// Map each carrier named `1`–`10` to its Shima-Seiki home bed (`1`–`5` front, `6`–`10` back).
+/// Carriers with any other name are omitted, so they are never flagged for unstable feeding.
+fn shima_seiki_home_beds(program: &Program<Validated>) -> HashMap<Carrier<Validated>, bool> {
+    let table = program.carrier_table();
+    let mut map = HashMap::new();
+    for op in program.operations() {
+        for carrier in carriers_in(&op.value) {
+            if let Ok(number) = table.carrier_name(&carrier).parse::<u32>() {
+                if (1..=10).contains(&number) {
+                    map.insert(carrier, number <= 5);
+                }
+            }
+        }
+    }
+    map
+}
+
+/// Every carrier named by an operation (for the home-bed scan).
+fn carriers_in(op: &Operation<Validated>) -> Vec<Carrier<Validated>> {
+    let Operation::BaseOperation(base) = op else {
+        return Vec::new();
+    };
+    match base {
+        BaseOperation::In { carriers }
+        | BaseOperation::Inhook { carriers }
+        | BaseOperation::Releasehook { carriers }
+        | BaseOperation::Out { carriers }
+        | BaseOperation::Outhook { carriers }
+        | BaseOperation::Knit { carriers, .. }
+        | BaseOperation::Tuck { carriers, .. }
+        | BaseOperation::Miss { carriers, .. }
+        | BaseOperation::Split { carriers, .. } => owned_carriers(carriers),
+        _ => Vec::new(),
+    }
 }
 
 impl Backend for Analyzer {
@@ -623,13 +692,13 @@ impl Backend for Analyzer {
             pending_parent: None,
             in_spans: HashMap::new(),
             hook_span: None,
-            hooked: HashSet::new(),
-            gripper_in: HashSet::new(),
             stitched: HashSet::new(),
+            home_bed: shima_seiki_home_beds(program),
             last_stitch: HashMap::new(),
             last_pickup: HashMap::new(),
+            float_prev_birth: HashMap::new(),
             warned_pulldown: HashSet::new(),
-            warned_wear: HashSet::new(),
+            warned_float: HashSet::new(),
         };
         analyzer.syntactic_pass(program);
         Ok(analyzer)
@@ -655,22 +724,13 @@ impl Backend for Analyzer {
                 self.in_spans.insert(carrier, span);
                 if hooked {
                     self.hook_span = span;
-                    self.hooked.insert(carrier);
-                } else {
-                    self.gripper_in.insert(carrier);
                 }
             }
-            KnitEffect::HookReleased { carriers } => {
-                for carrier in carriers {
-                    self.hooked.remove(&carrier);
-                }
-            }
-            KnitEffect::CarrierOut { carrier, .. } => {
-                self.hooked.remove(&carrier);
-                self.gripper_in.remove(&carrier);
-            }
+            KnitEffect::HookReleased { .. } | KnitEffect::CarrierOut { .. } => {}
             KnitEffect::Racked { to, .. } => {
                 self.machine.set_rack(to);
+                // Racking shifts every back-bed loop's slot; re-check the floats it touches.
+                self.check_all_floats();
             }
             KnitEffect::LoopsDropped { needle, count } => {
                 self.on_loops_dropped(&needle, count);
@@ -964,8 +1024,9 @@ mod tests {
     }
 
     #[test]
-    fn miss_relocates_carrier_so_no_false_float() {
-        // A miss between two stitches moves the carrier, so the float is measured from the miss.
+    fn miss_does_not_affect_the_float() {
+        // A miss between two stitches is invisible to float measurement: the float from f0 to f11
+        // is 11, exactly as if the miss were not there.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
@@ -976,7 +1037,10 @@ mod tests {
             ]
         });
         assert!(
-            !warns(&d, |w| matches!(w, RuntimeWarning::LongFloat { .. })),
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::LongFloat { distance: 11, .. }
+            )),
             "{d:?}"
         );
         // The miss itself carried a yarn, so it is not a "miss with no yarn".
@@ -1189,66 +1253,48 @@ mod tests {
     // ── lineage: hold / continuous transfer / unstable split ─────────────
 
     #[test]
-    fn loop_held_too_long() {
+    fn float_overstretched_by_age() {
+        // The float from L (f0) back to P (f1) is 1 long at birth. L is held while its carrier knits
+        // a tall wale elsewhere (on f10), so L's age climbs; the float's age axis stretches it. This
+        // is the consolidated "loop hold error".
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
-            vec![
-                in_(&[c]),
-                tuck(pos(), f(0), &[c]), // loop we will hold
-                tuck(pos(), f(1), &[c]), // build a wale on f1: gen 0
-                knit(neg(), f(1), &[c]), // gen 1
-                knit(pos(), f(1), &[c]), // gen 2
-                knit(neg(), f(1), &[c]), // gen 3 -> carrier frontier 3
-                drop(f(0)),              // the held loop finally comes off after 3 rows
-            ]
+            let mut ops = vec![in_(&[c]), tuck(pos(), f(1), &[c]), tuck(pos(), f(0), &[c])];
+            ops.push(tuck(pos(), f(10), &[c])); // start a wale away from f0/f1
+            for _ in 0..8 {
+                ops.push(knit(pos(), f(10), &[c])); // 8 rows -> carrier frontier 8
+            }
+            ops
         });
         assert!(
             warns(&d, |w| matches!(
                 w,
-                RuntimeWarning::LoopHeldTooLong { rows: 3, .. }
+                RuntimeWarning::OverstretchedFloat {
+                    birth_length: 1,
+                    ..
+                }
             )),
             "{d:?}"
         );
     }
 
     #[test]
-    fn loop_held_too_long_at_end_of_program() {
-        // Same as above, but the held loop is never taken off — the check fires at program end.
+    fn float_not_overstretched_when_short_lived() {
+        // A loop knit off after one row barely ages, so its float is not overstretched.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
                 in_(&[c]),
-                tuck(pos(), f(0), &[c]), // held loop, never dropped
                 tuck(pos(), f(1), &[c]),
-                knit(neg(), f(1), &[c]),
-                knit(pos(), f(1), &[c]),
-                knit(neg(), f(1), &[c]), // carrier frontier reaches 3
-            ]
-        });
-        assert!(
-            warns(&d, |w| matches!(
-                w,
-                RuntimeWarning::LoopHeldTooLong { rows: 3, .. }
-            )),
-            "{d:?}"
-        );
-    }
-
-    #[test]
-    fn short_lived_loop_is_not_held_too_long() {
-        // A loop knit off after one row is not "held too long".
-        let d = run(None, |t| {
-            let c = t.make_carrier("1", ());
-            vec![
-                in_(&[c]),
                 tuck(pos(), f(0), &[c]),
                 knit(neg(), f(0), &[c]),
-                drop(f(0)),
-                out(&[c]),
             ]
         });
         assert!(
-            !warns(&d, |w| matches!(w, RuntimeWarning::LoopHeldTooLong { .. })),
+            !warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat { .. }
+            )),
             "{d:?}"
         );
     }
@@ -1298,50 +1344,77 @@ mod tests {
         );
     }
 
-    // ── lineage: racking / pulldown ──────────────────────────────────────
+    // ── overstretched floats (racking / slack) / pulldown ────────────────
 
     #[test]
-    fn racking_wearing_out_yarn() {
-        // A at slot 3 and B at slot 5 are yarn-adjacent and born 2 apart; B is then moved to slot
-        // 15, so they end up 12 apart.
+    fn float_overstretched_by_racking() {
+        // P (f0) and L (f1) start 1 slot apart. L is transferred to slot 11, so its float to P is
+        // now 11 long — the "racking wearing out yarn" case.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
                 in_(&[c]),
-                tuck(pos(), f(3), &[c]),
-                tuck(pos(), f(5), &[c]),
-                xfer(f(5), b(5)), // B -> b5 (slot 5 at rack 0)
+                tuck(pos(), f(0), &[c]),
+                tuck(pos(), f(1), &[c]),
+                xfer(f(1), b(1)),
                 rack(10),
-                xfer(b(5), f(15)), // B -> f15 (slot 15)
+                xfer(b(1), f(11)),
             ]
         });
         assert!(
             warns(&d, |w| matches!(
                 w,
-                RuntimeWarning::RackingWearingOutYarn { distance: 12, .. }
+                RuntimeWarning::OverstretchedFloat {
+                    birth_length: 1,
+                    current_length: 11,
+                    ..
+                }
             )),
             "{d:?}"
         );
     }
 
     #[test]
-    fn racking_wear_boundary() {
-        // Same setup but B only reaches slot 9, exactly 6 from A — not a wear warning.
+    fn float_overstretched_by_racking_a_tube_edge() {
+        // A cross-bed float (f0 to b0) is 1 long at rack 0; racking to 8 stretches it to ~8. This is
+        // the "slack of edge stitch" case, now the same metric.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![
                 in_(&[c]),
-                tuck(pos(), f(3), &[c]),
-                tuck(pos(), f(5), &[c]),
-                xfer(f(5), b(5)),
-                rack(4),
-                xfer(b(5), f(9)), // slot 9, exactly 6 from A at slot 3
+                tuck(pos(), f(0), &[c]),
+                tuck(pos(), b(0), &[c]),
+                rack(8),
+            ]
+        });
+        assert!(
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat { .. }
+            )),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn float_not_overstretched_below_threshold() {
+        // Moving L to slot 6 leaves its float to P (at slot 0) exactly 6 long — birth 1, so a growth
+        // of 5, under the stretch limit of 6.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                tuck(pos(), f(1), &[c]),
+                xfer(f(1), b(1)),
+                rack(5),
+                xfer(b(1), f(6)),
             ]
         });
         assert!(
             !warns(&d, |w| matches!(
                 w,
-                RuntimeWarning::RackingWearingOutYarn { .. }
+                RuntimeWarning::OverstretchedFloat { .. }
             )),
             "{d:?}"
         );
@@ -1394,10 +1467,11 @@ mod tests {
     // ── SWG heuristics ───────────────────────────────────────────────────
 
     #[test]
-    fn unstable_yarn_feeding_off_hook_onto_back() {
+    fn unstable_yarn_feeding_front_carrier_onto_back() {
+        // Carrier "1" is a front-bed carrier; its first stitch onto the back bed is unstable.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
-            vec![inhook(&[c]), tuck(pos(), b(0), &[c])]
+            vec![in_(&[c]), tuck(pos(), b(0), &[c])]
         });
         assert!(warns(&d, |w| matches!(
             w,
@@ -1406,11 +1480,45 @@ mod tests {
     }
 
     #[test]
-    fn unstable_yarn_feeding_onto_front_is_fine() {
-        // Hooked but knitting onto the near (front) bed feeds fine.
+    fn unstable_yarn_feeding_back_carrier_onto_front() {
+        // Carrier "6" is a back-bed carrier; its first stitch onto the front bed is unstable.
         let d = run(None, |t| {
+            let c = t.make_carrier("6", ());
+            vec![in_(&[c]), tuck(pos(), f(0), &[c])]
+        });
+        assert!(warns(&d, |w| matches!(
+            w,
+            RuntimeWarning::UnstableYarnFeeding { .. }
+        )));
+    }
+
+    #[test]
+    fn unstable_yarn_feeding_onto_home_bed_is_fine() {
+        // A front carrier onto the front bed, and a back carrier onto the back bed, are both fine.
+        let front = run(None, |t| {
             let c = t.make_carrier("1", ());
-            vec![inhook(&[c]), tuck(pos(), f(0), &[c])]
+            vec![in_(&[c]), tuck(pos(), f(0), &[c])]
+        });
+        assert!(!warns(&front, |w| matches!(
+            w,
+            RuntimeWarning::UnstableYarnFeeding { .. }
+        )));
+        let back = run(None, |t| {
+            let c = t.make_carrier("6", ());
+            vec![in_(&[c]), tuck(pos(), b(0), &[c])]
+        });
+        assert!(!warns(&back, |w| matches!(
+            w,
+            RuntimeWarning::UnstableYarnFeeding { .. }
+        )));
+    }
+
+    #[test]
+    fn unstable_yarn_feeding_ignores_non_numeric_carriers() {
+        // A carrier not named 1–10 is not a Shima-Seiki bed-assigned carrier, so it is never flagged.
+        let d = run(None, |t| {
+            let c = t.make_carrier("A", ());
+            vec![in_(&[c]), tuck(pos(), b(0), &[c])]
         });
         assert!(!warns(&d, |w| matches!(
             w,
@@ -1419,8 +1527,8 @@ mod tests {
     }
 
     #[test]
-    fn unstable_yarn_feeding_off_grippers_first_stitch_only() {
-        // The first stitch off the grippers onto the back bed is unstable; a later one is not.
+    fn unstable_yarn_feeding_only_the_first_stitch() {
+        // Only the first stitch off the hook/grippers is checked; later back-bed stitches are fine.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             vec![in_(&[c]), tuck(pos(), b(0), &[c]), tuck(pos(), b(2), &[c])]
@@ -1431,50 +1539,6 @@ mod tests {
             .filter(|w| matches!(w, RuntimeWarning::UnstableYarnFeeding { .. }))
             .count();
         assert_eq!(count, 1, "{d:?}");
-    }
-
-    #[test]
-    fn slack_of_edge_stitch_at_both_edges() {
-        // A tube spanning columns 0 and 5; at nonzero racking, knitting either edge is slack.
-        let cast_tube = |t: &mut CarrierTable| -> (Carrier<Validated>, Vec<Operation<Validated>>) {
-            let c = t.make_carrier("1", ());
-            (
-                c,
-                vec![
-                    in_(&[c]),
-                    tuck(pos(), f(0), &[c]),
-                    tuck(pos(), b(0), &[c]),
-                    tuck(pos(), f(5), &[c]),
-                    tuck(pos(), b(5), &[c]),
-                    rack(2),
-                ],
-            )
-        };
-        let at_min = run(None, |t| {
-            let (c, mut ops) = cast_tube(t);
-            ops.push(tuck(pos(), f(0), &[c])); // min edge (index 0)
-            ops
-        });
-        assert!(
-            warns(&at_min, |w| matches!(
-                w,
-                RuntimeWarning::SlackOfEdgeStitch { .. }
-            )),
-            "{at_min:?}"
-        );
-
-        let at_max = run(None, |t| {
-            let (c, mut ops) = cast_tube(t);
-            ops.push(tuck(pos(), f(5), &[c])); // max edge (index 5)
-            ops
-        });
-        assert!(
-            warns(&at_max, |w| matches!(
-                w,
-                RuntimeWarning::SlackOfEdgeStitch { .. }
-            )),
-            "{at_max:?}"
-        );
     }
 
     // ── transfer errors ──────────────────────────────────────────────────
@@ -1687,45 +1751,6 @@ mod tests {
             warns(&d, |w| matches!(
                 w,
                 RuntimeWarning::LongFloat { distance: 10, .. }
-            )),
-            "{d:?}"
-        );
-    }
-
-    #[test]
-    fn unstable_feeding_first_gripper_stitch_warns() {
-        // Isolates the "fresh gripper, first stitch onto the back bed" case.
-        let d = run(None, |t| {
-            let c = t.make_carrier("1", ());
-            vec![in_(&[c]), tuck(pos(), b(0), &[c])]
-        });
-        assert!(
-            warns(&d, |w| matches!(
-                w,
-                RuntimeWarning::UnstableYarnFeeding { .. }
-            )),
-            "{d:?}"
-        );
-    }
-
-    #[test]
-    fn racking_wear_ignores_loops_born_far_apart() {
-        // A and B are yarn-adjacent but born 5 apart; moving them is not "close together then far".
-        let d = run(None, |t| {
-            let c = t.make_carrier("1", ());
-            vec![
-                in_(&[c]),
-                tuck(pos(), f(0), &[c]),
-                tuck(pos(), f(5), &[c]), // born 5 from A (> BORN_CLOSE)
-                xfer(f(5), b(5)),
-                rack(15),
-                xfer(b(5), f(20)),
-            ]
-        });
-        assert!(
-            !warns(&d, |w| matches!(
-                w,
-                RuntimeWarning::RackingWearingOutYarn { .. }
             )),
             "{d:?}"
         );

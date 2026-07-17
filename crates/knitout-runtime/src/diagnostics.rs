@@ -54,12 +54,16 @@ pub enum RuntimeWarning {
     /// A needle was still holding loops at the end of the program. The span points at where the
     /// remaining loop was made.
     UnnecessaryLoopRemain { span: Option<Span> },
-    /// A loop stayed on the machine while its carrier knit many further rows ("Loop hold error").
-    LoopHeldTooLong {
-        /// Where the held loop was made.
+    /// A float (the yarn between two consecutive stitches of one carrier) grew much longer than its
+    /// birth length as the loops it joins moved apart (racking/transfers), crossed beds, and/or the
+    /// float aged. Consolidates "slack of edge stitch", "racking wearing out yarn", and "loop hold
+    /// error". The span points at where the float's later stitch was made.
+    OverstretchedFloat {
         span: Option<Span>,
-        /// How many rows the carrier advanced while the loop was still held.
-        rows: u32,
+        /// The float's length (in slot-units) when it was made.
+        birth_length: i64,
+        /// The float's length now.
+        current_length: i64,
     },
     /// One loop was transferred many times without ever being knit through.
     ContinuousTransferWithoutKnitting {
@@ -78,14 +82,6 @@ pub enum RuntimeWarning {
     /// A loop that never passed through another loop (e.g. a plain tuck) was transferred, which
     /// gives inconsistent transfer performance.
     TransferWithPickUpStitch { span: Option<Span> },
-    /// Two yarn-adjacent loops that were made close together were moved far apart, stretching the
-    /// yarn (and possibly bending needles).
-    RackingWearingOutYarn {
-        /// The transfer that pulled them apart.
-        span: Option<Span>,
-        /// How far apart the two loops now sit, in slots.
-        distance: i64,
-    },
     /// A loop was moved a long way laterally from where it was made, stressing the take-down
     /// (should not happen on SWG-N).
     PulldownTakedownOverload {
@@ -94,11 +90,10 @@ pub enum RuntimeWarning {
         /// How far the loop moved, in slots.
         distance: i64,
     },
-    /// A carrier still on the yarn inserting hook, or freshly brought in on the grippers, knit onto
-    /// the far bed, which feeds unstably (SWG-N).
+    /// A Shima-Seiki front-bed carrier (named `1`–`5`) knit onto the back bed, or a back-bed
+    /// carrier (`6`–`10`) knit onto the front bed, on its first stitch off the hook/grippers, which
+    /// feeds unstably (SWG-N). Only carriers with those literal numeric names are checked.
     UnstableYarnFeeding { span: Option<Span> },
-    /// The edge of a tube was knit with the beds racked, opening a slack gap at the edge.
-    SlackOfEdgeStitch { span: Option<Span> },
     /// A carrier was taken out or released before it ever knit, so its position was never known.
     UnstitchedCarrier { span: Option<Span> },
     /// The program ended with a carrier still in action (never `out`/`outhook`).

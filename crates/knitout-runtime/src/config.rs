@@ -21,15 +21,23 @@ pub struct Thresholds {
     /// Warn once a single loop has been split-through at least this many times
     /// ("Unstable split knit").
     pub unstable_split_through: u32,
-    /// Warn if a loop is still on the machine after its carrier has advanced at least this many
-    /// rows (deepest-wale generations) past the loop's birth ("Loop hold error").
-    pub loop_hold_rows: u32,
-    /// Warn once two yarn-adjacent loops that were born close together end up more than this many
-    /// slots apart ("Racking wearing out yarn"). Strict `>` bound.
-    pub racking_wear_distance: i64,
     /// Warn once a single loop is moved more than this many slots laterally from where it was made
     /// ("Pulldown/take-down overload", SWG-N). Strict `>` bound.
     pub takedown_overload_distance: i64,
+
+    // ── overstretched-float metric ──────────────────────────────────────────
+    // A float (the yarn between two consecutive stitches of one carrier) is a vector in three
+    // axes: lateral (slot), bed (front vs back), and age (how many rows the float has survived).
+    // Its birth length is the length when it was made; its current length re-measures all three as
+    // the loops move (racking/transfers) and age. A float that grows too much covers "slack of
+    // edge stitch", "racking wearing out yarn", and "loop hold error" at once.
+    /// The bed axis: how many slot-units apart the front and back beds are.
+    pub bed_gap: i64,
+    /// The age axis: how many slot-units one row (generation) of survival counts for.
+    pub age_per_generation: i64,
+    /// Warn once a float is longer than its birth length by more than this many slot-units. Strict
+    /// `>` bound.
+    pub max_float_stretch: i64,
 }
 
 impl Thresholds {
@@ -39,9 +47,10 @@ impl Thresholds {
         max_hold_loops: 4,
         continuous_transfer: 4,
         unstable_split_through: 2,
-        loop_hold_rows: 3,
-        racking_wear_distance: 6,
         takedown_overload_distance: 12,
+        bed_gap: 1,
+        age_per_generation: 1,
+        max_float_stretch: 6,
     };
 }
 

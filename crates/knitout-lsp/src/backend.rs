@@ -143,14 +143,12 @@ fn runtime_warning_span(warning: &RuntimeWarning) -> Option<Span> {
         | RuntimeWarning::TransferWithOverlappedLoops { span, .. }
         | RuntimeWarning::DropAfterPickUp { span, .. }
         | RuntimeWarning::UnnecessaryLoopRemain { span }
-        | RuntimeWarning::LoopHeldTooLong { span, .. }
+        | RuntimeWarning::OverstretchedFloat { span, .. }
         | RuntimeWarning::ContinuousTransferWithoutKnitting { span, .. }
         | RuntimeWarning::UnstableSplitKnit { span, .. }
         | RuntimeWarning::TransferWithPickUpStitch { span }
-        | RuntimeWarning::RackingWearingOutYarn { span, .. }
         | RuntimeWarning::PulldownTakedownOverload { span, .. }
         | RuntimeWarning::UnstableYarnFeeding { span }
-        | RuntimeWarning::SlackOfEdgeStitch { span }
         | RuntimeWarning::UnstitchedCarrier { span }
         | RuntimeWarning::CarrierLeftInAction { span }
         | RuntimeWarning::HookLeftEngaged { span } => *span,

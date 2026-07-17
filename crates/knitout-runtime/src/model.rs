@@ -73,24 +73,6 @@ impl LoopMachine {
         self.rack = rack;
     }
 
-    /// The current racking offset.
-    pub fn rack(&self) -> &BigDecimal {
-        &self.rack
-    }
-
-    /// The smallest and largest needle index currently holding loops, if any.
-    pub fn occupied_index_range(&self) -> Option<(i32, i32)> {
-        let mut range: Option<(i32, i32)> = None;
-        for info in self.loops.values() {
-            let index = needle_index(&info.current_needle);
-            range = Some(match range {
-                None => (index, index),
-                Some((lo, hi)) => (lo.min(index), hi.max(index)),
-            });
-        }
-        range
-    }
-
     /// The racking-adjusted column a needle sits at: front needles at their index, back needles
     /// shifted by `floor(rack)`.
     pub fn slot(&self, needle: &Needle<Validated>) -> i64 {
@@ -111,6 +93,19 @@ impl LoopMachine {
     pub fn top(&self, needle: &Needle<Validated>) -> Option<&LoopInfo> {
         let id = self.stacks.get(needle)?.last()?;
         self.loops.get(id)
+    }
+
+    /// The ids of the top `count` loops on a needle (topmost first), without removing them.
+    pub fn top_n(&self, needle: &Needle<Validated>, count: u32) -> Vec<LoopId> {
+        match self.stacks.get(needle) {
+            Some(stack) => stack.iter().rev().take(count as usize).copied().collect(),
+            None => Vec::new(),
+        }
+    }
+
+    /// The ids of every loop currently on the machine.
+    pub fn live_ids(&self) -> Vec<LoopId> {
+        self.loops.keys().copied().collect()
     }
 
     /// The current frontier (deepest generation reached) for a carrier.

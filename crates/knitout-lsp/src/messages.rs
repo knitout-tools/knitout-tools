@@ -107,9 +107,14 @@ pub fn runtime_warning_message(warning: &RuntimeWarning) -> String {
         RuntimeWarning::UnnecessaryLoopRemain { .. } => {
             "This needle is still holding a loop at the end of the program.".to_string()
         }
-        RuntimeWarning::LoopHeldTooLong { rows, .. } => {
-            format!("This loop is held on the machine for {rows} rows before it is knit.")
-        }
+        RuntimeWarning::OverstretchedFloat {
+            birth_length,
+            current_length,
+            ..
+        } => format!(
+            "This float has stretched from {birth_length} to {current_length} (racking, transfers, \
+             or age)."
+        ),
         RuntimeWarning::ContinuousTransferWithoutKnitting { transfers, .. } => {
             format!("This loop has been transferred {transfers} times without being knit.")
         }
@@ -120,22 +125,15 @@ pub fn runtime_warning_message(warning: &RuntimeWarning) -> String {
             "Transferring a loop that never pulled through another loop gives inconsistent results."
                 .to_string()
         }
-        RuntimeWarning::RackingWearingOutYarn { distance, .. } => {
-            format!(
-                "Two loops made close together are now {distance} needles apart, stretching the yarn."
-            )
-        }
         RuntimeWarning::PulldownTakedownOverload { distance, .. } => {
             format!(
                 "This loop is moved {distance} needles laterally, which can overload the take-down."
             )
         }
         RuntimeWarning::UnstableYarnFeeding { .. } => {
-            "Knitting off the hook or grippers onto the far bed feeds the yarn unstably."
+            "This carrier's first stitch feeds onto the bed opposite its Shima-Seiki home bed, \
+             which is unstable."
                 .to_string()
-        }
-        RuntimeWarning::SlackOfEdgeStitch { .. } => {
-            "Knitting the edge of a tube while racked leaves a slack gap at the edge.".to_string()
         }
         RuntimeWarning::UnstitchedCarrier { .. } => {
             "This carrier is taken out before it ever knitted, so its position is unknown."
@@ -284,9 +282,10 @@ mod tests {
                 pickup_span: None,
             },
             RuntimeWarning::UnnecessaryLoopRemain { span: None },
-            RuntimeWarning::LoopHeldTooLong {
+            RuntimeWarning::OverstretchedFloat {
                 span: None,
-                rows: 5,
+                birth_length: 1,
+                current_length: 9,
             },
             RuntimeWarning::ContinuousTransferWithoutKnitting {
                 span: None,
@@ -297,16 +296,11 @@ mod tests {
                 split_throughs: 2,
             },
             RuntimeWarning::TransferWithPickUpStitch { span: None },
-            RuntimeWarning::RackingWearingOutYarn {
-                span: None,
-                distance: 9,
-            },
             RuntimeWarning::PulldownTakedownOverload {
                 span: None,
                 distance: 13,
             },
             RuntimeWarning::UnstableYarnFeeding { span: None },
-            RuntimeWarning::SlackOfEdgeStitch { span: None },
             RuntimeWarning::UnstitchedCarrier { span: None },
             RuntimeWarning::CarrierLeftInAction { span: None },
             RuntimeWarning::HookLeftEngaged { span: None },
