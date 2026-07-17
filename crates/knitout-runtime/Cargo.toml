@@ -1,0 +1,19 @@
+[package]
+name = "knitout-runtime"
+description = "Runtime diagnostics (warnings and errors) for Knitout (.k) programs, built on the knitout-semantics virtual machine."
+version = "0.1.0"
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+keywords = ["knitout"]
+
+[dependencies]
+either = "1.16.0"
+knitout-ast = { version = "0.1.0", path = "../knitout-ast" }
+knitout-semantics = { version = "0.1.0", path = "../knitout-semantics" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mutants)'] }
