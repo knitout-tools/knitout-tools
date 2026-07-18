@@ -41,10 +41,15 @@ pub(crate) struct LoopInfo {
     pub born_frontier: u32,
     /// The needle the loop currently sits on.
     pub current_needle: Needle<Validated>,
-    /// The previous loop the same carrier made (the yarn runs from it to here), if still alive.
+    /// The previous loop the same carrier made (the yarn runs from it to here). May reference a loop
+    /// that has since been knit off — its frozen death position keeps the float measurable.
     pub yarn_prev: Option<LoopId>,
-    /// The next loop the same carrier made after this one, if still alive.
+    /// The next loop the same carrier made after this one. May reference a loop that has since been
+    /// knit off — its frozen death position keeps the float measurable.
     pub yarn_next: Option<LoopId>,
+    /// The length of the float to `yarn_prev` when this loop was made, cached for the overstretch
+    /// check. Travels with the loop into the dead registry so the float stays measurable after death.
+    pub prev_float_birth: Option<i64>,
 }
 
 /// The loop-lineage model. Field access is crate-internal; the analyzer drives it.
@@ -56,9 +61,12 @@ pub(crate) struct LoopMachine {
     stacks: HashMap<Needle<Validated>, Vec<LoopId>>,
     frontier: HashMap<Carrier<Validated>, u32>,
     carrier_last_loop: HashMap<Carrier<Validated>, LoopId>,
-    /// The frozen `(slot, is_front)` of loops that have been knit off. Their loops are gone from the
-    /// machine, but the yarn still runs to where they were, so floats to them stay measurable.
-    dead_positions: HashMap<LoopId, (i64, bool)>,
+    /// Loops that have been knit off, kept as `(info, frozen_slot)`. Their loops are gone from the
+    /// machine, but the yarn still runs to where they were, so a float between a live loop and a dead
+    /// one stays measurable from either end. An entry is dropped as soon as it has no live
+    /// yarn-neighbour (see [`LoopMachine::prune_if_unreachable`]), which bounds this map to the
+    /// loops adjacent to the live work rather than every loop ever knit off.
+    dead: HashMap<LoopId, (LoopInfo, i64)>,
     /// The live loops currently on the back bed. Racking only shifts back-bed slots, so only these
     /// loops' floats can change on a rack — the set keeps that re-check cheap.
     back_bed: HashSet<LoopId>,
@@ -73,7 +81,7 @@ impl LoopMachine {
             stacks: HashMap::new(),
             frontier: HashMap::new(),
             carrier_last_loop: HashMap::new(),
-            dead_positions: HashMap::new(),
+            dead: HashMap::new(),
             back_bed: HashSet::new(),
             next_id: 0,
         }
@@ -133,6 +141,21 @@ impl LoopMachine {
         self.loops.get(&id)
     }
 
+    /// Look up a loop by id whether it is still live or has been knit off (dead loops keep their
+    /// lineage so a float to a knit-off loop can be measured from either end).
+    pub fn info(&self, id: LoopId) -> Option<&LoopInfo> {
+        self.loops
+            .get(&id)
+            .or_else(|| self.dead.get(&id).map(|(info, _)| info))
+    }
+
+    /// Record the birth length of a live loop's float to its predecessor.
+    pub fn set_prev_float_birth(&mut self, id: LoopId, birth: i64) {
+        if let Some(info) = self.loops.get_mut(&id) {
+            info.prev_float_birth = Some(birth);
+        }
+    }
+
     /// The current `(slot, is_front)` of a loop, whether it is still on the machine (its live
     /// position, which moves with racking) or has been knit off (its frozen death position).
     pub fn position(&self, id: LoopId) -> Option<(i64, bool)> {
@@ -142,7 +165,8 @@ impl LoopMachine {
                 is_front(&info.current_needle),
             ))
         } else {
-            self.dead_positions.get(&id).copied()
+            let (info, slot) = self.dead.get(&id)?;
+            Some((*slot, is_front(&info.current_needle)))
         }
     }
 
@@ -185,6 +209,7 @@ impl LoopMachine {
                 current_needle: needle.clone(),
                 yarn_prev,
                 yarn_next: None,
+                prev_float_birth: None,
             },
         );
         if let Some(prev) = yarn_prev {
@@ -220,17 +245,40 @@ impl LoopMachine {
         let mut removed = Vec::new();
         for id in ids {
             if let Some(info) = self.loops.remove(&id) {
-                // Freeze where the loop was so floats to it (now a dead endpoint) stay measurable.
-                let position = (
-                    self.slot(&info.current_needle),
-                    is_front(&info.current_needle),
-                );
-                self.dead_positions.insert(id, position);
+                // Freeze where the loop was so a float to it (now a dead endpoint) stays measurable.
+                let frozen_slot = self.slot(&info.current_needle);
                 self.back_bed.remove(&id);
-                removed.push(info);
+                let (prev, next) = (info.yarn_prev, info.yarn_next);
+                removed.push(info.clone());
+                self.dead.insert(id, (info, frozen_slot));
+                // This loop leaving the live machine can strand dead loops that only it kept
+                // reachable — itself included if both its neighbours are already gone.
+                self.prune_if_unreachable(id);
+                if let Some(prev) = prev {
+                    self.prune_if_unreachable(prev);
+                }
+                if let Some(next) = next {
+                    self.prune_if_unreachable(next);
+                }
             }
         }
         removed
+    }
+
+    /// Drop a dead loop from the registry once no float re-check can ever reach it again — i.e. no
+    /// live loop names it as a yarn-neighbour *and* it is no longer any carrier's last loop (which
+    /// would make the carrier's next stitch link back to it). Otherwise keeping it only leaks memory.
+    fn prune_if_unreachable(&mut self, id: LoopId) {
+        let Some((info, _)) = self.dead.get(&id) else {
+            return;
+        };
+        let (carrier, prev, next) = (info.carrier, info.yarn_prev, info.yarn_next);
+        let prev_live = prev.is_some_and(|p| self.loops.contains_key(&p));
+        let next_live = next.is_some_and(|n| self.loops.contains_key(&n));
+        let is_carrier_last = self.carrier_last_loop.get(&carrier) == Some(&id);
+        if !prev_live && !next_live && !is_carrier_last {
+            self.dead.remove(&id);
+        }
     }
 
     /// Move all loops from `source` to `destination`, returning their ids in bottom-to-top order.
@@ -328,4 +376,42 @@ pub(crate) fn floor_rack(rack: &BigDecimal) -> i64 {
     rack.with_scale_round(0, RoundingMode::Floor)
         .to_i64()
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use knitout_ast::{CarrierTable, MyI32};
+
+    fn front(index: i32) -> Needle<Validated> {
+        Needle::new(
+            Bed::Front(()),
+            IsSlider::NotSlider(()),
+            MyI32::new(Either::Left(index), ()),
+            (),
+        )
+    }
+
+    #[test]
+    fn dead_registry_is_pruned_to_the_live_frontier() {
+        // Knitting a tall single-needle column knits off one loop per row. Each knit-off loop's only
+        // yarn-neighbour is the loop knit off just before it, which is itself already dead — so no
+        // live loop ever references them and the dead registry must stay bounded rather than growing
+        // one entry per row (the memory leak this guards against).
+        let mut table = CarrierTable::default();
+        let c = table.make_carrier::<Validated>("1", ());
+        let n = front(0);
+        let mut machine = LoopMachine::new();
+        machine.form(&n, c, Direction::Right(()), None, None);
+        for _ in 0..1000 {
+            let parent = machine.top(&n).map(|info| info.generation);
+            machine.drop_from(&n, 1);
+            machine.form(&n, c, Direction::Right(()), None, parent);
+        }
+        assert!(
+            machine.dead.len() <= 2,
+            "dead registry grew unbounded: {} entries after 1000 knit-offs",
+            machine.dead.len()
+        );
+    }
 }

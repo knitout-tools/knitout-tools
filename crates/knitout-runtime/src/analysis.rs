@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
 
 use either::Either;
-use knitout_ast::{BaseOperation, Carrier, Needle, Operation, Program, Span, Validated};
+use knitout_ast::{BaseOperation, Carrier, Needle, Never, Operation, Program, Span, Validated};
 use knitout_semantics::{Backend, Diagnostic, KnitEffect, MachineState, run_knitout};
 
 use crate::config::Thresholds;
@@ -111,8 +111,6 @@ struct Analyzer {
     /// The needle each carrier last knit/tucked/split/missed on, so drop-after-pickup can require
     /// the knit to *immediately* follow the pick-up (nothing by that carrier in between).
     prev_stitch_needle: HashMap<Carrier<Validated>, Needle<Validated>>,
-    /// The birth length of each loop's float to its yarn-predecessor.
-    float_prev_birth: HashMap<LoopId, i64>,
     warned_pulldown: HashSet<LoopId>,
     /// Loops whose prev-float has already been reported as overstretched.
     warned_float: HashSet<LoopId>,
@@ -450,17 +448,24 @@ impl Analyzer {
     /// float's own age — how many rows the carrier has advanced since `id` (the later of the two
     /// stitches) was made — so a held loop stretches its float even without moving.
     fn check_prev_float(&mut self, id: LoopId) {
-        let Some(&birth) = self.float_prev_birth.get(&id) else {
-            return;
-        };
-        let (carrier, born_frontier, birth_span, prev) = {
-            let Some(info) = self.machine.get(id) else {
+        // `info` (not `get`) so a knit-off loop's float is still measured from the dead side.
+        let (birth, carrier, born_frontier, birth_span, prev) = {
+            let Some(info) = self.machine.info(id) else {
+                return;
+            };
+            let Some(birth) = info.prev_float_birth else {
                 return;
             };
             let Some(prev) = info.yarn_prev else {
                 return;
             };
-            (info.carrier, info.born_frontier, info.birth_span, prev)
+            (
+                birth,
+                info.carrier,
+                info.born_frontier,
+                info.birth_span,
+                prev,
+            )
         };
         let Some((a_slot, a_front)) = self.machine.position(id) else {
             return;
@@ -487,9 +492,11 @@ impl Analyzer {
     }
 
     /// Re-check every float on the machine (used at program end, where any float may have aged).
+    /// Uses [`Self::check_float_around`] so a held loop's float to a knit-off *successor* is measured
+    /// too, not only the float to its predecessor.
     fn check_all_floats(&mut self) {
         for id in self.machine.live_ids() {
-            self.check_prev_float(id);
+            self.check_float_around(id);
         }
     }
 
@@ -539,7 +546,7 @@ impl Analyzer {
             return;
         };
         let birth = euclid(a_slot - b_slot, self.bed_axis(a_front, b_front), 0);
-        self.float_prev_birth.insert(id, birth);
+        self.machine.set_prev_float_birth(id, birth);
     }
 
     fn check_max_hold(&mut self, old: u32, new: u32, span: Option<Span>) {
@@ -655,10 +662,10 @@ fn shima_seiki_home_beds(program: &Program<Validated>) -> HashMap<Carrier<Valida
     let table = program.carrier_table();
     let mut map = HashMap::new();
     for op in program.operations() {
-        for carrier in carriers_in(&op.value) {
-            if let Ok(number) = table.carrier_name(&carrier).parse::<u32>() {
+        for carrier in carriers_in(&op.value).iter().map(only) {
+            if let Ok(number) = table.carrier_name(carrier).parse::<u32>() {
                 if (1..=10).contains(&number) {
-                    map.insert(carrier, number <= 5);
+                    map.insert(*carrier, number <= 5);
                 }
             }
         }
@@ -666,10 +673,11 @@ fn shima_seiki_home_beds(program: &Program<Validated>) -> HashMap<Carrier<Valida
     map
 }
 
-/// Every carrier named by an operation (for the home-bed scan).
-fn carriers_in(op: &Operation<Validated>) -> Vec<Carrier<Validated>> {
+/// The carrier set an operation names, borrowed rather than cloned (this runs over every operation
+/// at register time, so avoiding a per-operation allocation matters on large machine-generated files).
+fn carriers_in(op: &Operation<Validated>) -> &[Either<Carrier<Validated>, Never>] {
     let Operation::BaseOperation(base) = op else {
-        return Vec::new();
+        return &[];
     };
     match base {
         BaseOperation::In { carriers }
@@ -680,8 +688,8 @@ fn carriers_in(op: &Operation<Validated>) -> Vec<Carrier<Validated>> {
         | BaseOperation::Knit { carriers, .. }
         | BaseOperation::Tuck { carriers, .. }
         | BaseOperation::Miss { carriers, .. }
-        | BaseOperation::Split { carriers, .. } => owned_carriers(carriers),
-        _ => Vec::new(),
+        | BaseOperation::Split { carriers, .. } => carriers,
+        _ => &[],
     }
 }
 
@@ -706,7 +714,6 @@ impl Backend for Analyzer {
             last_stitch: HashMap::new(),
             last_pickup: HashMap::new(),
             prev_stitch_needle: HashMap::new(),
-            float_prev_birth: HashMap::new(),
             warned_pulldown: HashSet::new(),
             warned_float: HashSet::new(),
         };
@@ -738,9 +745,11 @@ impl Backend for Analyzer {
             }
             KnitEffect::HookReleased { .. } => {}
             KnitEffect::CarrierOut { carrier, .. } => {
-                // A carrier that is taken out and brought back in is fed fresh again, so its next
-                // stitch should be treated as a first stitch by the unstable-feeding check.
+                // A carrier that is taken out and brought back in is fed fresh again: its next stitch
+                // is a first stitch (unstable-feeding), and no earlier stitch counts as immediately
+                // preceding it (drop-after-pickup), because the out/in happened in between.
                 self.stitched.remove(&carrier);
+                self.prev_stitch_needle.remove(&carrier);
             }
             KnitEffect::Racked { to, .. } => {
                 self.machine.set_rack(to);
@@ -1115,6 +1124,79 @@ mod tests {
             w,
             RuntimeWarning::DropAfterPickUp { .. }
         )));
+    }
+
+    #[test]
+    fn drop_after_pickup_reset_when_carrier_goes_out_and_back_in() {
+        // A tuck, then the carrier is taken out and brought back in, then it knits the same needle
+        // the other way. The out/in cycle means the knit does not *immediately* follow the pick-up,
+        // so this is not a drop-after-pickup.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]),
+                out(&[c]),
+                in_(&[c]),
+                knit(neg(), f(0), &[c]),
+            ]
+        });
+        assert!(
+            !warns(&d, |w| matches!(w, RuntimeWarning::DropAfterPickUp { .. })),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn float_from_a_knit_off_loop_to_the_next_stitch_is_measured() {
+        // The carrier's stitch P (f0) is dropped, then the *same* carrier tucks elsewhere (f1) and
+        // holds there while it knits a tall column on f2. P is dead with no live yarn-neighbour at
+        // the moment it dies, but it is still the carrier's last loop, so the float from P to that
+        // next stitch (L on f1) must stay measurable and age as the held L gets older.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            let mut ops = vec![
+                in_(&[c]),
+                tuck(pos(), f(0), &[c]), // P
+                drop(f(0)),              // P knit off, still the carrier's last loop
+                tuck(pos(), f(1), &[c]), // L: yarn-joined to the dead P
+                tuck(pos(), f(2), &[c]), // start a column away from L
+            ];
+            for _ in 0..8 {
+                ops.push(knit(pos(), f(2), &[c])); // advance the frontier while L holds on f1
+            }
+            ops
+        });
+        assert!(
+            warns(
+                &d,
+                |w| matches!(w, RuntimeWarning::OverstretchedFloat { dominant_axis, .. } if *dominant_axis == FloatAxis::Age)
+            ),
+            "{d:?}"
+        );
+    }
+
+    #[test]
+    fn float_to_a_knit_off_successor_still_ages() {
+        // A (f0) is the carrier's *first* stitch, so it has no yarn-predecessor. Its successor B (f1)
+        // is knit off immediately and then the carrier knits many rows, ageing the A<->B float while
+        // A is held. The only float touching the held A runs to its dead *successor*, so if dead
+        // successors are ignored (the asymmetry) this hold goes completely unreported.
+        let d = run(None, |t| {
+            let c = t.make_carrier("1", ());
+            let mut ops = vec![in_(&[c]), tuck(pos(), f(0), &[c]), tuck(pos(), f(1), &[c])];
+            for _ in 0..8 {
+                ops.push(knit(pos(), f(1), &[c]));
+            }
+            ops
+        });
+        assert!(
+            warns(
+                &d,
+                |w| matches!(w, RuntimeWarning::OverstretchedFloat { dominant_axis, .. } if *dominant_axis == FloatAxis::Age)
+            ),
+            "{d:?}"
+        );
     }
 
     #[test]
