@@ -1149,29 +1149,35 @@ mod tests {
 
     #[test]
     fn float_from_a_knit_off_loop_to_the_next_stitch_is_measured() {
-        // The carrier's stitch P (f0) is dropped, then the *same* carrier tucks elsewhere (f1) and
-        // holds there while it knits a tall column on f2. P is dead with no live yarn-neighbour at
-        // the moment it dies, but it is still the carrier's last loop, so the float from P to that
-        // next stitch (L on f1) must stay measurable and age as the held L gets older.
+        // The carrier's stitch P (f0) is dropped, then the *same* carrier tucks far away (f10) and
+        // holds there while knitting a tall column on f11. P is dead with no live yarn-neighbour at
+        // the moment it dies, but it is still the carrier's last loop, so the long float from P to
+        // that next stitch (L on f10, birth length 10) must stay measurable and age as L is held.
+        // The assertion pins `birth_length: 10` so it can only be satisfied by the P<->L float, not
+        // by the short successor float from the f11 column back to L.
         let d = run(None, |t| {
             let c = t.make_carrier("1", ());
             let mut ops = vec![
                 in_(&[c]),
-                tuck(pos(), f(0), &[c]), // P
-                drop(f(0)),              // P knit off, still the carrier's last loop
-                tuck(pos(), f(1), &[c]), // L: yarn-joined to the dead P
-                tuck(pos(), f(2), &[c]), // start a column away from L
+                tuck(pos(), f(0), &[c]),  // P
+                drop(f(0)),               // P knit off, still the carrier's last loop
+                tuck(pos(), f(10), &[c]), // L: yarn-joined to the dead P, 10 slots away
+                tuck(pos(), f(11), &[c]), // start a column next to L
             ];
-            for _ in 0..8 {
-                ops.push(knit(pos(), f(2), &[c])); // advance the frontier while L holds on f1
+            for _ in 0..14 {
+                ops.push(knit(pos(), f(11), &[c])); // advance the frontier while L holds on f10
             }
             ops
         });
         assert!(
-            warns(
-                &d,
-                |w| matches!(w, RuntimeWarning::OverstretchedFloat { dominant_axis, .. } if *dominant_axis == FloatAxis::Age)
-            ),
+            warns(&d, |w| matches!(
+                w,
+                RuntimeWarning::OverstretchedFloat {
+                    birth_length: 10,
+                    dominant_axis: FloatAxis::Age,
+                    ..
+                }
+            )),
             "{d:?}"
         );
     }
